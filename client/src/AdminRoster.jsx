@@ -1,0 +1,177 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import SummaryBar from './components/SummaryBar.jsx';
+import RosterTable from './components/RosterTable.jsx';
+import ParticipantForm from './components/ParticipantForm.jsx';
+import ImportScreen from './components/ImportScreen.jsx';
+import TripSwitcher from './components/TripSwitcher.jsx';
+import {
+  fetchParticipants,
+  fetchStats,
+  createParticipant,
+  updateParticipant,
+  deleteParticipant,
+  exportUrl,
+} from './api/participants.js';
+import { fetchTrips } from './api/trips.js';
+
+const defaultFilters = {
+  q: '',
+  role: '',
+  grad_year: '',
+  sort: 'last_name',
+  showInactive: false,
+};
+
+export default function AdminRoster() {
+  const [trips, setTrips] = useState([]);
+  const [selectedTripId, setSelectedTripId] = useState(null);
+  const [participants, setParticipants] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [filters, setFilters] = useState(defaultFilters);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [editing, setEditing] = useState(null); // participant or 'new' or null
+  const [showImport, setShowImport] = useState(false);
+
+  const loadTrips = useCallback(async (preferredTripId) => {
+    const list = await fetchTrips();
+    setTrips(list);
+    const target =
+      list.find((t) => t.id === preferredTripId) || list.find((t) => t.is_current) || list[0];
+    setSelectedTripId(target ? target.id : null);
+    return target;
+  }, []);
+
+  useEffect(() => {
+    loadTrips().catch(() => setError('Could not reach the server. Is the API running?'));
+  }, [loadTrips]);
+
+  const load = useCallback(async () => {
+    if (!selectedTripId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [list, statsData] = await Promise.all([
+        fetchParticipants({
+          trip_id: selectedTripId,
+          q: filters.q,
+          role: filters.role,
+          grad_year: filters.grad_year,
+          sort: filters.sort,
+          active: filters.showInactive ? undefined : '1',
+        }),
+        fetchStats(selectedTripId),
+      ]);
+      setParticipants(list);
+      setStats(statsData);
+    } catch (err) {
+      setError('Could not reach the server. Is the API running?');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, selectedTripId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const gradYears = useMemo(() => {
+    const years = new Set();
+    participants.forEach((p) => {
+      if (p.grad_year && !Number.isNaN(Number(p.grad_year))) years.add(p.grad_year);
+    });
+    return Array.from(years).sort();
+  }, [participants]);
+
+  const handleSave = async (data) => {
+    if (editing && editing !== 'new') {
+      await updateParticipant(editing.id, data);
+    } else {
+      await createParticipant(data, selectedTripId);
+    }
+    setEditing(null);
+    await load();
+  };
+
+  const handleToggleActive = async (participant) => {
+    if (participant.active) {
+      await deleteParticipant(participant.id);
+    } else {
+      await updateParticipant(participant.id, { active: true });
+    }
+    await load();
+  };
+
+  const handleTripsChanged = async (preferredTripId) => {
+    await loadTrips(preferredTripId);
+  };
+
+  const selectedTrip = trips.find((t) => t.id === selectedTripId);
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <div>
+          <h1>{selectedTrip ? selectedTrip.name : 'Florida Trip'}</h1>
+          <p className="subtitle">Roster</p>
+        </div>
+        <div className="header-actions">
+          <Link className="btn btn--ghost" to="/register">
+            Registration form
+          </Link>
+          <button className="btn btn--ghost" onClick={() => setShowImport(true)}>
+            Bulk import
+          </button>
+          <a className="btn btn--ghost" href={exportUrl(selectedTripId)} download>
+            Export CSV
+          </a>
+          <button className="btn btn--primary" onClick={() => setEditing('new')}>
+            Add participant
+          </button>
+        </div>
+      </header>
+
+      <TripSwitcher
+        trips={trips}
+        selectedTripId={selectedTripId}
+        onSelectTrip={setSelectedTripId}
+        onTripsChanged={handleTripsChanged}
+      />
+
+      <SummaryBar stats={stats} />
+
+      {error && <div className="banner banner--error">{error}</div>}
+      {loading && !participants.length ? (
+        <p className="hint">Loading roster…</p>
+      ) : (
+        <RosterTable
+          participants={participants}
+          filters={filters}
+          onFiltersChange={setFilters}
+          onEdit={setEditing}
+          onDelete={handleToggleActive}
+          gradYears={gradYears}
+        />
+      )}
+
+      {editing && (
+        <ParticipantForm
+          participant={editing === 'new' ? null : editing}
+          tripYear={selectedTrip?.year}
+          onSave={handleSave}
+          onCancel={() => setEditing(null)}
+        />
+      )}
+
+      {showImport && (
+        <ImportScreen
+          tripId={selectedTripId}
+          tripYear={selectedTrip?.year}
+          onClose={() => setShowImport(false)}
+          onImported={load}
+        />
+      )}
+    </div>
+  );
+}
