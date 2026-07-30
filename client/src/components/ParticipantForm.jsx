@@ -22,13 +22,13 @@ function emptyForm(variant) {
  * Grade isn't collected here — it's always derived server-side from
  * grad_year + the trip's own year (same as age_at_trip from birth_date).
  */
-export default function ParticipantForm({ participant, tripYear, onSave, onCancel, variant = 'admin' }) {
+export default function ParticipantForm({ participant, onSave, onCancel, variant = 'admin' }) {
   const isPublic = variant === 'public';
   const [form, setForm] = useState(() => emptyForm(variant));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const gradYearOptions = studentGradYears(tripYear);
+  const gradYearOptions = studentGradYears();
 
   useEffect(() => {
     if (participant) {

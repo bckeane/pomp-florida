@@ -3,6 +3,7 @@ const BASE = '/api';
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     ...options,
   });
   const contentType = res.headers.get('content-type') || '';
@@ -55,4 +56,20 @@ export function importParticipants(csv, { partial = false, tripId } = {}) {
 
 export function exportUrl(tripId) {
   return `${BASE}/participants/export${tripId ? `?trip_id=${tripId}` : ''}`;
+}
+
+// Self-serve registration: requires a signed-in account (see api/auth.js);
+// creates the participant against the current trip, linked to that account.
+export function fetchMyParticipants() {
+  return request('/my/participants');
+}
+
+// Every distinct person this account has ever registered, across all trip
+// years — powers "add someone you've registered before" on the register page.
+export function fetchMyParticipantHistory() {
+  return request('/my/participants/history');
+}
+
+export function createMyParticipant(data) {
+  return request('/my/participants', { method: 'POST', body: JSON.stringify(data) });
 }

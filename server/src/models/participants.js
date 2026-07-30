@@ -80,6 +80,25 @@ export function getParticipantById(id) {
   return rowToParticipant(row);
 }
 
+// One row per distinct person this account has ever registered (across all
+// trip years), most-recent first — lets the register page offer "add this
+// returning person" instead of re-typing their details from scratch.
+export function listParticipantHistory(accountId) {
+  const rows = db
+    .prepare('SELECT * FROM participants WHERE account_id = ? ORDER BY created_at DESC')
+    .all(accountId);
+
+  const seen = new Set();
+  const distinct = [];
+  for (const row of rows) {
+    const key = `${row.first_name.toLowerCase()}|${row.last_name.toLowerCase()}|${row.birth_date ?? ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    distinct.push(row);
+  }
+  return distinct;
+}
+
 export function findDuplicate({ first_name, last_name, birth_date, trip_id }, excludeId = null) {
   const params = [trip_id, first_name, last_name, birth_date ?? null];
   let sql = `SELECT id FROM participants WHERE trip_id = ? AND first_name = ? AND last_name = ? AND birth_date IS ?`;
@@ -95,8 +114,8 @@ export function createParticipant(data) {
   const info = db
     .prepare(
       `INSERT INTO participants
-        (first_name, last_name, grad_year, birth_date, role, active, trip_id, created_at, updated_at)
-       VALUES (@first_name, @last_name, @grad_year, @birth_date, @role, @active, @trip_id, @created_at, @updated_at)`
+        (first_name, last_name, grad_year, birth_date, role, active, trip_id, account_id, created_at, updated_at)
+       VALUES (@first_name, @last_name, @grad_year, @birth_date, @role, @active, @trip_id, @account_id, @created_at, @updated_at)`
     )
     .run({
       first_name: data.first_name,
@@ -106,6 +125,7 @@ export function createParticipant(data) {
       role: data.role,
       active: data.active === false ? 0 : 1,
       trip_id: data.trip_id,
+      account_id: data.account_id ?? null,
       created_at: now,
       updated_at: now,
     });

@@ -3,11 +3,10 @@ import { z } from 'zod';
 const ROLES = ['Swimmer', 'Diver', 'Adult'];
 const ADULT_GRAD_YEARS = ['Coach', 'Med'];
 
-/** Grades 9-12 span 4 graduating classes anchored to the trip's own year. */
-function studentGradYearsFor(tripYear) {
-  const start = Number(tripYear);
-  if (!Number.isInteger(start)) return [];
-  return [start, start + 1, start + 2, start + 3].map(String);
+/** Valid student grad years: this year through 4 years in the future. */
+function studentGradYearsFor() {
+  const start = new Date().getFullYear();
+  return [start, start + 1, start + 2, start + 3, start + 4].map(String);
 }
 
 const isoDate = z
@@ -26,11 +25,10 @@ const baseShape = {
 const participantSchema = z.object(baseShape);
 
 /**
- * Validates a single participant record against a given trip's year (used to
- * compute the valid student grad-year range). Returns { data, errors } —
- * errors is an array of { field, message }, empty when the record is valid.
+ * Validates a single participant record. Returns { data, errors } — errors
+ * is an array of { field, message }, empty when the record is valid.
  */
-export function validateParticipant(input, tripYear) {
+export function validateParticipant(input) {
   const errors = [];
   const parsed = participantSchema.safeParse(input);
 
@@ -53,7 +51,7 @@ export function validateParticipant(input, tripYear) {
       });
     }
   } else {
-    const studentGradYears = studentGradYearsFor(tripYear);
+    const studentGradYears = studentGradYearsFor();
     if (!data.birth_date) {
       errors.push({ field: 'birth_date', message: 'birth_date is required for students' });
     }

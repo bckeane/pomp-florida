@@ -5,6 +5,10 @@ import RosterTable from './components/RosterTable.jsx';
 import ParticipantForm from './components/ParticipantForm.jsx';
 import ImportScreen from './components/ImportScreen.jsx';
 import TripSwitcher from './components/TripSwitcher.jsx';
+import TripDetailsForm from './components/TripDetailsForm.jsx';
+import AuthGate from './components/AuthGate.jsx';
+import ManageAdmins from './components/ManageAdmins.jsx';
+import { me, logout } from './api/auth.js';
 import {
   fetchParticipants,
   fetchStats,
@@ -24,6 +28,8 @@ const defaultFilters = {
 };
 
 export default function AdminRoster() {
+  const [account, setAccount] = useState(null);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [trips, setTrips] = useState([]);
   const [selectedTripId, setSelectedTripId] = useState(null);
   const [participants, setParticipants] = useState([]);
@@ -33,6 +39,17 @@ export default function AdminRoster() {
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(null); // participant or 'new' or null
   const [showImport, setShowImport] = useState(false);
+  const [showManageAdmins, setShowManageAdmins] = useState(false);
+  const [showTripDetails, setShowTripDetails] = useState(false);
+
+  const isAdmin = account?.role === 'admin';
+
+  useEffect(() => {
+    me()
+      .then(({ account }) => setAccount(account))
+      .catch(() => setAccount(null))
+      .finally(() => setCheckingSession(false));
+  }, []);
 
   const loadTrips = useCallback(async (preferredTripId) => {
     const list = await fetchTrips();
@@ -44,8 +61,9 @@ export default function AdminRoster() {
   }, []);
 
   useEffect(() => {
+    if (!isAdmin) return;
     loadTrips().catch(() => setError('Could not reach the server. Is the API running?'));
-  }, [loadTrips]);
+  }, [isAdmin, loadTrips]);
 
   const load = useCallback(async () => {
     if (!selectedTripId) return;
@@ -73,8 +91,9 @@ export default function AdminRoster() {
   }, [filters, selectedTripId]);
 
   useEffect(() => {
+    if (!isAdmin) return;
     load();
-  }, [load]);
+  }, [isAdmin, load]);
 
   const gradYears = useMemo(() => {
     const years = new Set();
@@ -107,6 +126,57 @@ export default function AdminRoster() {
     await loadTrips(preferredTripId);
   };
 
+  const handleTripDetailsSaved = async () => {
+    setShowTripDetails(false);
+    await loadTrips(selectedTripId);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setAccount(null);
+  };
+
+  if (checkingSession) {
+    return (
+      <div className="app">
+        <p className="hint">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!account) {
+    return (
+      <div className="admin-auth-page">
+        <header className="register-header">
+          <h1>Admin sign in</h1>
+        </header>
+        <AuthGate
+          allowSignup={false}
+          description="Sign in with your admin account to manage the roster."
+          onAuthenticated={setAccount}
+        />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="admin-auth-page">
+        <header className="register-header">
+          <h1>Admin sign in</h1>
+        </header>
+        <div className="form-card">
+          <p>
+            Signed in as {account.email}, but this account doesn't have admin access.
+          </p>
+          <button type="button" className="btn btn--primary" onClick={handleLogout}>
+            Log out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const selectedTrip = trips.find((t) => t.id === selectedTripId);
 
   return (
@@ -117,9 +187,17 @@ export default function AdminRoster() {
           <p className="subtitle">Roster</p>
         </div>
         <div className="header-actions">
+          <Link className="btn btn--ghost" to="/">
+            Home page
+          </Link>
           <Link className="btn btn--ghost" to="/register">
             Registration form
           </Link>
+          {selectedTrip && (
+            <button className="btn btn--ghost" onClick={() => setShowTripDetails(true)}>
+              Edit trip details
+            </button>
+          )}
           <button className="btn btn--ghost" onClick={() => setShowImport(true)}>
             Bulk import
           </button>
@@ -131,6 +209,19 @@ export default function AdminRoster() {
           </button>
         </div>
       </header>
+
+      <div className="account-bar">
+        <span>Signed in as {account.email} (admin)</span>
+        <span>
+          <button type="button" className="link-btn" onClick={() => setShowManageAdmins(true)}>
+            Manage admins
+          </button>
+          {' · '}
+          <button type="button" className="link-btn" onClick={handleLogout}>
+            Log out
+          </button>
+        </span>
+      </div>
 
       <TripSwitcher
         trips={trips}
@@ -158,7 +249,6 @@ export default function AdminRoster() {
       {editing && (
         <ParticipantForm
           participant={editing === 'new' ? null : editing}
-          tripYear={selectedTrip?.year}
           onSave={handleSave}
           onCancel={() => setEditing(null)}
         />
@@ -167,9 +257,18 @@ export default function AdminRoster() {
       {showImport && (
         <ImportScreen
           tripId={selectedTripId}
-          tripYear={selectedTrip?.year}
           onClose={() => setShowImport(false)}
           onImported={load}
+        />
+      )}
+
+      {showManageAdmins && <ManageAdmins onClose={() => setShowManageAdmins(false)} />}
+
+      {showTripDetails && selectedTrip && (
+        <TripDetailsForm
+          trip={selectedTrip}
+          onSaved={handleTripDetailsSaved}
+          onCancel={() => setShowTripDetails(false)}
         />
       )}
     </div>

@@ -1,6 +1,5 @@
-/** Grades 9-12 span 4 graduating classes anchored to the trip's own year. */
-export function studentGradYears(tripYear) {
-  const start = Number(tripYear);
-  if (!Number.isInteger(start)) return [];
-  return [start, start + 1, start + 2, start + 3].map(String);
+/** Valid student grad years: this year through 4 years in the future. */
+export function studentGradYears() {
+  const start = new Date().getFullYear();
+  return [start, start + 1, start + 2, start + 3, start + 4].map(String);
 }

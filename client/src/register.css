@@ -1,0 +1,350 @@
+/* Branded skin for the public registration page — same pool/scoreboard
+   system as home.css (this is step two of the same journey, not a new
+   product), scoped to .register-page so the admin sign-in gate, which
+   shares layout rules with this page, stays untouched. */
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@500;600&display=swap');
+
+.register-page {
+  --reg-ink: #0b2436;
+  --reg-pool: #0f7ea3;
+  --reg-pool-deep: #0a4f66;
+  --reg-bg: #f4f9f9;
+  --reg-surface: #ffffff;
+  --reg-gold: #f2b134;
+  --reg-coral: #ef6a4c;
+  --reg-line: #d8e6e8;
+
+  background: var(--reg-bg);
+  color: var(--reg-ink);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+}
+
+@media (prefers-color-scheme: dark) {
+  .register-page {
+    --reg-ink: #eaf3f5;
+    --reg-pool: #4fb8dd;
+    --reg-pool-deep: #2f7e9c;
+    --reg-bg: #071b26;
+    --reg-surface: #0f2b38;
+    --reg-gold: #f5c65b;
+    --reg-coral: #ff8367;
+    --reg-line: #1d3d47;
+  }
+}
+
+/* Header */
+.register-page .reg-back {
+  display: inline-block;
+  margin-bottom: 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--reg-pool);
+  text-decoration: none;
+}
+.register-page .reg-back:hover {
+  text-decoration: underline;
+}
+
+.register-page .reg-eyebrow {
+  margin: 0 0 0.3rem;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--reg-pool);
+}
+
+.register-page .register-header h1 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  font-size: clamp(1.5rem, 6vw, 1.9rem);
+  line-height: 1.1;
+}
+
+.register-page .subtitle {
+  color: var(--reg-ink);
+  opacity: 0.7;
+}
+
+.register-page .reg-divider {
+  height: 8px;
+  margin: 1.25rem 0 1.5rem;
+  border-radius: 999px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--reg-pool) 0,
+    var(--reg-pool) 18px,
+    var(--reg-gold) 18px,
+    var(--reg-gold) 25px
+  );
+  opacity: 0.5;
+}
+
+/* Account bar */
+.register-page .account-bar {
+  background: var(--reg-surface);
+  border: 1px solid var(--reg-line);
+  border-radius: 8px;
+  padding: 0.55rem 0.9rem;
+  color: var(--reg-ink);
+  flex-wrap: wrap;
+  row-gap: 0.3rem;
+}
+
+.register-page .account-bar span:first-child {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.78rem;
+  opacity: 0.75;
+  word-break: break-all;
+}
+
+.register-page .link-btn {
+  color: var(--reg-pool);
+  font-weight: 500;
+}
+
+/* Cards shared by AuthGate + ParticipantForm */
+.register-page .form-card {
+  background: var(--reg-surface);
+  border: 1px solid var(--reg-line);
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(11, 36, 54, 0.06);
+}
+
+.register-page .form-card h2 {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.register-page .hint {
+  color: var(--reg-ink);
+  opacity: 0.65;
+}
+
+.register-page .form-row label {
+  color: var(--reg-ink);
+  opacity: 0.75;
+  font-weight: 500;
+}
+
+.register-page .form-row input,
+.register-page .form-row select,
+.register-page .form-row textarea {
+  background: var(--reg-bg);
+  border: 1px solid var(--reg-line);
+  border-radius: 8px;
+  color: var(--reg-ink);
+}
+
+.register-page .form-row input:focus,
+.register-page .form-row select:focus,
+.register-page .form-row textarea:focus {
+  outline: none;
+  border-color: var(--reg-pool);
+  box-shadow: 0 0 0 3px rgba(15, 126, 163, 0.18);
+}
+
+.register-page .segmented {
+  border-color: var(--reg-line);
+}
+
+.register-page .segmented-btn {
+  background: var(--reg-surface);
+  color: var(--reg-ink);
+}
+
+.register-page .segmented-btn--active {
+  background: var(--reg-pool);
+  color: white;
+}
+
+.register-page .btn--primary {
+  background: var(--reg-pool);
+  border-color: var(--reg-pool);
+  color: white;
+  font-weight: 600;
+}
+.register-page .btn--primary:hover {
+  background: var(--reg-pool-deep);
+  border-color: var(--reg-pool-deep);
+}
+
+.register-page .btn--ghost {
+  border-color: var(--reg-line);
+  color: var(--reg-ink);
+}
+
+.register-page .field-error {
+  color: var(--reg-coral);
+}
+
+.register-page .form-error--root {
+  background: rgba(239, 106, 76, 0.12);
+  color: var(--reg-coral);
+}
+
+/* On-this-trip roster chips */
+.register-page .registered-card h2 {
+  margin-bottom: 0.7rem;
+}
+
+.register-page .roster-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.register-page .roster-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--reg-bg);
+  border: 1px solid var(--reg-line);
+  border-radius: 999px;
+  padding: 0.32rem 0.75rem 0.32rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.register-page .roster-chip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--reg-pool);
+  flex: none;
+}
+
+.register-page .roster-chip-role {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+/* Returning-participant lane cards — the page's signature element */
+.register-page .returning-card h2 {
+  margin-bottom: 0.15rem;
+}
+
+.register-page .lane-cards {
+  list-style: none;
+  margin: 0.9rem 0 0.6rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.65rem;
+}
+
+.register-page .lane-card {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.65rem 0.8rem;
+  background: var(--reg-surface);
+  border: 1px solid var(--reg-line);
+  border-left: 4px solid var(--reg-pool);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--reg-ink);
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.register-page .lane-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(11, 36, 54, 0.1);
+}
+
+.register-page .lane-card--selected {
+  border-left-color: var(--reg-gold);
+  border-color: var(--reg-gold);
+  box-shadow: 0 0 0 2px rgba(242, 177, 52, 0.25);
+}
+
+.register-page .lane-card-role {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--reg-pool);
+}
+
+.register-page .lane-card-name {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  line-height: 1.15;
+}
+
+.register-page .lane-card-first {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.register-page .lane-card-add {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--reg-gold);
+}
+
+/* Success state */
+.register-page .register-success {
+  text-align: center;
+  padding: 2rem 1.5rem;
+}
+
+.register-page .register-success::before {
+  content: '\2713';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 0.8rem;
+  border-radius: 999px;
+  background: var(--reg-pool);
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .register-page .register-success {
+    animation: reg-pop 0.35s ease-out both;
+  }
+}
+
+@keyframes reg-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.register-page .register-success p {
+  font-size: 1.05rem;
+  font-weight: 500;
+}

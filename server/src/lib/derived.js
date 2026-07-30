@@ -18,6 +18,10 @@ export function ageAtTrip(birthDate, tripDate) {
 }
 
 export function suggestGrade(gradYear, tripYear) {
+  // Number(null) and Number('') both coerce to 0, which IS an integer — so
+  // this guard must reject null/blank explicitly, not just check the
+  // Number() result, or a missing grad_year silently produces a bogus grade.
+  if (gradYear === null || gradYear === undefined || gradYear === '') return null;
   const year = Number(gradYear);
   const anchor = Number(tripYear);
   if (!Number.isInteger(year) || !Number.isInteger(anchor)) return null;

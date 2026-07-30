@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { getStats } from '../models/participants.js';
 import { getCurrentTrip, getTripById } from '../models/trips.js';
+import { requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
-router.get('/stats', (req, res) => {
+router.get('/stats', requireAdmin, (req, res) => {
   let tripId;
   if (req.query.trip_id) {
     const id = Number(req.query.trip_id);

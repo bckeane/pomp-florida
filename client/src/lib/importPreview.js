@@ -46,7 +46,7 @@ export function mapRow(rawRecord) {
 }
 
 /** Lightweight client-side preview check — the server remains authoritative. */
-export function previewValidate(row, tripYear) {
+export function previewValidate(row) {
   const errors = [];
   if (!row.first_name) errors.push('first name is required');
   if (!row.last_name) errors.push('last name is required');
@@ -60,7 +60,7 @@ export function previewValidate(row, tripYear) {
       errors.push(`adult grad year must be ${ADULT_GRAD_YEARS.join(' or ')}`);
     }
   } else {
-    const gradYearOptions = studentGradYears(tripYear);
+    const gradYearOptions = studentGradYears();
     if (!row.birth_date) errors.push('birth date is required for students');
     else if (!/^\d{4}-\d{2}-\d{2}$/.test(row.birth_date)) errors.push('birth date not recognized');
     if (row.grad_year && gradYearOptions.length && !gradYearOptions.includes(row.grad_year)) {

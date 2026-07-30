@@ -3,7 +3,7 @@ import { parseCSV } from '../lib/csv.js';
 import { mapRow, previewValidate } from '../lib/importPreview.js';
 import { importParticipants } from '../api/participants.js';
 
-export default function ImportScreen({ tripId, tripYear, onClose, onImported }) {
+export default function ImportScreen({ tripId, onClose, onImported }) {
   const [csvText, setCsvText] = useState('');
   const [preview, setPreview] = useState(null);
   const [importing, setImporting] = useState(false);
@@ -17,7 +17,7 @@ export default function ImportScreen({ tripId, tripYear, onClose, onImported }) 
     }
     const rows = parseCSV(text).map((raw) => {
       const mapped = mapRow(raw);
-      const errors = previewValidate(mapped, tripYear);
+      const errors = previewValidate(mapped);
       return { raw, mapped, errors };
     });
     setPreview(rows);

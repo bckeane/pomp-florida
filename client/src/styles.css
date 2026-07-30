@@ -342,8 +342,12 @@ body {
   max-width: 720px;
 }
 
-/* Standalone (non-modal) form, used by the public registration page */
-.register-page {
+/* Standalone (non-modal) form layout, shared by the public registration page
+   and the admin sign-in gate. The public page also gets its own branded skin
+   (register.css) scoped to .register-page — .admin-auth-page intentionally
+   stays plain/utilitarian, so it's kept out of that selector. */
+.register-page,
+.admin-auth-page {
   max-width: 480px;
   margin: 0 auto;
   padding: 1.5rem 1rem 4rem;
@@ -370,6 +374,34 @@ body {
   margin-top: 0;
 }
 
+.account-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.registered-card {
+  margin-bottom: 1rem;
+}
+
+.registered-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.returning-card {
+  margin-bottom: 1rem;
+}
+
+.returning-card h2 {
+  margin: 0 0 0.3rem;
+  font-size: 1rem;
+}
+
 .modal-panel h2 {
   margin-top: 0;
 }
@@ -391,13 +423,16 @@ body {
 }
 
 .form-row input,
-.form-row select {
+.form-row select,
+.form-row textarea {
   padding: 0.45rem 0.6rem;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
   font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
 }
 
 .field-error {
@@ -408,6 +443,15 @@ body {
 .form-error--root {
   background: rgba(192, 57, 43, 0.12);
   color: var(--danger);
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  margin-bottom: 0.8rem;
+  font-size: 0.85rem;
+}
+
+.form-notice--ok {
+  background: rgba(30, 130, 76, 0.12);
+  color: var(--ok);
   padding: 0.5rem 0.7rem;
   border-radius: 6px;
   margin-bottom: 0.8rem;

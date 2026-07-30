@@ -1,0 +1,356 @@
+/* Home page design system — a poolside/scoreboard identity, deliberately
+   separate from the utilitarian admin-tool styles in styles.css. Tokens:
+   pool blue + deep navy ink + backstroke-flag gold + Florida coral, on a
+   cool-white "pool deck" background. Display type is condensed/athletic
+   (Oswald), body is a neutral humanist sans (Inter), data reads in tabular
+   mono (Roboto Mono) the way split times do on a touchpad. */
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@500;600&display=swap');
+
+.home-page {
+  --home-ink: #0b2436;
+  --home-pool: #0f7ea3;
+  --home-pool-deep: #0a4f66;
+  --home-bg: #f4f9f9;
+  --home-surface: #ffffff;
+  --home-gold: #f2b134;
+  --home-coral: #ef6a4c;
+  --home-line: #d8e6e8;
+
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+  background: var(--home-bg);
+  color: var(--home-ink);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  .home-page {
+    --home-ink: #eaf3f5;
+    --home-pool: #4fb8dd;
+    --home-pool-deep: #2f7e9c;
+    --home-bg: #071b26;
+    --home-surface: #0f2b38;
+    --home-gold: #f5c65b;
+    --home-coral: #ff8367;
+    --home-line: #1d3d47;
+  }
+}
+
+.home-page a:not(.btn) {
+  color: var(--home-pool);
+}
+
+/* Hero */
+.hero {
+  text-align: center;
+  padding: 1rem 0 2rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero {
+    animation: home-rise 0.6s ease-out both;
+  }
+}
+
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.eyebrow {
+  margin: 0 0 0.6rem;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--home-pool);
+}
+
+.hero-title {
+  margin: 0;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  font-size: clamp(2.1rem, 6vw, 3.4rem);
+  line-height: 1.05;
+}
+
+.hero-dates {
+  margin: 0.6rem 0 0;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.95rem;
+  color: var(--home-pool-deep);
+}
+
+@media (prefers-color-scheme: dark) {
+  .hero-dates {
+    color: var(--home-pool);
+  }
+}
+
+.hero-intro {
+  max-width: 46ch;
+  margin: 1.1rem auto 0;
+  font-size: 1.02rem;
+  line-height: 1.5;
+  color: var(--home-ink);
+  opacity: 0.85;
+}
+
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.6rem;
+}
+
+.btn--lg {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+/* Scoreboard countdown — the signature element */
+.scoreboard {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 1.75rem auto 0;
+  padding: 1.1rem 1.6rem;
+  background: var(--home-ink);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(11, 36, 54, 0.18);
+}
+
+.scoreboard--closed {
+  background: var(--home-pool-deep);
+}
+
+.scoreboard-title,
+.scoreboard-sub {
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--home-gold);
+}
+
+.scoreboard-sub {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.scoreboard-splits {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.split {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 2.6rem;
+}
+
+.split-value {
+  font-family: 'Roboto Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.split-label {
+  margin-top: 0.25rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.scoreboard-colon {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 1.4rem;
+  color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-0.6rem);
+}
+
+/* Lane-rope divider */
+.lane-divider {
+  height: 10px;
+  margin: 2.25rem 0;
+  border-radius: 999px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--home-pool) 0,
+    var(--home-pool) 22px,
+    var(--home-gold) 22px,
+    var(--home-gold) 30px
+  );
+  opacity: 0.55;
+}
+
+/* Sections */
+.section {
+  padding: 0.25rem 0;
+}
+
+.section-title {
+  margin: 0 0 1rem;
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding-left: 0.75rem;
+  border-left: 4px solid var(--home-gold);
+}
+
+.section--contact {
+  text-align: center;
+}
+
+.glance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.glance-card {
+  background: var(--home-surface);
+  border: 1px solid var(--home-line);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.glance-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--home-pool);
+  margin-top: 0.6rem;
+}
+
+.glance-label:first-child {
+  margin-top: 0;
+}
+
+.glance-value {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.glance-note {
+  margin: 0.6rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.included-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.6rem 1.5rem;
+}
+
+.included-list li {
+  position: relative;
+  padding-left: 1.6rem;
+  font-size: 0.95rem;
+}
+
+.included-list li::before {
+  content: '\2713';
+  position: absolute;
+  left: 0;
+  color: var(--home-gold);
+  font-weight: 700;
+}
+
+.cost-splits {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.cost-split {
+  flex: 1 1 180px;
+  background: var(--home-surface);
+  border: 1px solid var(--home-line);
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.cost-split-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--home-pool);
+}
+
+.cost-split-value {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.cost-split-due {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.cost-total {
+  margin-top: 1rem;
+  font-weight: 600;
+}
+
+.coordinator-name {
+  margin: 0.2rem 0;
+  font-weight: 600;
+}
+
+.home-footer {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--home-line);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.footer-admin-link {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  opacity: 0.55;
+  text-decoration: none;
+}
+
+.home-page--empty {
+  text-align: center;
+  padding-top: 4rem;
+}

@@ -18,22 +18,18 @@ async function request(path, options = {}) {
   return body;
 }
 
-export function fetchTrips() {
-  return request('/trips');
+export function signup(email, password) {
+  return request('/auth/signup', { method: 'POST', body: JSON.stringify({ email, password }) });
 }
 
-export function fetchCurrentTrip() {
-  return request('/trips/current');
+export function login(email, password) {
+  return request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
 }
 
-export function createTrip(data) {
-  return request('/trips', { method: 'POST', body: JSON.stringify(data) });
+export function logout() {
+  return request('/auth/logout', { method: 'POST' });
 }
 
-export function activateTrip(id) {
-  return request(`/trips/${id}/activate`, { method: 'POST' });
-}
-
-export function updateTrip(id, data) {
-  return request(`/trips/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export function me() {
+  return request('/auth/me');
 }

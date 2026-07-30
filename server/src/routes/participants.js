@@ -3,6 +3,7 @@ import { validateParticipant } from '../lib/validation.js';
 import { mapImportRecord } from '../lib/importMapping.js';
 import { parseCSV, toCSV } from '../lib/csv.js';
 import { getCurrentTrip, getTripById } from '../models/trips.js';
+import { requireAdmin } from '../middleware/auth.js';
 import {
   listParticipants,
   getParticipantById,
@@ -16,6 +17,14 @@ import {
 } from '../models/participants.js';
 
 const router = Router();
+// Every route here is the admin roster's own CRUD/import/export — the
+// public self-serve path lives entirely under /api/my/participants instead.
+// requireAdmin is applied per-route (not via router.use()) because this
+// router is mounted at the shared '/api' prefix alongside trips/auth/etc —
+// an unconditional router.use(requireAdmin) here would intercept every
+// /api/* request before Express even checks which router's route matches,
+// wrongly 401-ing routes like /api/trips/current that belong to other
+// routers mounted at the same prefix.
 
 /** Resolves the trip a request should act on: ?trip_id= if given, else the active trip. */
 function resolveTrip(req) {
@@ -26,7 +35,7 @@ function resolveTrip(req) {
   return getCurrentTrip() || null;
 }
 
-router.get('/participants', (req, res) => {
+router.get('/participants', requireAdmin, (req, res) => {
   const trip = resolveTrip(req);
   if (trip === undefined) return res.status(400).json({ error: 'Unknown trip_id' });
   if (trip === null) return res.status(400).json({ error: 'No current trip is set' });
@@ -36,7 +45,7 @@ router.get('/participants', (req, res) => {
   res.json(participants);
 });
 
-router.get('/participants/export', (req, res) => {
+router.get('/participants/export', requireAdmin, (req, res) => {
   const trip = resolveTrip(req);
   if (trip === undefined) return res.status(400).json({ error: 'Unknown trip_id' });
   if (trip === null) return res.status(400).json({ error: 'No current trip is set' });
@@ -57,18 +66,18 @@ router.get('/participants/export', (req, res) => {
   res.send(csv);
 });
 
-router.get('/participants/:id', (req, res) => {
+router.get('/participants/:id', requireAdmin, (req, res) => {
   const participant = getParticipantById(req.params.id);
   if (!participant) return res.status(404).json({ error: 'Participant not found' });
   res.json(participant);
 });
 
-router.post('/participants', (req, res) => {
+router.post('/participants', requireAdmin, (req, res) => {
   const trip = resolveTrip(req);
   if (trip === undefined) return res.status(400).json({ error: 'Unknown trip_id' });
   if (trip === null) return res.status(400).json({ error: 'No current trip is set' });
 
-  const { data, errors } = validateParticipant(req.body, trip.year);
+  const { data, errors } = validateParticipant(req.body);
   if (errors.length) {
     return res.status(400).json({ errors: fieldKeyed(errors) });
   }
@@ -84,12 +93,11 @@ router.post('/participants', (req, res) => {
   res.status(201).json(participant);
 });
 
-router.put('/participants/:id', (req, res) => {
+router.put('/participants/:id', requireAdmin, (req, res) => {
   const existing = getParticipantById(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Participant not found' });
 
-  const existingTrip = getTripById(existing.trip_id);
-  const { data, errors } = validateParticipant({ ...existing, ...req.body }, existingTrip?.year);
+  const { data, errors } = validateParticipant({ ...existing, ...req.body });
   if (errors.length) {
     return res.status(400).json({ errors: fieldKeyed(errors) });
   }
@@ -105,7 +113,7 @@ router.put('/participants/:id', (req, res) => {
   res.json(participant);
 });
 
-router.delete('/participants/:id', (req, res) => {
+router.delete('/participants/:id', requireAdmin, (req, res) => {
   const hard = req.query.hard === 'true';
   const existing = getParticipantById(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Participant not found' });
@@ -115,7 +123,7 @@ router.delete('/participants/:id', (req, res) => {
   res.json({ ok: true, hard });
 });
 
-router.post('/participants/import', (req, res) => {
+router.post('/participants/import', requireAdmin, (req, res) => {
   const trip = resolveTrip(req);
   if (trip === undefined) return res.status(400).json({ error: 'Unknown trip_id' });
   if (trip === null) return res.status(400).json({ error: 'No current trip is set' });
@@ -137,7 +145,7 @@ router.post('/participants/import', (req, res) => {
 
   rawRecords.forEach((raw, index) => {
     const mapped = mapImportRecord(raw);
-    const { data, errors: rowErrors } = validateParticipant(mapped, trip.year);
+    const { data, errors: rowErrors } = validateParticipant(mapped);
 
     if (rowErrors.length) {
       rowErrors.forEach((e) => errors.push({ row: index + 1, field: e.field, message: e.message }));

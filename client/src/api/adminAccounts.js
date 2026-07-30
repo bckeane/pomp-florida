@@ -18,22 +18,12 @@ async function request(path, options = {}) {
   return body;
 }
 
-export function fetchTrips() {
-  return request('/trips');
+export function fetchAdminAccounts() {
+  return request('/admin/accounts');
 }
 
-export function fetchCurrentTrip() {
-  return request('/trips/current');
-}
-
-export function createTrip(data) {
-  return request('/trips', { method: 'POST', body: JSON.stringify(data) });
-}
-
-export function activateTrip(id) {
-  return request(`/trips/${id}/activate`, { method: 'POST' });
-}
-
-export function updateTrip(id, data) {
-  return request(`/trips/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+/** password is optional — omit it to promote an existing account to admin. */
+export function addAdminAccount(email, password) {
+  const body = password ? { email, password } : { email };
+  return request('/admin/accounts', { method: 'POST', body: JSON.stringify(body) });
 }
