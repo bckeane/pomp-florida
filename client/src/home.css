@@ -358,10 +358,11 @@
   gap: 0.6rem;
 }
 
-.footer-admin-link {
+.home-page a.footer-admin-link {
   margin-top: 0.4rem;
   font-size: 0.8rem;
-  opacity: 0.55;
+  color: var(--home-ink);
+  opacity: 0.65;
   text-decoration: none;
 }
 
