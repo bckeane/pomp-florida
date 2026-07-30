@@ -63,6 +63,7 @@
   letter-spacing: 0.01em;
   font-size: clamp(1.5rem, 6vw, 1.9rem);
   line-height: 1.1;
+  text-wrap: balance;
 }
 
 .register-page .subtitle {

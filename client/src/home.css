@@ -82,6 +82,7 @@
   letter-spacing: 0.01em;
   font-size: clamp(2.1rem, 6vw, 3.4rem);
   line-height: 1.05;
+  text-wrap: balance;
 }
 
 .hero-dates {
