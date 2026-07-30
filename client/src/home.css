@@ -121,6 +121,21 @@
   font-weight: 600;
 }
 
+.home-page .btn--primary {
+  background: var(--home-pool);
+  border-color: var(--home-pool);
+  color: white;
+}
+.home-page .btn--primary:hover {
+  background: var(--home-pool-deep);
+  border-color: var(--home-pool-deep);
+}
+
+.home-page .btn--ghost {
+  border-color: var(--home-line);
+  color: var(--home-ink);
+}
+
 /* Scoreboard countdown — the signature element */
 .scoreboard {
   display: inline-flex;
