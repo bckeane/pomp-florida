@@ -1,5 +1,6 @@
 import { db } from '../db/connection.js';
 import { getCurrentTripId, setCurrentTripId } from './settings.js';
+import { seedBudgetForNewTrip } from './budget.js';
 
 export function listTrips() {
   const trips = db.prepare('SELECT * FROM trips ORDER BY year DESC, id DESC').all();
@@ -44,7 +45,10 @@ const UPDATABLE_FIELDS = ['name', 'trip_date', ...DETAIL_FIELDS];
 // coordinators, what's included, etc. rarely change year to year) so the
 // public home page has real content immediately and an admin only has to
 // touch what actually changed (dates, cost) instead of retyping everything.
-export function createTrip({ year, name, trip_date }) {
+// createTrip + seedBudgetForNewTrip run in one transaction (Failure Modes,
+// CRITICAL) — a trip must never exist without its budget line items, and
+// vice versa; either both commit or neither does.
+const createTripAndSeedBudget = db.transaction(({ year, name, trip_date }) => {
   const now = new Date().toISOString();
   const previous = db.prepare('SELECT * FROM trips ORDER BY year DESC, id DESC LIMIT 1').get();
 
@@ -57,7 +61,15 @@ export function createTrip({ year, name, trip_date }) {
   const info = db
     .prepare(`INSERT INTO trips (${columns.join(', ')}) VALUES (${columns.map((c) => `@${c}`).join(', ')})`)
     .run(values);
-  return getTripById(info.lastInsertRowid);
+
+  seedBudgetForNewTrip(info.lastInsertRowid);
+
+  return info.lastInsertRowid;
+});
+
+export function createTrip({ year, name, trip_date }) {
+  const id = createTripAndSeedBudget({ year, name, trip_date });
+  return getTripById(id);
 }
 
 export function updateTrip(id, data) {

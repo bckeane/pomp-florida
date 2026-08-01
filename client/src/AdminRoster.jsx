@@ -6,6 +6,7 @@ import ParticipantForm from './components/ParticipantForm.jsx';
 import ImportScreen from './components/ImportScreen.jsx';
 import TripSwitcher from './components/TripSwitcher.jsx';
 import TripDetailsForm from './components/TripDetailsForm.jsx';
+import BudgetPanel from './components/BudgetPanel.jsx';
 import AuthGate from './components/AuthGate.jsx';
 import ManageAdmins from './components/ManageAdmins.jsx';
 import { me, logout } from './api/auth.js';
@@ -18,6 +19,8 @@ import {
   exportUrl,
 } from './api/participants.js';
 import { fetchTrips } from './api/trips.js';
+import pantherLogo from './img/pomp_icon.png';
+import './admin.css';
 
 const defaultFilters = {
   q: '',
@@ -41,6 +44,7 @@ export default function AdminRoster() {
   const [showImport, setShowImport] = useState(false);
   const [showManageAdmins, setShowManageAdmins] = useState(false);
   const [showTripDetails, setShowTripDetails] = useState(false);
+  const [activeTab, setActiveTab] = useState('roster');
 
   const isAdmin = account?.role === 'admin';
 
@@ -148,6 +152,7 @@ export default function AdminRoster() {
     return (
       <div className="admin-auth-page">
         <header className="register-header">
+          <img className="reg-logo" src={pantherLogo} alt="Pomperaug Panthers" />
           <h1>Admin sign in</h1>
         </header>
         <AuthGate
@@ -163,6 +168,7 @@ export default function AdminRoster() {
     return (
       <div className="admin-auth-page">
         <header className="register-header">
+          <img className="reg-logo" src={pantherLogo} alt="Pomperaug Panthers" />
           <h1>Admin sign in</h1>
         </header>
         <div className="form-card">
@@ -182,9 +188,12 @@ export default function AdminRoster() {
   return (
     <div className="app">
       <header className="app-header">
-        <div>
-          <h1>{selectedTrip ? selectedTrip.name : 'Florida Trip'}</h1>
-          <p className="subtitle">Roster</p>
+        <div className="app-title">
+          <img className="app-logo" src={pantherLogo} alt="" />
+          <div>
+            <h1>{selectedTrip ? selectedTrip.name : 'Florida Trip'}</h1>
+            <p className="subtitle">{activeTab === 'budget' ? 'Budget' : 'Roster'}</p>
+          </div>
         </div>
         <div className="header-actions">
           <Link className="btn btn--ghost" to="/">
@@ -198,15 +207,19 @@ export default function AdminRoster() {
               Edit trip details
             </button>
           )}
-          <button className="btn btn--ghost" onClick={() => setShowImport(true)}>
-            Bulk import
-          </button>
-          <a className="btn btn--ghost" href={exportUrl(selectedTripId)} download>
-            Export CSV
-          </a>
-          <button className="btn btn--primary" onClick={() => setEditing('new')}>
-            Add participant
-          </button>
+          {activeTab === 'roster' && (
+            <>
+              <button className="btn btn--ghost" onClick={() => setShowImport(true)}>
+                Bulk import
+              </button>
+              <a className="btn btn--ghost" href={exportUrl(selectedTripId)} download>
+                Export CSV
+              </a>
+              <button className="btn btn--primary" onClick={() => setEditing('new')}>
+                Add participant
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -232,8 +245,30 @@ export default function AdminRoster() {
 
       <SummaryBar stats={stats} />
 
+      {selectedTrip && (
+        <div className="segmented" style={{ maxWidth: 280, marginBottom: '1rem' }}>
+          <button
+            type="button"
+            className={`segmented-btn ${activeTab === 'roster' ? 'segmented-btn--active' : ''}`}
+            onClick={() => setActiveTab('roster')}
+          >
+            Roster
+          </button>
+          <button
+            type="button"
+            className={`segmented-btn ${activeTab === 'budget' ? 'segmented-btn--active' : ''}`}
+            onClick={() => setActiveTab('budget')}
+          >
+            Budget
+          </button>
+        </div>
+      )}
+
       {error && <div className="banner banner--error">{error}</div>}
-      {loading && !participants.length ? (
+
+      {activeTab === 'budget' && selectedTrip ? (
+        <BudgetPanel tripId={selectedTrip.id} />
+      ) : loading && !participants.length ? (
         <p className="hint">Loading roster…</p>
       ) : (
         <RosterTable

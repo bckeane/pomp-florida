@@ -208,6 +208,7 @@ export function getStats(tripId) {
 
   return {
     total_active: rows.length,
+    students_active: byRole.Swimmer + byRole.Diver,
     by_role: byRole,
     by_grad_year: byGradYear,
   };

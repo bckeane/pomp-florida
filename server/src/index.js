@@ -9,6 +9,7 @@ import tripsRouter from './routes/trips.js';
 import authRouter from './routes/auth.js';
 import myParticipantsRouter from './routes/myParticipants.js';
 import adminAccountsRouter from './routes/adminAccounts.js';
+import budgetRouter from './routes/budget.js';
 
 runMigrations();
 
@@ -25,6 +26,7 @@ app.use('/api', tripsRouter);
 app.use('/api', authRouter);
 app.use('/api', myParticipantsRouter);
 app.use('/api', adminAccountsRouter);
+app.use('/api', budgetRouter);
 
 app.use((err, req, res, next) => {
   console.error(err.message);
