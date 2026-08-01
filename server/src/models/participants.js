@@ -9,6 +9,8 @@ const COLUMNS = [
   'birth_date',
   'role',
   'active',
+  'deposit_paid',
+  'final_payment_paid',
   'trip_id',
   'created_at',
   'updated_at',
@@ -114,8 +116,8 @@ export function createParticipant(data) {
   const info = db
     .prepare(
       `INSERT INTO participants
-        (first_name, last_name, grad_year, birth_date, role, active, trip_id, account_id, created_at, updated_at)
-       VALUES (@first_name, @last_name, @grad_year, @birth_date, @role, @active, @trip_id, @account_id, @created_at, @updated_at)`
+        (first_name, last_name, grad_year, birth_date, role, active, deposit_paid, final_payment_paid, trip_id, account_id, created_at, updated_at)
+       VALUES (@first_name, @last_name, @grad_year, @birth_date, @role, @active, @deposit_paid, @final_payment_paid, @trip_id, @account_id, @created_at, @updated_at)`
     )
     .run({
       first_name: data.first_name,
@@ -124,6 +126,8 @@ export function createParticipant(data) {
       birth_date: data.birth_date ?? null,
       role: data.role,
       active: data.active === false ? 0 : 1,
+      deposit_paid: data.deposit_paid === true ? 1 : 0,
+      final_payment_paid: data.final_payment_paid === true ? 1 : 0,
       trip_id: data.trip_id,
       account_id: data.account_id ?? null,
       created_at: now,
@@ -147,6 +151,8 @@ export function updateParticipant(id, data) {
       birth_date = @birth_date,
       role = @role,
       active = @active,
+      deposit_paid = @deposit_paid,
+      final_payment_paid = @final_payment_paid,
       trip_id = @trip_id,
       updated_at = @updated_at
      WHERE id = @id`
@@ -158,6 +164,8 @@ export function updateParticipant(id, data) {
     birth_date: merged.birth_date ?? null,
     role: merged.role,
     active: merged.active === false || merged.active === 0 ? 0 : 1,
+    deposit_paid: merged.deposit_paid ? 1 : 0,
+    final_payment_paid: merged.final_payment_paid ? 1 : 0,
     trip_id: merged.trip_id,
     updated_at: now,
   });

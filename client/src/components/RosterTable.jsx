@@ -12,6 +12,7 @@ export default function RosterTable({
   onFiltersChange,
   onEdit,
   onDelete,
+  onTogglePayment,
   gradYears,
 }) {
   const { q, role, grad_year, sort, showInactive } = filters;
@@ -95,6 +96,8 @@ export default function RosterTable({
             <th>Grade</th>
             <th>Age</th>
             <th>Status</th>
+            <th>Deposit</th>
+            <th>Final pmt</th>
             <th></th>
           </tr>
         </thead>
@@ -107,6 +110,26 @@ export default function RosterTable({
               <td data-label="Grade">{p.grade ?? '—'}</td>
               <td data-label="Age">{p.age_at_trip ?? '—'}</td>
               <td data-label="Status">{p.active ? 'Active' : 'Inactive'}</td>
+              <td data-label="Deposit" style={{ textAlign: 'center' }}>
+                <input
+                  type="checkbox"
+                  checked={!!p.deposit_paid}
+                  onChange={() => onTogglePayment(p, 'deposit_paid')}
+                  title={p.deposit_paid ? 'Deposit received — click to unmark' : 'Deposit not yet received'}
+                />
+              </td>
+              <td data-label="Final pmt" style={{ textAlign: 'center' }}>
+                <input
+                  type="checkbox"
+                  checked={!!p.final_payment_paid}
+                  onChange={() => onTogglePayment(p, 'final_payment_paid')}
+                  title={
+                    p.final_payment_paid
+                      ? 'Final payment received — click to unmark'
+                      : 'Final payment not yet received'
+                  }
+                />
+              </td>
               <td className="row-actions" data-label="">
                 <button className="link-btn" onClick={() => onEdit(p)}>
                   Edit
@@ -119,7 +142,7 @@ export default function RosterTable({
           ))}
           {participants.length === 0 && (
             <tr>
-              <td colSpan={7} className="empty-row">
+              <td colSpan={9} className="empty-row">
                 No participants match these filters.
               </td>
             </tr>

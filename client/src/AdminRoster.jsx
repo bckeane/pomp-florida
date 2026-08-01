@@ -126,6 +126,11 @@ export default function AdminRoster() {
     await load();
   };
 
+  const handleTogglePayment = async (participant, field) => {
+    await updateParticipant(participant.id, { [field]: !participant[field] });
+    await load();
+  };
+
   const handleTripsChanged = async (preferredTripId) => {
     await loadTrips(preferredTripId);
   };
@@ -277,6 +282,7 @@ export default function AdminRoster() {
           onFiltersChange={setFilters}
           onEdit={setEditing}
           onDelete={handleToggleActive}
+          onTogglePayment={handleTogglePayment}
           gradYears={gradYears}
         />
       )}

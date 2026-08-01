@@ -20,6 +20,8 @@ const baseShape = {
   birth_date: z.union([isoDate, z.literal(''), z.null(), z.undefined()]),
   role: z.enum(ROLES, { errorMap: () => ({ message: `role must be one of ${ROLES.join(', ')}` }) }),
   active: z.coerce.boolean().optional(),
+  deposit_paid: z.coerce.boolean().optional(),
+  final_payment_paid: z.coerce.boolean().optional(),
 };
 
 const participantSchema = z.object(baseShape);
