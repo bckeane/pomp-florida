@@ -1,9 +1,22 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCurrentTrip } from './api/trips.js';
-import { formatLongDate, formatShortDate } from './lib/dates.js';
+import { formatLongDate, formatShortDate, formatDateTile } from './lib/dates.js';
 import { useCountdown } from './lib/useCountdown.js';
+import pantherLogo from './img/pomp_icon.png';
 import './home.css';
+
+function DateTile({ iso }) {
+  const tile = formatDateTile(iso);
+  if (!tile) return null;
+  return (
+    <div className="date-tile">
+      <span className="date-tile-weekday">{tile.weekday}</span>
+      <span className="date-tile-day">{tile.day}</span>
+      <span className="date-tile-month">{tile.month}</span>
+    </div>
+  );
+}
 
 function Split({ value, label }) {
   return (
@@ -81,6 +94,7 @@ export default function HomePage() {
   if (status === 'not-found') {
     return (
       <div className="home-page home-page--empty">
+        <img className="hero-logo" src={pantherLogo} alt="Pomperaug Panthers" />
         <p className="eyebrow">Pomperaug Panthers Swim &amp; Dive</p>
         <h1 className="hero-title">No trip announced yet</h1>
         <p className="hint">Check back soon for details.</p>
@@ -105,6 +119,7 @@ export default function HomePage() {
   return (
     <div className="home-page">
       <header className="hero">
+        <img className="hero-logo" src={pantherLogo} alt="Pomperaug Panthers" />
         <p className="eyebrow">Pomperaug Panthers Swim &amp; Dive</p>
         <h1 className="hero-title">{trip.name}</h1>
         <p className="hero-dates">
@@ -133,10 +148,14 @@ export default function HomePage() {
         <h2 className="section-title">The trip at a glance</h2>
         <div className="glance-grid">
           <div className="glance-card">
-            <span className="glance-label">Depart</span>
-            <span className="glance-value">{formatLongDate(trip.trip_date) || '—'}</span>
-            <span className="glance-label">Return</span>
-            <span className="glance-value">{formatLongDate(trip.return_date) || '—'}</span>
+            <span className="glance-label">Trip dates</span>
+            <div className="date-tiles">
+              <DateTile iso={trip.trip_date} />
+              <DateTile iso={trip.return_date} />
+            </div>
+            <span className="glance-value">
+              {formatLongDate(trip.trip_date) || '—'} &rarr; {formatLongDate(trip.return_date) || '—'}
+            </span>
             {trip.miss_school_note && <p className="glance-note">{trip.miss_school_note}</p>}
           </div>
 

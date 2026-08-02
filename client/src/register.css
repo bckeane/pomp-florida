@@ -1,18 +1,17 @@
-/* Branded skin for the public registration page — same pool/scoreboard
+/* Branded skin for the public registration page — same red/black Panthers
    system as home.css (this is step two of the same journey, not a new
    product), scoped to .register-page so the admin sign-in gate, which
    shares layout rules with this page, stays untouched. */
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@500;600&display=swap');
 
 .register-page {
-  --reg-ink: #0b2436;
-  --reg-pool: #0f7ea3;
-  --reg-pool-deep: #0a4f66;
-  --reg-bg: #f4f9f9;
+  --reg-black: #111111;
+  --reg-red: #980000;
+  --reg-red-bright: #b21111;
+  --reg-ink: #1c1c1c;
+  --reg-bg: #f4f4f5;
   --reg-surface: #ffffff;
-  --reg-gold: #f2b134;
-  --reg-coral: #ef6a4c;
-  --reg-line: #d8e6e8;
+  --reg-line: #dcdcdf;
 
   background: var(--reg-bg);
   color: var(--reg-ink);
@@ -22,24 +21,29 @@
 
 @media (prefers-color-scheme: dark) {
   .register-page {
-    --reg-ink: #eaf3f5;
-    --reg-pool: #4fb8dd;
-    --reg-pool-deep: #2f7e9c;
-    --reg-bg: #071b26;
-    --reg-surface: #0f2b38;
-    --reg-gold: #f5c65b;
-    --reg-coral: #ff8367;
-    --reg-line: #1d3d47;
+    --reg-black: #0a0a0a;
+    --reg-red: #ff5c5c;
+    --reg-red-bright: #ff8080;
+    --reg-ink: #f0f0f0;
+    --reg-bg: #141414;
+    --reg-surface: #1e1e1e;
+    --reg-line: #333335;
   }
 }
 
 /* Header */
+.register-page .reg-logo {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 0.6rem;
+}
+
 .register-page .reg-back {
   display: inline-block;
   margin-bottom: 0.9rem;
   font-size: 0.82rem;
   font-weight: 500;
-  color: var(--reg-pool);
+  color: var(--reg-red);
   text-decoration: none;
 }
 .register-page .reg-back:hover {
@@ -53,7 +57,7 @@
   font-weight: 600;
   letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: var(--reg-pool);
+  color: var(--reg-red-bright);
 }
 
 .register-page .register-header h1 {
@@ -72,17 +76,11 @@
 }
 
 .register-page .reg-divider {
-  height: 8px;
+  height: 4px;
   margin: 1.25rem 0 1.5rem;
   border-radius: 999px;
-  background: repeating-linear-gradient(
-    90deg,
-    var(--reg-pool) 0,
-    var(--reg-pool) 18px,
-    var(--reg-gold) 18px,
-    var(--reg-gold) 25px
-  );
-  opacity: 0.5;
+  background: var(--reg-red);
+  opacity: 0.85;
 }
 
 /* Account bar */
@@ -104,7 +102,7 @@
 }
 
 .register-page .link-btn {
-  color: var(--reg-pool);
+  color: var(--reg-red);
   font-weight: 500;
 }
 
@@ -113,7 +111,7 @@
   background: var(--reg-surface);
   border: 1px solid var(--reg-line);
   border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(11, 36, 54, 0.06);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
 }
 
 .register-page .form-card h2 {
@@ -147,8 +145,8 @@
 .register-page .form-row select:focus,
 .register-page .form-row textarea:focus {
   outline: none;
-  border-color: var(--reg-pool);
-  box-shadow: 0 0 0 3px rgba(15, 126, 163, 0.18);
+  border-color: var(--reg-red);
+  box-shadow: 0 0 0 3px rgba(152, 0, 0, 0.16);
 }
 
 .register-page .segmented {
@@ -161,19 +159,19 @@
 }
 
 .register-page .segmented-btn--active {
-  background: var(--reg-pool);
+  background: var(--reg-red-bright);
   color: white;
 }
 
 .register-page .btn--primary {
-  background: var(--reg-pool);
-  border-color: var(--reg-pool);
+  background: var(--reg-red-bright);
+  border-color: var(--reg-red-bright);
   color: white;
   font-weight: 600;
 }
 .register-page .btn--primary:hover {
-  background: var(--reg-pool-deep);
-  border-color: var(--reg-pool-deep);
+  background: var(--reg-red);
+  border-color: var(--reg-red);
 }
 
 .register-page .btn--ghost {
@@ -182,12 +180,12 @@
 }
 
 .register-page .field-error {
-  color: var(--reg-coral);
+  color: var(--danger);
 }
 
 .register-page .form-error--root {
-  background: rgba(239, 106, 76, 0.12);
-  color: var(--reg-coral);
+  background: rgba(192, 57, 43, 0.12);
+  color: var(--danger);
 }
 
 /* On-this-trip roster chips */
@@ -220,7 +218,7 @@
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: var(--reg-pool);
+  background: var(--reg-red);
   flex: none;
 }
 
@@ -256,7 +254,7 @@
   padding: 0.65rem 0.8rem;
   background: var(--reg-surface);
   border: 1px solid var(--reg-line);
-  border-left: 4px solid var(--reg-pool);
+  border-left: 4px solid var(--reg-red);
   border-radius: 8px;
   cursor: pointer;
   text-align: left;
@@ -267,13 +265,13 @@
 
 .register-page .lane-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(11, 36, 54, 0.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
 .register-page .lane-card--selected {
-  border-left-color: var(--reg-gold);
-  border-color: var(--reg-gold);
-  box-shadow: 0 0 0 2px rgba(242, 177, 52, 0.25);
+  border-left-color: var(--reg-black);
+  border-color: var(--reg-black);
+  box-shadow: 0 0 0 2px rgba(17, 17, 17, 0.2);
 }
 
 .register-page .lane-card-role {
@@ -282,7 +280,7 @@
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--reg-pool);
+  color: var(--reg-red);
 }
 
 .register-page .lane-card-name {
@@ -304,7 +302,7 @@
   right: 0.6rem;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--reg-gold);
+  color: var(--reg-red-bright);
 }
 
 /* Success state */
@@ -322,7 +320,7 @@
   height: 44px;
   margin: 0 auto 0.8rem;
   border-radius: 999px;
-  background: var(--reg-pool);
+  background: var(--reg-red-bright);
   color: white;
   font-size: 1.3rem;
   font-weight: 700;

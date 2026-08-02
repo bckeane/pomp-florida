@@ -4,8 +4,8 @@
   --border: #dfe1e6;
   --text: #1c1e21;
   --text-muted: #6b7280;
-  --primary: #0f62d0;
-  --primary-hover: #0b4ea3;
+  --primary: #b21111;
+  --primary-hover: #980000;
   --danger: #c0392b;
   --ok: #1e824c;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -18,8 +18,8 @@
     --border: #333740;
     --text: #ecedee;
     --text-muted: #9aa0a6;
-    --primary: #4a90e2;
-    --primary-hover: #6fa8e8;
+    --primary: #ff8080;
+    --primary-hover: #ff5c5c;
   }
 }
 
@@ -51,6 +51,18 @@ body {
 .app-header h1 {
   margin: 0;
   font-size: 1.4rem;
+}
+
+.app-title {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.app-logo {
+  width: 32px;
+  height: 32px;
+  flex: none;
 }
 
 .subtitle {

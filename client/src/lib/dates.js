@@ -18,3 +18,14 @@ export function formatShortDate(iso) {
   if (!date) return null;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
+
+/** Weekday + month/day split into parts, for calendar-tile style date badges. */
+export function formatDateTile(iso) {
+  const date = parseLocalDate(iso);
+  if (!date) return null;
+  return {
+    weekday: date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+    month: date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+    day: date.getDate(),
+  };
+}

@@ -1,0 +1,67 @@
+/* Admin tool skin — same Pomperaug Panthers red/black brand as home.css and
+   register.css, applied to a dense, functional data tool rather than a
+   marketing page. Most of the color already flows from the global
+   --primary/--primary-hover tokens in styles.css (buttons, chips, links,
+   segmented controls all key off those already); this file adds the
+   condensed-headline typography and focus-ring polish the other two pages
+   already have, scoped to .app (the roster tool) and .admin-auth-page (the
+   sign-in gate) so it never leaks into .home-page/.register-page. */
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&display=swap');
+
+.app .app-header h1,
+.app .modal-panel h2,
+.app .form-card h2,
+.admin-auth-page .register-header h1 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.app .form-row input:focus,
+.app .form-row select:focus,
+.app .form-row textarea:focus,
+.admin-auth-page .form-row input:focus,
+.admin-auth-page .form-row select:focus,
+.admin-auth-page .form-row textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(178, 17, 17, 0.16);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app .form-row input:focus,
+  .app .form-row select:focus,
+  .app .form-row textarea:focus,
+  .admin-auth-page .form-row input:focus,
+  .admin-auth-page .form-row select:focus,
+  .admin-auth-page .form-row textarea:focus {
+    box-shadow: 0 0 0 3px rgba(255, 128, 128, 0.2);
+  }
+}
+
+/* --primary and --danger are both muted reds now, close enough that the
+   Edit/Remove pair loses its old blue-vs-red distinction. Keep Edit neutral
+   here so Remove (still --danger) reads as the one destructive action. */
+.app .roster-table .link-btn:not(.link-btn--danger) {
+  color: var(--text);
+}
+.app .roster-table .link-btn:not(.link-btn--danger):hover {
+  color: var(--primary);
+}
+
+.app .roster-table tbody tr:hover {
+  background: rgba(178, 17, 17, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  .app .roster-table tbody tr:hover {
+    background: rgba(255, 128, 128, 0.06);
+  }
+}
+
+.admin-auth-page .reg-logo {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 0.6rem;
+}

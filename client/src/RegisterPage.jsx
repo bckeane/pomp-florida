@@ -5,6 +5,7 @@ import AuthGate from './components/AuthGate.jsx';
 import { me, logout } from './api/auth.js';
 import { createMyParticipant, fetchMyParticipants, fetchMyParticipantHistory } from './api/participants.js';
 import { fetchCurrentTrip } from './api/trips.js';
+import pantherLogo from './img/pomp_icon.png';
 import './register.css';
 
 export default function RegisterPage() {
@@ -78,6 +79,7 @@ export default function RegisterPage() {
         <Link className="reg-back" to="/">
           ← Back to trip info
         </Link>
+        <img className="reg-logo" src={pantherLogo} alt="Pomperaug Panthers" />
         <p className="reg-eyebrow">Pomperaug Panthers Swim &amp; Dive</p>
         <h1>{trip ? trip.name : 'Trip'} Registration</h1>
         <p className="subtitle">Add a swimmer, diver, or adult to the roster.</p>

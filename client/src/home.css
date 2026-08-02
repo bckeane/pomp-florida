@@ -1,20 +1,19 @@
-/* Home page design system — a poolside/scoreboard identity, deliberately
-   separate from the utilitarian admin-tool styles in styles.css. Tokens:
-   pool blue + deep navy ink + backstroke-flag gold + Florida coral, on a
-   cool-white "pool deck" background. Display type is condensed/athletic
+/* Home page design system — Pomperaug Panthers red/black identity, matching
+   region15.org's actual brand colors (their real link/nav red, not a guess)
+   and the team's claw-mark logo. Display type stays condensed/athletic
    (Oswald), body is a neutral humanist sans (Inter), data reads in tabular
-   mono (Roboto Mono) the way split times do on a touchpad. */
+   mono (Roboto Mono). Deliberately separate from the utilitarian admin-tool
+   styles in styles.css. */
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@500;600&display=swap');
 
 .home-page {
-  --home-ink: #0b2436;
-  --home-pool: #0f7ea3;
-  --home-pool-deep: #0a4f66;
-  --home-bg: #f4f9f9;
+  --home-black: #111111;
+  --home-red: #980000;
+  --home-red-bright: #b21111;
+  --home-ink: #1c1c1c;
+  --home-bg: #f4f4f5;
   --home-surface: #ffffff;
-  --home-gold: #f2b134;
-  --home-coral: #ef6a4c;
-  --home-line: #d8e6e8;
+  --home-line: #dcdcdf;
 
   max-width: 880px;
   margin: 0 auto;
@@ -26,25 +25,28 @@
 
 @media (prefers-color-scheme: dark) {
   .home-page {
-    --home-ink: #eaf3f5;
-    --home-pool: #4fb8dd;
-    --home-pool-deep: #2f7e9c;
-    --home-bg: #071b26;
-    --home-surface: #0f2b38;
-    --home-gold: #f5c65b;
-    --home-coral: #ff8367;
-    --home-line: #1d3d47;
+    --home-black: #0a0a0a;
+    --home-red: #ff5c5c;
+    --home-red-bright: #ff8080;
+    --home-ink: #f0f0f0;
+    --home-bg: #141414;
+    --home-surface: #1e1e1e;
+    --home-line: #333335;
   }
 }
 
 .home-page a:not(.btn) {
-  color: var(--home-pool);
+  color: var(--home-red);
 }
 
-/* Hero */
+/* Hero — a black card, the logo and headline doing the work region15.org
+   gets from a full-bleed photo band. */
 .hero {
+  background: linear-gradient(165deg, var(--home-black) 0%, #232323 100%);
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 2.25rem 1.5rem 2.5rem;
   text-align: center;
-  padding: 1rem 0 2rem;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -64,6 +66,13 @@
   }
 }
 
+.hero-logo {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 1rem;
+  display: block;
+}
+
 .eyebrow {
   margin: 0 0 0.6rem;
   font-family: 'Oswald', sans-serif;
@@ -71,7 +80,7 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--home-pool);
+  color: var(--home-red-bright);
 }
 
 .hero-title {
@@ -85,17 +94,15 @@
   text-wrap: balance;
 }
 
+.hero .hero-title {
+  color: #ffffff;
+}
+
 .hero-dates {
   margin: 0.6rem 0 0;
   font-family: 'Roboto Mono', monospace;
   font-size: 0.95rem;
-  color: var(--home-pool-deep);
-}
-
-@media (prefers-color-scheme: dark) {
-  .hero-dates {
-    color: var(--home-pool);
-  }
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .hero-intro {
@@ -103,8 +110,7 @@
   margin: 1.1rem auto 0;
   font-size: 1.02rem;
   line-height: 1.5;
-  color: var(--home-ink);
-  opacity: 0.85;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .hero-actions {
@@ -124,13 +130,22 @@
 }
 
 .home-page .btn--primary {
-  background: var(--home-pool);
-  border-color: var(--home-pool);
+  background: var(--home-red-bright);
+  border-color: var(--home-red-bright);
   color: white;
 }
 .home-page .btn--primary:hover {
-  background: var(--home-pool-deep);
-  border-color: var(--home-pool-deep);
+  background: var(--home-red);
+  border-color: var(--home-red);
+}
+
+.home-page .hero .btn--ghost {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: var(--home-black);
+}
+.home-page .hero .btn--ghost:hover {
+  background: rgba(255, 255, 255, 0.85);
 }
 
 .home-page .btn--ghost {
@@ -138,7 +153,8 @@
   color: var(--home-ink);
 }
 
-/* Scoreboard countdown — the signature element */
+/* Countdown — the signature element, still a live scoreboard, now in the
+   team's own red instead of borrowed pool-blue. */
 .scoreboard {
   display: inline-flex;
   flex-direction: column;
@@ -146,13 +162,13 @@
   gap: 0.6rem;
   margin: 1.75rem auto 0;
   padding: 1.1rem 1.6rem;
-  background: var(--home-ink);
+  background: var(--home-red);
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(11, 36, 54, 0.18);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .scoreboard--closed {
-  background: var(--home-pool-deep);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .scoreboard-title,
@@ -162,7 +178,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--home-gold);
+  color: #ffffff;
 }
 
 .scoreboard-sub {
@@ -196,29 +212,24 @@
   font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .scoreboard-colon {
   font-family: 'Roboto Mono', monospace;
   font-size: 1.4rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.45);
   transform: translateY(-0.6rem);
 }
 
-/* Lane-rope divider */
+/* Section divider — a solid red rule, echoing region15's color-blocked
+   banners instead of decorative gradients. */
 .lane-divider {
-  height: 10px;
+  height: 4px;
   margin: 2.25rem 0;
   border-radius: 999px;
-  background: repeating-linear-gradient(
-    90deg,
-    var(--home-pool) 0,
-    var(--home-pool) 22px,
-    var(--home-gold) 22px,
-    var(--home-gold) 30px
-  );
-  opacity: 0.55;
+  background: var(--home-red);
+  opacity: 0.85;
 }
 
 /* Sections */
@@ -234,7 +245,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding-left: 0.75rem;
-  border-left: 4px solid var(--home-gold);
+  border-left: 4px solid var(--home-red);
 }
 
 .section--contact {
@@ -261,7 +272,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--home-pool);
+  color: var(--home-red);
   margin-top: 0.6rem;
 }
 
@@ -278,6 +289,50 @@
   margin: 0.6rem 0 0;
   font-size: 0.85rem;
   opacity: 0.75;
+}
+
+/* Date tiles — direct borrow of region15.org's own calendar-event format
+   (weekday strip + big day number), reused here for depart/return. */
+.date-tiles {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0.5rem 0 0.7rem;
+}
+
+.date-tile {
+  background: var(--home-red);
+  color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  min-width: 3.4rem;
+  text-align: center;
+  flex: none;
+}
+
+.date-tile-weekday {
+  display: block;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0;
+}
+
+.date-tile-day {
+  display: block;
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.date-tile-month {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding-bottom: 0.2rem;
+  opacity: 0.85;
 }
 
 .included-list {
@@ -299,7 +354,7 @@
   content: '\2713';
   position: absolute;
   left: 0;
-  color: var(--home-gold);
+  color: var(--home-red);
   font-weight: 700;
 }
 
@@ -325,7 +380,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--home-pool);
+  color: var(--home-red);
 }
 
 .cost-split-value {
@@ -349,10 +404,13 @@
   font-weight: 600;
 }
 
+/* Footer — solid black band, matching region15's own footer treatment. */
 .home-footer {
   margin-top: 2.5rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--home-line);
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
+  background: var(--home-black);
+  color: #ffffff;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -360,11 +418,14 @@
   gap: 0.6rem;
 }
 
+.home-footer .hint {
+  color: rgba(255, 255, 255, 0.65);
+}
+
 .home-page a.footer-admin-link {
   margin-top: 0.4rem;
   font-size: 0.8rem;
-  color: var(--home-ink);
-  opacity: 0.65;
+  color: rgba(255, 255, 255, 0.55);
   text-decoration: none;
 }
 
