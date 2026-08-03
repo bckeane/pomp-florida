@@ -130,6 +130,73 @@ To run a single side on its own: `npm run dev -w server` or
 `npm run dev -w client`. For production-style running: `npm run start -w server`
 (no file watching), and `npm run build -w client && npm run preview -w client`.
 
+## Deploying with GitHub Pages
+
+This repo is a full-stack app. GitHub Pages can host the **client** only,
+not the Express API. Deploy in two parts:
+
+1. Deploy the API (`server/`) to a Node host (Render, Railway, Fly.io, etc.)
+  over HTTPS.
+2. Deploy the React client (`client/`) to GitHub Pages.
+
+### 1) Deploy the API (server)
+
+Set these environment variables on your server host:
+
+```bash
+PORT=48310
+CORS_ALLOWED_ORIGINS=https://<your-github-username>.github.io
+COOKIE_SAME_SITE=none
+COOKIE_SECURE=true
+BREAK_GLASS_EMAIL=<optional>
+BREAK_GLASS_PASSWORD=<optional>
+```
+
+`COOKIE_SAME_SITE=none` + `COOKIE_SECURE=true` is required so browser session
+cookies can be sent from the GitHub Pages domain to your API domain.
+
+### 2) Deploy the client to GitHub Pages
+
+This repo includes [.github/workflows/deploy-pages.yml](.github/workflows/deploy-pages.yml),
+which builds `client/` and deploys it to Pages on pushes to `main`.
+
+In your GitHub repo settings:
+
+1. Go to **Settings → Pages** and set **Source** to **GitHub Actions**.
+2. Go to **Settings → Secrets and variables → Actions → Variables**.
+3. Add a repository variable named `VITE_API_BASE_URL` with your deployed API URL,
+  for example `https://florida-trip-api.onrender.com/api`.
+
+Then push to `main` (or run the workflow manually). The site URL will be:
+
+`https://<your-github-username>.github.io/<repo-name>/`
+
+If you use a custom domain for Pages, also add that domain to
+`CORS_ALLOWED_ORIGINS` (comma-separated if multiple).
+
+### Backend deploy on Render (recommended)
+
+This repo includes [render.yaml](render.yaml) for one-click API deploy with a
+persistent SQLite disk.
+
+1. Push this repo to GitHub.
+2. In Render, choose **New + → Blueprint** and select this repository.
+3. Render will create `pompflorida-api` using `render.yaml`.
+4. In Render service env vars, set:
+  - `CORS_ALLOWED_ORIGINS=https://<your-github-username>.github.io`
+  - `BREAK_GLASS_EMAIL` and `BREAK_GLASS_PASSWORD` (optional, recommended)
+5. Deploy and copy your Render URL (example:
+  `https://pompflorida-api.onrender.com`).
+6. In GitHub repo variables, set:
+  - `VITE_API_BASE_URL=https://pompflorida-api.onrender.com/api`
+
+Notes:
+
+- The blueprint runs `npm run migrate -w server` during build so schema stays up
+  to date.
+- SQLite data persists at `/var/data/trip.db` via the mounted Render disk.
+- CORS must be the origin only (scheme + host), not a path.
+
 ## Project layout
 
 ```

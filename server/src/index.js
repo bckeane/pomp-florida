@@ -14,9 +14,22 @@ import budgetRouter from './routes/budget.js';
 runMigrations();
 
 const app = express();
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+function corsOrigin(origin, callback) {
+  if (!origin) return callback(null, true);
+  if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+    return callback(null, true);
+  }
+  return callback(new Error(`Origin ${origin} not allowed by CORS`));
+}
+
 // credentials:true + reflected origin (rather than '*') is required for the
 // browser to accept/send the session cookie set by /api/auth/*.
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(cookieParser());
 app.use(express.json({ limit: '2mb' }));
 

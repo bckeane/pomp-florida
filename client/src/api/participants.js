@@ -1,4 +1,4 @@
-const BASE = '/api';
+import { API_BASE as BASE } from './base.js';
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {

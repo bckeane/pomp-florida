@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: pompflorida-api
+    runtime: node
+    plan: starter
+    rootDir: .
+    buildCommand: npm ci && npm run migrate -w server
+    startCommand: npm run start -w server
+    healthCheckPath: /api/trips/current
+    disk:
+      name: trip-db
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: DB_PATH
+        value: /var/data/trip.db
+      - key: COOKIE_SAME_SITE
+        value: none
+      - key: COOKIE_SECURE
+        value: true
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: BREAK_GLASS_EMAIL
+        sync: false
+      - key: BREAK_GLASS_PASSWORD
+        sync: false

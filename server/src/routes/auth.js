@@ -20,10 +20,16 @@ const credentialsSchema = z.object({
 });
 
 function setSessionCookie(res, token) {
+  const sameSite = (process.env.COOKIE_SAME_SITE || 'lax').toLowerCase();
+  const secure =
+    process.env.COOKIE_SECURE === 'true' ||
+    sameSite === 'none' ||
+    process.env.NODE_ENV === 'production';
+
   res.cookie(SESSION_COOKIE, token, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite,
+    secure,
     maxAge: COOKIE_MAX_AGE_MS,
     path: '/',
   });
