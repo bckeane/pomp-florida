@@ -9,8 +9,8 @@ const COLUMNS = [
   'birth_date',
   'role',
   'active',
-  'deposit_paid',
-  'final_payment_paid',
+  'deposit_received',
+  'final_payment_received',
   'trip_id',
   'created_at',
   'updated_at',
@@ -19,16 +19,27 @@ const COLUMNS = [
 // Age and grade are always computed against the participant's OWN trip_id
 // (date + year), not whichever trip is "current" — so browsing an archived
 // year still shows historically-correct values even after the active trip
-// changes.
+// changes. The trip's deposit_amount/final_payment_estimate ride along the
+// same join so balance owed can be computed per participant without a
+// second round trip.
 const SELECT_WITH_TRIP_DATE = `
-  SELECT participants.*, trips.trip_date AS _trip_date, trips.year AS _trip_year
+  SELECT participants.*, trips.trip_date AS _trip_date, trips.year AS _trip_year,
+         trips.deposit_amount AS _deposit_amount, trips.final_payment_estimate AS _final_payment_estimate
   FROM participants
   JOIN trips ON trips.id = participants.trip_id
 `;
 
 function rowToParticipant(row) {
-  const { _trip_date, _trip_year, ...participant } = row;
-  return withDerived(participant, _trip_date, _trip_year);
+  const { _trip_date, _trip_year, _deposit_amount, _final_payment_estimate, ...participant } = row;
+  const withAgeGrade = withDerived(participant, _trip_date, _trip_year);
+  return {
+    ...withAgeGrade,
+    // null when the trip has no deposit/final-payment amount set (e.g. an
+    // archived trip with no detail fields) — "—" in the UI, not a false $0 owed.
+    deposit_balance: _deposit_amount == null ? null : _deposit_amount - participant.deposit_received,
+    final_payment_balance:
+      _final_payment_estimate == null ? null : _final_payment_estimate - participant.final_payment_received,
+  };
 }
 
 export function listParticipants({ role, grad_year, active, q, sort, trip_id } = {}) {
@@ -116,8 +127,8 @@ export function createParticipant(data) {
   const info = db
     .prepare(
       `INSERT INTO participants
-        (first_name, last_name, grad_year, birth_date, role, active, deposit_paid, final_payment_paid, trip_id, account_id, created_at, updated_at)
-       VALUES (@first_name, @last_name, @grad_year, @birth_date, @role, @active, @deposit_paid, @final_payment_paid, @trip_id, @account_id, @created_at, @updated_at)`
+        (first_name, last_name, grad_year, birth_date, role, active, deposit_received, final_payment_received, trip_id, account_id, created_at, updated_at)
+       VALUES (@first_name, @last_name, @grad_year, @birth_date, @role, @active, @deposit_received, @final_payment_received, @trip_id, @account_id, @created_at, @updated_at)`
     )
     .run({
       first_name: data.first_name,
@@ -126,8 +137,8 @@ export function createParticipant(data) {
       birth_date: data.birth_date ?? null,
       role: data.role,
       active: data.active === false ? 0 : 1,
-      deposit_paid: data.deposit_paid === true ? 1 : 0,
-      final_payment_paid: data.final_payment_paid === true ? 1 : 0,
+      deposit_received: Number.isFinite(data.deposit_received) ? data.deposit_received : 0,
+      final_payment_received: Number.isFinite(data.final_payment_received) ? data.final_payment_received : 0,
       trip_id: data.trip_id,
       account_id: data.account_id ?? null,
       created_at: now,
@@ -151,8 +162,8 @@ export function updateParticipant(id, data) {
       birth_date = @birth_date,
       role = @role,
       active = @active,
-      deposit_paid = @deposit_paid,
-      final_payment_paid = @final_payment_paid,
+      deposit_received = @deposit_received,
+      final_payment_received = @final_payment_received,
       trip_id = @trip_id,
       updated_at = @updated_at
      WHERE id = @id`
@@ -164,8 +175,8 @@ export function updateParticipant(id, data) {
     birth_date: merged.birth_date ?? null,
     role: merged.role,
     active: merged.active === false || merged.active === 0 ? 0 : 1,
-    deposit_paid: merged.deposit_paid ? 1 : 0,
-    final_payment_paid: merged.final_payment_paid ? 1 : 0,
+    deposit_received: Number.isFinite(merged.deposit_received) ? merged.deposit_received : 0,
+    final_payment_received: Number.isFinite(merged.final_payment_received) ? merged.final_payment_received : 0,
     trip_id: merged.trip_id,
     updated_at: now,
   });

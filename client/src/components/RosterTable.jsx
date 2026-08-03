@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { ROLES } from '../constants.js';
+import { fmtMoney, totalBalance } from '../lib/money.js';
 
 const SORT_OPTIONS = [
   { value: 'last_name', label: 'Last name' },
@@ -12,12 +14,38 @@ export default function RosterTable({
   onFiltersChange,
   onEdit,
   onDelete,
-  onTogglePayment,
+  onUpdatePayment,
   gradYears,
 }) {
   const { q, role, grad_year, sort, showInactive } = filters;
+  const [drafts, setDrafts] = useState({});
 
   const setFilter = (patch) => onFiltersChange({ ...filters, ...patch });
+
+  const draftKey = (id, field) => `${id}:${field}`;
+
+  const handlePaymentBlur = async (p, field) => {
+    const key = draftKey(p.id, field);
+    const raw = drafts[key];
+    if (raw === undefined) return;
+    const value = Number(raw);
+    if (raw === '' || Number.isNaN(value) || value < 0) {
+      setDrafts((d) => {
+        const next = { ...d };
+        delete next[key];
+        return next;
+      });
+      return;
+    }
+    if (value !== p[field]) {
+      await onUpdatePayment(p, field, value);
+    }
+    setDrafts((d) => {
+      const next = { ...d };
+      delete next[key];
+      return next;
+    });
+  };
 
   return (
     <div className="roster">
@@ -96,8 +124,9 @@ export default function RosterTable({
             <th>Grade</th>
             <th>Age</th>
             <th>Status</th>
-            <th>Deposit</th>
-            <th>Final pmt</th>
+            <th>Deposit paid</th>
+            <th>Final pmt paid</th>
+            <th>Balance owed</th>
             <th></th>
           </tr>
         </thead>
@@ -110,26 +139,36 @@ export default function RosterTable({
               <td data-label="Grade">{p.grade ?? '—'}</td>
               <td data-label="Age">{p.age_at_trip ?? '—'}</td>
               <td data-label="Status">{p.active ? 'Active' : 'Inactive'}</td>
-              <td data-label="Deposit" style={{ textAlign: 'center' }}>
+              <td data-label="Deposit paid">
                 <input
-                  type="checkbox"
-                  checked={!!p.deposit_paid}
-                  onChange={() => onTogglePayment(p, 'deposit_paid')}
-                  title={p.deposit_paid ? 'Deposit received — click to unmark' : 'Deposit not yet received'}
-                />
-              </td>
-              <td data-label="Final pmt" style={{ textAlign: 'center' }}>
-                <input
-                  type="checkbox"
-                  checked={!!p.final_payment_paid}
-                  onChange={() => onTogglePayment(p, 'final_payment_paid')}
-                  title={
-                    p.final_payment_paid
-                      ? 'Final payment received — click to unmark'
-                      : 'Final payment not yet received'
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={drafts[draftKey(p.id, 'deposit_received')] ?? String(p.deposit_received)}
+                  onChange={(e) =>
+                    setDrafts((d) => ({ ...d, [draftKey(p.id, 'deposit_received')]: e.target.value }))
                   }
+                  onBlur={() => handlePaymentBlur(p, 'deposit_received')}
                 />
               </td>
+              <td data-label="Final pmt paid">
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={
+                    drafts[draftKey(p.id, 'final_payment_received')] ?? String(p.final_payment_received)
+                  }
+                  onChange={(e) =>
+                    setDrafts((d) => ({
+                      ...d,
+                      [draftKey(p.id, 'final_payment_received')]: e.target.value,
+                    }))
+                  }
+                  onBlur={() => handlePaymentBlur(p, 'final_payment_received')}
+                />
+              </td>
+              <td data-label="Balance owed">{fmtMoney(totalBalance(p))}</td>
               <td className="row-actions" data-label="">
                 <button className="link-btn" onClick={() => onEdit(p)}>
                   Edit
@@ -142,7 +181,7 @@ export default function RosterTable({
           ))}
           {participants.length === 0 && (
             <tr>
-              <td colSpan={9} className="empty-row">
+              <td colSpan={10} className="empty-row">
                 No participants match these filters.
               </td>
             </tr>

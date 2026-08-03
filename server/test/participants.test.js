@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../src/db/connection.js';
-import { createTrip } from '../src/models/trips.js';
+import { createTrip, updateTrip } from '../src/models/trips.js';
 import { createParticipant, updateParticipant, getStats } from '../src/models/participants.js';
 
 beforeEach(() => {
@@ -34,28 +34,44 @@ describe('getStats', () => {
 });
 
 describe('payment tracking', () => {
-  it('defaults deposit_paid and final_payment_paid to false for a new participant', () => {
+  it('defaults deposit_received and final_payment_received to 0 for a new participant', () => {
     const trip = createTrip({ year: '2052', name: 'Test', trip_date: '2052-01-01' });
     const p = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
 
-    expect(p.deposit_paid).toBe(0);
-    expect(p.final_payment_paid).toBe(0);
+    expect(p.deposit_received).toBe(0);
+    expect(p.final_payment_received).toBe(0);
   });
 
-  it('toggling one payment field leaves the other untouched', () => {
+  it('tracks each installment independently', () => {
     const trip = createTrip({ year: '2053', name: 'Test', trip_date: '2053-01-01' });
     const p = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
 
-    const afterDeposit = updateParticipant(p.id, { deposit_paid: true });
-    expect(afterDeposit.deposit_paid).toBe(1);
-    expect(afterDeposit.final_payment_paid).toBe(0);
+    const afterDeposit = updateParticipant(p.id, { deposit_received: 750 });
+    expect(afterDeposit.deposit_received).toBe(750);
+    expect(afterDeposit.final_payment_received).toBe(0);
 
-    const afterFinal = updateParticipant(p.id, { final_payment_paid: true });
-    expect(afterFinal.deposit_paid).toBe(1);
-    expect(afterFinal.final_payment_paid).toBe(1);
+    const afterFinal = updateParticipant(p.id, { final_payment_received: 500 });
+    expect(afterFinal.deposit_received).toBe(750);
+    expect(afterFinal.final_payment_received).toBe(500);
+  });
 
-    const afterUnmark = updateParticipant(p.id, { deposit_paid: false });
-    expect(afterUnmark.deposit_paid).toBe(0);
-    expect(afterUnmark.final_payment_paid).toBe(1);
+  it("computes balance owed against the trip's deposit_amount/final_payment_estimate", () => {
+    const trip = createTrip({ year: '2054', name: 'Test', trip_date: '2054-01-01' });
+    updateTrip(trip.id, { deposit_amount: 750, final_payment_estimate: 1000 });
+    const p = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+
+    expect(p.deposit_balance).toBe(750);
+    expect(p.final_payment_balance).toBe(1000);
+
+    const afterPartial = updateParticipant(p.id, { deposit_received: 500 });
+    expect(afterPartial.deposit_balance).toBe(250);
+  });
+
+  it('balance is null (not a false $0 owed) when the trip has no amount set', () => {
+    const trip = createTrip({ year: '2055', name: 'Test', trip_date: '2055-01-01' });
+    const p = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+
+    expect(p.deposit_balance).toBeNull();
+    expect(p.final_payment_balance).toBeNull();
   });
 });
