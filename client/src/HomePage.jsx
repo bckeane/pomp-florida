@@ -149,32 +149,41 @@ export default function HomePage() {
             <span className="glance-label">Trip dates</span>
             <div className="date-tiles">
               <DateTile iso={trip.trip_date} />
+              <span className="date-tiles-arrow" aria-hidden="true">&rarr;</span>
               <DateTile iso={trip.return_date} />
             </div>
             <span className="glance-value">
-              {formatLongDate(trip.trip_date) || '—'} &rarr; {formatLongDate(trip.return_date) || '—'}
+              {formatLongDate(trip.trip_date) || '—'}
+              <span className="glance-value-arrow">&rarr;</span>
+              {formatLongDate(trip.return_date) || '—'}
             </span>
             {trip.miss_school_note && <p className="glance-note">{trip.miss_school_note}</p>}
           </div>
 
-          {trip.training_location && (
-            <div className="glance-card">
-              <span className="glance-label">Training</span>
-              <span className="glance-value">
-                {trip.training_location_url ? (
-                  <a href={trip.training_location_url} target="_blank" rel="noreferrer">
-                    {trip.training_location}
-                  </a>
-                ) : (
-                  trip.training_location
-                )}
-              </span>
-            </div>
-          )}
+          {trip.training_location && (() => {
+            const [trainingName, trainingDetail] = trip.training_location.split(/\s*—\s*/);
+            return (
+              <div className="glance-card">
+                <span className="glance-label">Training</span>
+                <span className="glance-icon-tile" role="img" aria-label="Swimming pool">🏊</span>
+                <span className="glance-value">
+                  {trip.training_location_url ? (
+                    <a href={trip.training_location_url} target="_blank" rel="noreferrer">
+                      {trainingName}
+                    </a>
+                  ) : (
+                    trainingName
+                  )}
+                </span>
+                {trainingDetail && <p className="glance-note">{trainingDetail}</p>}
+              </div>
+            );
+          })()}
 
           {trip.lodging && (
             <div className="glance-card">
               <span className="glance-label">Staying</span>
+              <span className="glance-icon-tile" role="img" aria-label="Hotel">🏨</span>
               <span className="glance-value">
                 {trip.lodging_url ? (
                   <a href={trip.lodging_url} target="_blank" rel="noreferrer">

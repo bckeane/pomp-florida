@@ -285,6 +285,18 @@
   font-weight: 500;
 }
 
+.home-page .glance-card .glance-value a {
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--home-line);
+  text-underline-offset: 0.15em;
+}
+
+.home-page .glance-card .glance-value a:hover {
+  text-decoration-color: currentColor;
+}
+
 .glance-note {
   margin: 0.6rem 0 0;
   font-size: 0.85rem;
@@ -295,8 +307,22 @@
    (weekday strip + big day number), reused here for depart/return. */
 .date-tiles {
   display: flex;
-  gap: 0.6rem;
-  margin: 0.5rem 0 0.7rem;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 0.6rem 0 0.9rem;
+}
+
+.date-tiles-arrow {
+  color: var(--home-red);
+  font-size: 1.1rem;
+  opacity: 0.55;
+  flex: none;
+}
+
+.glance-value-arrow {
+  color: var(--home-red);
+  font-weight: 700;
+  margin: 0 0.15em;
 }
 
 .date-tile {
@@ -307,6 +333,24 @@
   min-width: 3.4rem;
   text-align: center;
   flex: none;
+}
+
+/* Icon tile — same footprint as .date-tile, so Training/Staying get a visual
+   anchor matching the calendar tiles in Trip Dates, keeping all 3 cards
+   structurally parallel: label -> icon -> value -> note. */
+.glance-icon-tile {
+  width: 3.4rem;
+  height: 3.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
+  line-height: 1;
+  margin: 0.6rem 0 0.9rem;
+  flex: none;
+  align-self: flex-start;
+  border: 1.5px solid var(--home-line);
+  border-radius: 8px;
 }
 
 .date-tile-weekday {
