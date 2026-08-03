@@ -4,8 +4,8 @@ services:
     runtime: node
     plan: starter
     rootDir: .
-    buildCommand: npm ci && npm run migrate -w server
-    startCommand: npm run start -w server
+    buildCommand: npm ci
+    startCommand: mkdir -p /var/data && npm run migrate -w server && npm run start -w server
     healthCheckPath: /api/trips/current
     disk:
       name: trip-db

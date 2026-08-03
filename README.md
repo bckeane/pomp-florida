@@ -192,8 +192,8 @@ persistent SQLite disk.
 
 Notes:
 
-- The blueprint runs `npm run migrate -w server` during build so schema stays up
-  to date.
+- The blueprint runs migrations during service startup (after disk mount), which
+  avoids build-time failures when `DB_PATH` points at `/var/data`.
 - SQLite data persists at `/var/data/trip.db` via the mounted Render disk.
 - CORS must be the origin only (scheme + host), not a path.
 
