@@ -9,6 +9,7 @@ import TripDetailsForm from './components/TripDetailsForm.jsx';
 import BudgetPanel from './components/BudgetPanel.jsx';
 import AuthGate from './components/AuthGate.jsx';
 import ManageAdmins from './components/ManageAdmins.jsx';
+import QuestionsPanel from './components/QuestionsPanel.jsx';
 import { me, logout } from './api/auth.js';
 import {
   fetchParticipants,
@@ -189,6 +190,11 @@ export default function AdminRoster() {
   }
 
   const selectedTrip = trips.find((t) => t.id === selectedTripId);
+  const tabLabel = {
+    roster: 'Roster',
+    budget: 'Budget',
+    questions: 'Questions',
+  }[activeTab] || 'Roster';
 
   return (
     <div className="app">
@@ -197,7 +203,7 @@ export default function AdminRoster() {
           <img className="app-logo" src={pantherLogo} alt="" />
           <div>
             <h1>{selectedTrip ? selectedTrip.name : 'Florida Trip'}</h1>
-            <p className="subtitle">{activeTab === 'budget' ? 'Budget' : 'Roster'}</p>
+            <p className="subtitle">{tabLabel}</p>
           </div>
         </div>
         <div className="header-actions">
@@ -266,6 +272,13 @@ export default function AdminRoster() {
           >
             Budget
           </button>
+          <button
+            type="button"
+            className={`segmented-btn ${activeTab === 'questions' ? 'segmented-btn--active' : ''}`}
+            onClick={() => setActiveTab('questions')}
+          >
+            Questions
+          </button>
         </div>
       )}
 
@@ -273,6 +286,8 @@ export default function AdminRoster() {
 
       {activeTab === 'budget' && selectedTrip ? (
         <BudgetPanel tripId={selectedTrip.id} />
+      ) : activeTab === 'questions' && selectedTrip ? (
+        <QuestionsPanel tripId={selectedTrip.id} tripName={selectedTrip.name} />
       ) : loading && !participants.length ? (
         <p className="hint">Loading roster…</p>
       ) : (

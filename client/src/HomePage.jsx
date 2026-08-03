@@ -134,11 +134,9 @@ export default function HomePage() {
           <Link className="btn btn--primary btn--lg" to="/register">
             Register a swimmer
           </Link>
-          {trip.contact_email && (
-            <a className="btn btn--ghost btn--lg" href={`mailto:${trip.contact_email}`}>
-              Ask a question
-            </a>
-          )}
+          <Link className="btn btn--ghost btn--lg" to="/faq">
+            Ask a question
+          </Link>
         </div>
       </header>
 
@@ -247,11 +245,12 @@ export default function HomePage() {
                 {name}
               </p>
             ))}
-            {trip.contact_email && (
-              <p className="hint">
-                Questions? Email <a href={`mailto:${trip.contact_email}`}>{trip.contact_email}</a>
-              </p>
-            )}
+            <p className="hint">
+              Questions? Visit the FAQ to see answers and submit a new one.
+            </p>
+            <Link className="btn btn--ghost" to="/faq">
+              Go to FAQ
+            </Link>
           </section>
         </>
       )}

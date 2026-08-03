@@ -10,6 +10,7 @@ import authRouter from './routes/auth.js';
 import myParticipantsRouter from './routes/myParticipants.js';
 import adminAccountsRouter from './routes/adminAccounts.js';
 import budgetRouter from './routes/budget.js';
+import questionsRouter from './routes/questions.js';
 
 runMigrations();
 
@@ -40,6 +41,7 @@ app.use('/api', authRouter);
 app.use('/api', myParticipantsRouter);
 app.use('/api', adminAccountsRouter);
 app.use('/api', budgetRouter);
+app.use('/api', questionsRouter);
 
 app.use((err, req, res, next) => {
   console.error(err.message);
