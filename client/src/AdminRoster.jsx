@@ -42,6 +42,7 @@ export default function AdminRoster() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(null); // participant or 'new' or null
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showManageAdmins, setShowManageAdmins] = useState(false);
   const [showTripDetails, setShowTripDetails] = useState(false);
@@ -115,6 +116,12 @@ export default function AdminRoster() {
       await createParticipant(data, selectedTripId);
     }
     setEditing(null);
+    await load();
+  };
+
+  const handleQuickAddSave = async (data) => {
+    await createParticipant(data, selectedTripId);
+    setShowQuickAdd(false);
     await load();
   };
 
@@ -226,6 +233,19 @@ export default function AdminRoster() {
               <a className="btn btn--ghost" href={exportUrl(selectedTripId)} download>
                 Export CSV
               </a>
+              <div className="popover-anchor">
+                <button className="btn btn--ghost" onClick={() => setShowQuickAdd((v) => !v)}>
+                  Quick add
+                </button>
+                {showQuickAdd && (
+                  <ParticipantForm
+                    variant="popover"
+                    participant={null}
+                    onSave={handleQuickAddSave}
+                    onCancel={() => setShowQuickAdd(false)}
+                  />
+                )}
+              </div>
               <button className="btn btn--primary" onClick={() => setEditing('new')}>
                 Add participant
               </button>

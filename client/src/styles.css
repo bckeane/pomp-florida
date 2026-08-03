@@ -268,6 +268,7 @@ body {
 
 .row-actions {
   display: flex;
+  align-items: center;
   gap: 0.6rem;
   white-space: nowrap;
 }
@@ -281,6 +282,30 @@ body {
   font-size: 0.85rem;
 }
 .link-btn--danger {
+  color: var(--danger);
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 6px;
+  color: var(--text-muted);
+}
+
+.icon-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.icon-btn.link-btn--danger {
+  color: var(--danger);
+}
+
+.icon-btn.link-btn--danger:hover {
+  background: var(--bg);
   color: var(--danger);
 }
 
@@ -321,9 +346,7 @@ body {
   }
   .row-actions {
     justify-content: flex-end;
-  }
-  .row-actions::before {
-    content: none;
+    width: 100%;
   }
 }
 
@@ -352,6 +375,40 @@ body {
 
 .modal-panel--wide {
   max-width: 720px;
+}
+
+/* Quick Add popover — same form/validation as the full Add participant
+   modal, just anchored near the triggering button instead of centered
+   with a dimming backdrop. The backdrop here is transparent and only
+   exists to catch click-outside-to-close. */
+.popover-anchor {
+  position: relative;
+  display: inline-block;
+}
+
+.popover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+}
+
+.popover-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 50;
+  width: 320px;
+  max-width: calc(100vw - 2rem);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 1.1rem;
+}
+
+.popover-panel h2 {
+  margin: 0 0 0.9rem;
+  font-size: 1rem;
 }
 
 /* Standalone (non-modal) form layout, shared by the public registration page

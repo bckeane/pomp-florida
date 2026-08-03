@@ -8,6 +8,36 @@ const SORT_OPTIONS = [
   { value: 'age', label: 'Age' },
 ];
 
+function EditIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </svg>
+  );
+}
+
+function RestoreIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <path d="M3 3v5h5" />
+    </svg>
+  );
+}
+
 export default function RosterTable({
   participants,
   filters,
@@ -169,13 +199,25 @@ export default function RosterTable({
                 />
               </td>
               <td data-label="Balance owed">{fmtMoney(totalBalance(p))}</td>
-              <td className="row-actions" data-label="">
-                <button className="link-btn" onClick={() => onEdit(p)}>
-                  Edit
-                </button>
-                <button className="link-btn link-btn--danger" onClick={() => onDelete(p)}>
-                  {p.active ? 'Remove' : 'Restore'}
-                </button>
+              <td data-label="">
+                <div className="row-actions">
+                  <button
+                    className="link-btn icon-btn"
+                    onClick={() => onEdit(p)}
+                    aria-label={`Edit ${p.first_name} ${p.last_name}`}
+                    title="Edit"
+                  >
+                    <EditIcon />
+                  </button>
+                  <button
+                    className={`link-btn icon-btn ${p.active ? 'link-btn--danger' : ''}`}
+                    onClick={() => onDelete(p)}
+                    aria-label={`${p.active ? 'Remove' : 'Restore'} ${p.first_name} ${p.last_name}`}
+                    title={p.active ? 'Remove' : 'Restore'}
+                  >
+                    {p.active ? <TrashIcon /> : <RestoreIcon />}
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

@@ -24,6 +24,7 @@ function emptyForm(variant) {
  */
 export default function ParticipantForm({ participant, onSave, onCancel, variant = 'admin' }) {
   const isPublic = variant === 'public';
+  const isPopover = variant === 'popover';
   const [form, setForm] = useState(() => emptyForm(variant));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -196,6 +197,26 @@ export default function ParticipantForm({ participant, onSave, onCancel, variant
           </button>
         </div>
       </form>
+    );
+  }
+
+  if (isPopover) {
+    return (
+      <>
+        <div className="popover-backdrop" onClick={onCancel} />
+        <form className="popover-panel" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
+          <h2>Quick add</h2>
+          {fields}
+          <div className="modal-actions">
+            <button type="button" className="btn btn--ghost" onClick={onCancel}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn--primary" disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </>
     );
   }
 
