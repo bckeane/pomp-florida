@@ -1,0 +1,46 @@
+name: Deploy GitHub Pages Redirect
+
+# The app itself now lives on Render (see deploy.md) — client and API were
+# split across GitHub Pages + Render, which required a cross-site session
+# cookie that Safari blocks outright. This workflow just keeps the old
+# GitHub Pages URL alive as a redirect to the Render URL, for anyone with it
+# bookmarked.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - pages-redirect/**
+      - .github/workflows/deploy-pages-redirect.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages-redirect
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
