@@ -63,8 +63,14 @@ export function parseCSV(text) {
   });
 }
 
+// OWASP CSV injection guidance: a field starting with =, +, -, @, tab, or CR
+// can be interpreted as a formula by Excel/Sheets. Prefix with a leading '
+// so spreadsheet apps treat it as literal text.
 function escapeCSVField(value) {
-  const str = value === null || value === undefined ? '' : String(value);
+  let str = value === null || value === undefined ? '' : String(value);
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
   if (/[",\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }

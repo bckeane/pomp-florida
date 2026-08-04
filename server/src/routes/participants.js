@@ -142,6 +142,10 @@ router.post('/participants/import', requireAdmin, (req, res) => {
 
   const results = [];
   const errors = [];
+  // Same (first_name, last_name, birth_date) key findDuplicate() checks
+  // against the DB, tracked here too so two identical rows earlier in the
+  // same batch don't both slip past the DB check and both get inserted.
+  const seenInBatch = new Set();
 
   rawRecords.forEach((raw, index) => {
     const mapped = mapImportRecord(raw);
@@ -152,6 +156,8 @@ router.post('/participants/import', requireAdmin, (req, res) => {
       return;
     }
 
+    const batchKey = JSON.stringify([data.first_name, data.last_name, data.birth_date ?? null]);
+
     const duplicate = findDuplicate({ ...data, trip_id: tripId });
     if (duplicate) {
       errors.push({
@@ -161,7 +167,16 @@ router.post('/participants/import', requireAdmin, (req, res) => {
       });
       return;
     }
+    if (seenInBatch.has(batchKey)) {
+      errors.push({
+        row: index + 1,
+        field: '_root',
+        message: 'Duplicate of another row earlier in this same import (same first name, last name, birth date).',
+      });
+      return;
+    }
 
+    seenInBatch.add(batchKey);
     results.push(data);
   });
 

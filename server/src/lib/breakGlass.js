@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { verifyPassword } from './passwords.js';
 
 /**
  * Hashing both sides to a fixed-length digest before comparing avoids ever
@@ -12,18 +13,22 @@ function safeStringEqual(a, b) {
 }
 
 /**
- * True if (email, password) matches BREAK_GLASS_EMAIL/PASSWORD from the
- * environment. Deliberately does not touch the database — this has to keep
- * working even if the accounts table is empty, corrupted, or every admin
- * account is locked out.
+ * True if (email, password) matches BREAK_GLASS_EMAIL/BREAK_GLASS_PASSWORD_HASH
+ * from the environment. Deliberately does not touch the database — this has
+ * to keep working even if the accounts table is empty, corrupted, or every
+ * admin account is locked out.
+ *
+ * The password is stored as a salted hash (see lib/passwords.js), not
+ * plaintext — generate one with:
+ *   node -e "console.log(require('./src/lib/passwords.js').hashPassword('your-new-password'))"
  */
 export function isBreakGlassLogin(email, password) {
   const bgEmail = process.env.BREAK_GLASS_EMAIL;
-  const bgPassword = process.env.BREAK_GLASS_PASSWORD;
-  if (!bgEmail || !bgPassword) return false;
+  const bgPasswordHash = process.env.BREAK_GLASS_PASSWORD_HASH;
+  if (!bgEmail || !bgPasswordHash) return false;
 
   const emailMatches = safeStringEqual(String(email).trim().toLowerCase(), bgEmail.trim().toLowerCase());
-  const passwordMatches = safeStringEqual(password, bgPassword);
+  const passwordMatches = verifyPassword(password, bgPasswordHash);
   return emailMatches && passwordMatches;
 }
 

@@ -33,6 +33,11 @@ router.post('/my/participants', requireAccount, (req, res) => {
     return res.status(400).json({ errors: fieldKeyed(errors) });
   }
 
+  // Payment fields are admin-only — a self-serve caller must never be able to
+  // set their own paid amounts, regardless of what the client sends.
+  delete data.deposit_received;
+  delete data.final_payment_received;
+
   const duplicate = findDuplicate({ ...data, trip_id: trip.id });
   if (duplicate) {
     return res.status(400).json({

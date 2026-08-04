@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router';
 import HomePage from './HomePage.jsx';
 import AdminRoster from './AdminRoster.jsx';
 import RegisterPage from './RegisterPage.jsx';

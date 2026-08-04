@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import ParticipantForm from './components/ParticipantForm.jsx';
 import AuthGate from './components/AuthGate.jsx';
 import { me, logout } from './api/auth.js';

@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { runMigrations } from './db/migrate.js';
 import participantsRouter from './routes/participants.js';
@@ -20,13 +21,28 @@ const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+if (allowedOrigins.length === 0) {
+  throw new Error(
+    'CORS_ALLOWED_ORIGINS is not set. Refusing to start with CORS open to all ' +
+      'origins while credentials are enabled — set it to the real origin(s) ' +
+      '(e.g. http://localhost:48311) in server/.env.'
+  );
+}
+
 function corsOrigin(origin, callback) {
   if (!origin) return callback(null, true);
-  if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+  if (allowedOrigins.includes(origin)) {
     return callback(null, true);
   }
   return callback(new Error(`Origin ${origin} not allowed by CORS`));
 }
+
+// This is a pure JSON API (the client is served/hosted separately), so the
+// default CSP/HSTS/frameguard/etc. are all safe here — nothing renders HTML.
+// helmet also disables X-Powered-By; the explicit call below is redundant
+// but documents the intent directly.
+app.use(helmet());
+app.disable('x-powered-by');
 
 // credentials:true + reflected origin (rather than '*') is required for the
 // browser to accept/send the session cookie set by /api/auth/*.

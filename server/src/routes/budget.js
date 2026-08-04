@@ -111,6 +111,9 @@ router.post('/budget/exclusions', requireAdmin, (req, res) => {
     if (err.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
       return res.status(400).json({ error: 'Unknown trip_budget_item_id or participant_id' });
     }
+    if (err.code === 'TRIP_MISMATCH') {
+      return res.status(400).json({ error: err.message });
+    }
     throw err;
   }
 });

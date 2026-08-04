@@ -6,3 +6,5 @@ server/data/*.db-wal
 .gstack/
 .env
 server/.env
+SECURITY.md
+pentest-reports/

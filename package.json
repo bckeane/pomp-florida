@@ -5,6 +5,9 @@
     "server",
     "client"
   ],
+  "engines": {
+    "node": ">=22.22.0"
+  },
   "scripts": {
     "kill-ports": "sh -c 'for p in 48310 48311; do pids=$(lsof -ti tcp:$p); if [ -n \"$pids\" ]; then echo \"Killing :$p ($pids)\"; kill $pids 2>/dev/null || true; fi; done'",
     "prestart": "npm run kill-ports",

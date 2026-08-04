@@ -4,7 +4,7 @@ import {
   createAccount,
   findAccountByEmail,
   verifyAccountPassword,
-  setAccountRole,
+  getAccountById,
 } from '../models/accounts.js';
 import { createSession, deleteSession } from '../models/sessions.js';
 import { requireAccount, SESSION_COOKIE } from '../middleware/auth.js';
@@ -76,10 +76,15 @@ router.post('/auth/login', (req, res) => {
   if (isBreakGlassLogin(email, password)) {
     // Deliberately bypasses verifyAccountPassword entirely — this has to
     // keep working even if the accounts table is empty or every admin
-    // account's password is broken/forgotten. Materializes (or re-asserts)
-    // a real admin row so sessions/requireAdmin work normally afterward.
-    account = findAccountByEmail(email) || createAccount(email, password);
-    account = account && setAccountRole(account.id, 'admin');
+    // account's password is broken/forgotten. Does NOT persist role='admin'
+    // here — getAccountById grants admin dynamically to whichever account
+    // currently matches BREAK_GLASS_EMAIL (see models/accounts.js), so
+    // rotating/unsetting the env var revokes access immediately on the next
+    // request instead of leaving a permanent admin row behind. Routes
+    // through getAccountById (not the raw findAccountByEmail row) so the
+    // response never includes password_hash.
+    const existing = findAccountByEmail(email);
+    account = existing ? getAccountById(existing.id) : createAccount(email, password);
   } else {
     account = verifyAccountPassword(email, password);
   }

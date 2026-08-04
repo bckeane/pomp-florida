@@ -2,8 +2,21 @@ import { db } from '../db/connection.js';
 import { hashPassword, verifyPassword } from '../lib/passwords.js';
 import { isBreakGlassEmail } from '../lib/breakGlass.js';
 
+/**
+ * The stored role, except an account currently matching BREAK_GLASS_EMAIL is
+ * always treated as admin — this is computed on every read, never persisted,
+ * so rotating/unsetting the env var revokes it instantly with no dangling
+ * admin row left in the database. Every caller (session middleware, login/
+ * signup responses, /auth/me) goes through this, so the client-visible role
+ * always matches what requireAdmin will actually allow.
+ */
 export function getAccountById(id) {
-  return db.prepare('SELECT id, email, role, created_at FROM accounts WHERE id = ?').get(id) || null;
+  const account = db.prepare('SELECT id, email, role, created_at FROM accounts WHERE id = ?').get(id);
+  if (!account) return null;
+  if (account.role !== 'admin' && isBreakGlassEmail(account.email)) {
+    return { ...account, role: 'admin' };
+  }
+  return account;
 }
 
 export function findAccountByEmail(email) {

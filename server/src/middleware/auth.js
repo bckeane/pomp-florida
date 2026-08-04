@@ -14,6 +14,9 @@ export function requireAccount(req, res, next) {
   next();
 }
 
+// getAccountById folds break-glass status into `role` dynamically (see
+// models/accounts.js) — rotating/unsetting BREAK_GLASS_EMAIL revokes access
+// on the very next request, with no persisted admin row to clean up.
 export function requireAdmin(req, res, next) {
   const session = getSession(req.cookies?.[SESSION_COOKIE]);
   if (!session) return res.status(401).json({ error: 'Not signed in' });

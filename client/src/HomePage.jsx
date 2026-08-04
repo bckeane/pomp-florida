@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { fetchCurrentTrip } from './api/trips.js';
 import { formatLongDate, formatShortDate, formatDateTile } from './lib/dates.js';
 import { useCountdown } from './lib/useCountdown.js';

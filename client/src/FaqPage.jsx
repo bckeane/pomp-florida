@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { fetchCurrentTrip } from './api/trips.js';
 import { fetchFaqQuestions, submitFaqQuestion } from './api/questions.js';
 import pantherLogo from './img/pomp_icon.png';

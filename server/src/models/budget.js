@@ -104,10 +104,12 @@ export function getBudgetForTrip(tripId) {
 
   return items.map((item) => {
     const excludedIds = exclusions[item.id];
-    const students = studentsActive - excludedIds.length;
+    const students = Math.max(0, studentsActive - excludedIds.length);
     const priorItem = priorByCategory[item.category_id];
     const priorTotal = priorItem ? priorItem.total : null;
-    const priorStudents = priorItem ? priorStudentsActive - priorExclusions[priorItem.id].length : null;
+    const priorStudents = priorItem
+      ? Math.max(0, priorStudentsActive - priorExclusions[priorItem.id].length)
+      : null;
 
     return {
       trip_budget_item_id: item.id,
@@ -137,7 +139,25 @@ export function upsertLineItem(tripId, categoryId, total) {
   return db.prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?').get(tripId, categoryId);
 }
 
+// Both rows must exist (enforced by the FK columns) AND belong to the same
+// trip — without this check, excluding a participant from an unrelated
+// trip's line item silently corrupts that trip's per-panther math (and,
+// via resolvePreviousTrip, the following year's prior-year comparison too).
 export function setExclusion(tripBudgetItemId, participantId) {
+  const item = db.prepare('SELECT trip_id FROM trip_budget_items WHERE id = ?').get(tripBudgetItemId);
+  const participant = db.prepare('SELECT trip_id FROM participants WHERE id = ?').get(participantId);
+
+  if (!item || !participant) {
+    const err = new Error('Unknown trip_budget_item_id or participant_id');
+    err.code = 'SQLITE_CONSTRAINT_FOREIGNKEY';
+    throw err;
+  }
+  if (item.trip_id !== participant.trip_id) {
+    const err = new Error('trip_budget_item_id and participant_id belong to different trips');
+    err.code = 'TRIP_MISMATCH';
+    throw err;
+  }
+
   db.prepare(
     `INSERT OR IGNORE INTO trip_budget_exclusions (trip_budget_item_id, participant_id) VALUES (?, ?)`
   ).run(tripBudgetItemId, participantId);
