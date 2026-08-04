@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: starter
     rootDir: .
-    buildCommand: npm ci
+    buildCommand: npm ci && npm run build -w client
     startCommand: mkdir -p /var/data && npm run migrate -w server && npm run start -w server
     healthCheckPath: /api/trips/current
     disk:
@@ -17,7 +17,7 @@ services:
       - key: DB_PATH
         value: /var/data/trip.db
       - key: COOKIE_SAME_SITE
-        value: none
+        value: lax
       - key: COOKIE_SECURE
         value: true
       - key: CORS_ALLOWED_ORIGINS

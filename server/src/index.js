@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -37,8 +39,6 @@ function corsOrigin(origin, callback) {
   return callback(new Error(`Origin ${origin} not allowed by CORS`));
 }
 
-// This is a pure JSON API (the client is served/hosted separately), so the
-// default CSP/HSTS/frameguard/etc. are all safe here — nothing renders HTML.
 // helmet also disables X-Powered-By; the explicit call below is redundant
 // but documents the intent directly.
 app.use(helmet());
@@ -58,6 +58,18 @@ app.use('/api', myParticipantsRouter);
 app.use('/api', adminAccountsRouter);
 app.use('/api', budgetRouter);
 app.use('/api', questionsRouter);
+
+// Serve the built client from the same origin as the API. Session cookies
+// use SameSite=None to survive the GitHub Pages -> Render split, but Safari
+// (desktop and iOS) blocks third-party cookies outright regardless of that
+// setting, breaking sign-up/login there. Serving both from one origin makes
+// the cookie same-site instead, which Safari allows.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const clientDist = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientDist));
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(clientDist, 'index.html'));
+});
 
 app.use((err, req, res, next) => {
   console.error(err.message);

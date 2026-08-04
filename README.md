@@ -130,65 +130,34 @@ To run a single side on its own: `npm run dev -w server` or
 `npm run dev -w client`. For production-style running: `npm run start -w server`
 (no file watching), and `npm run build -w client && npm run preview -w client`.
 
-## Deploying with GitHub Pages
+## Deploying (Render, single origin)
 
-This repo is a full-stack app. GitHub Pages can host the **client** only,
-not the Express API. Deploy in two parts:
+This repo deploys as one Render Web Service: the build step builds the React
+client, and the Express server serves those static files itself alongside
+the `/api` routes. See [deploy.md](deploy.md) for the full runbook.
 
-1. Deploy the API (`server/`) to a Node host (Render, Railway, Fly.io, etc.)
-  over HTTPS.
-2. Deploy the React client (`client/`) to GitHub Pages.
+Client and API used to be split (client on GitHub Pages, API on Render),
+which required a cross-site session cookie (`SameSite=None; Secure`). Safari
+— desktop and iOS — blocks that kind of cross-site cookie outright via
+Intelligent Tracking Prevention, so sign-up/login silently failed for Safari
+users even though Chrome/Firefox worked fine. Serving both from the same
+Render origin makes the cookie same-site and sidesteps that entirely.
 
-### 1) Deploy the API (server)
-
-Set these environment variables on your server host:
-
-```bash
-PORT=48310
-CORS_ALLOWED_ORIGINS=https://<your-github-username>.github.io
-COOKIE_SAME_SITE=none
-COOKIE_SECURE=true
-BREAK_GLASS_EMAIL=<optional>
-BREAK_GLASS_PASSWORD=<optional>
-```
-
-`COOKIE_SAME_SITE=none` + `COOKIE_SECURE=true` is required so browser session
-cookies can be sent from the GitHub Pages domain to your API domain.
-
-### 2) Deploy the client to GitHub Pages
-
-This repo includes [.github/workflows/deploy-pages.yml](.github/workflows/deploy-pages.yml),
-which builds `client/` and deploys it to Pages on pushes to `main`.
-
-In your GitHub repo settings:
-
-1. Go to **Settings → Pages** and set **Source** to **GitHub Actions**.
-2. Go to **Settings → Secrets and variables → Actions → Variables**.
-3. Add a repository variable named `VITE_API_BASE_URL` with your deployed API URL,
-  for example `https://florida-trip-api.onrender.com/api`.
-
-Then push to `main` (or run the workflow manually). The site URL will be:
-
-`https://<your-github-username>.github.io/<repo-name>/`
-
-If you use a custom domain for Pages, also add that domain to
-`CORS_ALLOWED_ORIGINS` (comma-separated if multiple).
-
-### Backend deploy on Render (recommended)
-
-This repo includes [render.yaml](render.yaml) for one-click API deploy with a
+This repo includes [render.yaml](render.yaml) for one-click deploy with a
 persistent SQLite disk.
 
 1. Push this repo to GitHub.
 2. In Render, choose **New + → Blueprint** and select this repository.
-3. Render will create `pompflorida-api` using `render.yaml`.
+3. Render will create `pompflorida-api` using `render.yaml`, which runs
+  `npm ci && npm run build -w client` at build time.
 4. In Render service env vars, set:
-  - `CORS_ALLOWED_ORIGINS=https://<your-github-username>.github.io`
+  - `CORS_ALLOWED_ORIGINS=https://<your-render-service>.onrender.com`
+    (the service's own URL — same-origin POST/PUT/DELETE requests still
+    carry an `Origin` header, so this is required even though client and API
+    are on the same host)
   - `BREAK_GLASS_EMAIL` and `BREAK_GLASS_PASSWORD` (optional, recommended)
-5. Deploy and copy your Render URL (example:
-  `https://pompflorida-api.onrender.com`).
-6. In GitHub repo variables, set:
-  - `VITE_API_BASE_URL=https://pompflorida-api.onrender.com/api`
+5. Deploy and visit your Render URL (example:
+  `https://pompflorida-api.onrender.com`) — it now serves the app directly.
 
 Notes:
 
@@ -196,6 +165,8 @@ Notes:
   avoids build-time failures when `DB_PATH` points at `/var/data`.
 - SQLite data persists at `/var/data/trip.db` via the mounted Render disk.
 - CORS must be the origin only (scheme + host), not a path.
+- If you later put a custom domain in front of Render, add that origin to
+  `CORS_ALLOWED_ORIGINS` too (comma-separated).
 
 ## Project layout
 

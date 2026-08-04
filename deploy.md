@@ -1,45 +1,51 @@
 # Deploy Guide (Prototype)
 
-This runbook is for deploying this project as:
+This runbook is for deploying this project as a single Render Web Service that
+serves both the built client and the API from one origin.
 
-- Frontend: GitHub Pages
-- Backend API: Render (Web Service)
+- Frontend + Backend API: Render (Web Service)
 - Database: SQLite on a mounted Render disk
 
 Use this document for repeatable prototype deploys.
 
 ## Architecture
 
-- Browser loads static app from GitHub Pages.
-- App calls API on Render (`VITE_API_BASE_URL`).
-- Auth uses HTTP-only cookies, so CORS and cookie settings must match production origins.
-
-## Prerequisites
-
-- Code is pushed to `main` on GitHub.
-- Render account is connected to the GitHub repo.
-- GitHub Pages is enabled for this repository.
+- Render builds the client (`vite build`) during the build step, then the
+  Express server serves the built static files directly and proxies
+  everything under `/api` to the API routes.
+- Everything is one origin, so the session cookie is same-site. This matters
+  because the previous split setup (client on GitHub Pages, API on Render)
+  used a cross-site cookie (`SameSite=None; Secure`) that Safari — desktop
+  and iOS — blocks outright via Intelligent Tracking Prevention, regardless
+  of that setting. Chrome/Firefox allowed it, which is why the bug only
+  showed up for Safari users. Single-origin sidesteps the whole class of
+  problem instead of chasing Safari's cookie policy.
 
 ## One-Time Setup
 
-### 1) Render service (API)
+### 1) Render service
 
-Create a new Render Web Service from this repo.
-
-Blueprint file is `render.yaml` and should be used automatically.
+Create a new Render Web Service from this repo. Blueprint file is
+`render.yaml` and should be used automatically.
 
 Important behavior:
 
-- Build command installs dependencies only.
-- Startup command creates `/var/data`, runs migrations, then starts server.
+- Build command installs dependencies and builds the client
+  (`npm ci && npm run build -w client`).
+- Startup command creates `/var/data`, runs migrations, then starts the
+  server, which serves `client/dist` alongside the API.
 - SQLite path is persisted on mounted disk at `/var/data/trip.db`.
 
 ### 2) Render environment variables
 
 Set these in Render service settings:
 
-- `CORS_ALLOWED_ORIGINS=https://<your-github-username>.github.io`
-- `COOKIE_SAME_SITE=none`
+- `CORS_ALLOWED_ORIGINS=https://<your-render-service>.onrender.com`
+  — yes, the service's own URL. Browsers send an `Origin` header on
+  same-origin POST/PUT/DELETE requests too (not just cross-origin ones), and
+  the server's CORS middleware rejects any `Origin` not on this list. If you
+  later add a custom domain, add that origin here as well (comma-separated).
+- `COOKIE_SAME_SITE=lax`
 - `COOKIE_SECURE=true`
 - `BREAK_GLASS_EMAIL=<your-admin-email>`
 - `BREAK_GLASS_PASSWORD=<strong-password>`
@@ -48,31 +54,12 @@ Notes:
 
 - `CORS_ALLOWED_ORIGINS` is origin only (no path).
 - You can include multiple origins as comma-separated values.
-  Example: `https://bckeane.github.io,http://localhost:48311`
-
-### 3) GitHub Pages source
-
-In GitHub:
-
-1. Go to **Settings -> Pages**
-2. Under **Build and deployment**, set **Source** to **GitHub Actions**
-
-### 4) GitHub Actions repository variable
-
-In GitHub:
-
-1. Go to **Settings -> Secrets and variables -> Actions**
-2. Open the **Variables** tab
-3. Add repository variable:
-   - Name: `VITE_API_BASE_URL`
-   - Value: `https://<your-render-service>.onrender.com/api`
 
 ## Deploy Steps (Each Release)
 
 1. Push to `main`.
-2. Confirm Render deploy is successful.
-3. Confirm GitHub Actions workflow **Deploy Client to GitHub Pages** succeeds.
-4. Verify the site from GitHub Pages URL.
+2. Confirm Render deploy is successful (build includes the client build step).
+3. Verify the site from the Render service URL.
 
 ## Verification Checklist
 
@@ -83,9 +70,9 @@ In GitHub:
 
 ### Frontend checks
 
-- GitHub Pages site loads.
-- Browser Network tab shows API calls going to Render URL, not `/api` on github.io.
-- Login works and session persists after refresh.
+- The Render service URL itself loads the app (not just `/api`).
+- Sign-up/login works and session persists after refresh — test on Safari
+  (iOS or desktop) specifically, since that's what this architecture fixes.
 
 ### Admin bootstrap
 
@@ -98,20 +85,7 @@ Use one of these:
 
 ## Common Failures and Fixes
 
-### 1) GitHub Actions deploy step fails with 404
-
-Symptoms:
-
-- `Failed to create deployment (status: 404)`
-- `HttpError: Not Found` from `actions/deploy-pages`
-
-Fix:
-
-- Ensure **Settings -> Pages -> Source = GitHub Actions**.
-- Ensure workflow includes `actions/configure-pages` before upload/deploy.
-- Re-run workflow.
-
-### 2) Render deploy fails opening SQLite DB path
+### 1) Render deploy fails opening SQLite DB path
 
 Symptoms:
 
@@ -123,14 +97,30 @@ Fix:
 - Ensure startup creates DB directory (`mkdir -p /var/data`).
 - Ensure server DB connection code creates `dirname(DB_PATH)` recursively.
 
-### 3) Login fails in production but works locally
+### 2) Login/signup fails with a CORS origin error
 
-Check:
+Symptoms:
 
-- `COOKIE_SAME_SITE=none`
-- `COOKIE_SECURE=true`
-- `CORS_ALLOWED_ORIGINS` includes exact GitHub Pages origin
-- Frontend `VITE_API_BASE_URL` points to Render `/api`
+- Server logs `Origin https://<your-render-service>.onrender.com not allowed by CORS`.
+
+Fix:
+
+- Add the service's own URL to `CORS_ALLOWED_ORIGINS` (see above) — this is
+  required even though frontend and API are the same origin, because
+  same-origin state-changing requests still carry an `Origin` header.
+
+### 3) App loads but shows a blank page / 404s on the built assets
+
+Symptoms:
+
+- Root URL 404s, or loads HTML but JS/CSS 404 in the browser console.
+
+Fix:
+
+- Confirm the build step actually ran `npm run build -w client` and produced
+  `client/dist` — check Render build logs.
+- Confirm `client/dist` exists relative to `server/src/index.js` as
+  `../../client/dist` (i.e. at the repo root, not inside `server/`).
 
 ## Quick Command Reference
 
