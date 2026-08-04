@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { signup, login } from '../api/auth.js';
 
 /**
@@ -90,6 +91,12 @@ export default function AuthGate({ onAuthenticated, allowSignup = true, descript
           {saving ? 'Please wait…' : mode === 'signup' ? 'Create account' : 'Log in'}
         </button>
       </div>
+
+      {mode === 'login' && (
+        <Link className="link-btn" to="/forgot-password">
+          Forgot password?
+        </Link>
+      )}
     </form>
   );
 }

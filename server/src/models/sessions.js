@@ -30,3 +30,8 @@ export function getSession(token) {
 export function deleteSession(token) {
   db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
 }
+
+/** Revokes every existing session for an account — used after a password reset. */
+export function deleteSessionsByAccount(accountId) {
+  db.prepare('DELETE FROM sessions WHERE account_id = ?').run(accountId);
+}

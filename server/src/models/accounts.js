@@ -51,6 +51,13 @@ export function verifyAccountPassword(email, password) {
   return getAccountById(account.id);
 }
 
+/** Used by the password-reset flow after a token is validated. */
+export function updateAccountPassword(id, password) {
+  const passwordHash = hashPassword(password);
+  db.prepare('UPDATE accounts SET password_hash = ? WHERE id = ?').run(passwordHash, id);
+  return getAccountById(id);
+}
+
 /**
  * Grants/revokes admin. Only reachable via server/scripts/create-admin.js
  * (local-only) or POST /api/admin/accounts (itself requireAdmin-gated) —
