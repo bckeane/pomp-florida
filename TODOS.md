@@ -1,47 +1,15 @@
 # TODOS
 
-## Design
-
-### Consolidate the duplicated color-token system
-
-**What:** `styles.css`, `home.css`, `register.css`, and `faq.css` each declare their own `--*-red`/`--*-black`/`--*-ink`/`--*-bg`/`--*-surface`/`--*-line` set with the same values under different names, instead of one shared root token set.
-
-**Why:** Surfaced during `/design-review` on 2026-08-04 — the duplication is why `--faq-red` was able to drift to `#9a0000` while every other file had `#980000` (fixed as FINDING-003). Consolidating removes the class of bug, not just this one instance.
-
-**Effort:** M
-**Priority:** P3
-
-### Add a shared spacing scale
-
-**What:** Replace freehand rem values (0.15, 0.35, 0.55, 1.1, 1.75rem, etc.) scattered across `styles.css`/`home.css`/`register.css`/`faq.css` with a shared `--space-*` scale.
-
-**Why:** Surfaced during `/design-review` on 2026-08-04 (independent source-audit finding). Not visibly broken today, but every margin/padding is currently invented per rule with no shared reference.
-
-**Effort:** M
-**Priority:** P3
-
-### Extend focus-visible rings beyond form inputs
-
-**What:** `register.css`/`admin.css` give a custom red focus ring to `input`/`select`/`textarea` only. Buttons, links, chips, and the register page's lane-cards (the "add someone you've registered before" picker) fall back to the browser default blue ring.
-
-**Why:** Surfaced during `/design-review` on 2026-08-04. Not a WCAG failure (a visible focus indicator does exist), just visually inconsistent. Deferred because a real fix touches the admin panel, which wasn't visually verified that session (no break-glass credentials).
-
-**Effort:** S
-**Priority:** P3
-
 ## Testing
 
-### Extend test coverage to the rest of the app
+### Remaining test-coverage gaps
 
-**What:** Add unit tests for existing untested models/routes (participants, trips, auth) using the Vitest setup introduced by the Budget Tab feature.
+**What:** Model-level direct tests for `sessions.js` and `settings.js` (both only exercised indirectly today, via every route test that logs in or reads/writes the current-trip setting) — and client-side component tests via React Testing Library, which this repo has never had (see `client/TESTING.md`-equivalent decision in the Budget Tab feature: RTL setup was explicitly out of scope there too).
 
-**Why:** The Budget Tab (see `~/.gstack/projects/pompFlorida/brian-main-design-20260730-230720.md`) is the first feature in this repo to have a test framework at all. Everything else — including payment-adjacent fields like `deposit_amount` on `trips` — still has zero coverage.
+**Why:** 2026-08-05: route-level coverage was added for `trips.js`, `participants.js` (the biggest gap — full admin CRUD + CSV import/export, previously untested), `adminAccounts.js`, and `stats.js` (54 new server tests, 108 total). `sessions.js`/`settings.js` are small and low-risk enough that dedicated tests are a nice-to-have, not urgent. Client component tests are a bigger, separate investment (test-double the DOM, RTL setup) — deliberately not bundled into this pass.
 
-**Context:** This repo has never had a test framework. Vitest gets introduced for server + client as part of the budget feature; the setup cost is already paid. Retrofitting tests onto code that was never designed with testing in mind (registration flow, roster CRUD, auth/session handling) is real, separate work — likely a day or more, not an afternoon.
-
-**Effort:** L
-**Priority:** P2
-**Depends on:** Budget Tab feature landing (Vitest setup)
+**Effort:** M (client RTL setup) / S (sessions/settings model tests)
+**Priority:** P3
 
 ## Budget
 
