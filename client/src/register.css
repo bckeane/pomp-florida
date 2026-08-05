@@ -5,30 +5,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@500;600&display=swap');
 
 .register-page {
-  --reg-black: #111111;
-  --reg-red: #980000;
-  --reg-red-bright: #b21111;
-  --reg-ink: #1c1c1c;
-  --reg-bg: #f4f4f5;
-  --reg-surface: #ffffff;
-  --reg-line: #dcdcdf;
+  /* Sourced from the shared --brand-* tokens in styles.css — see that
+     file's comment. Dark-mode values come along for free. */
+  --reg-black: var(--brand-black);
+  --reg-red: var(--brand-red);
+  --reg-red-bright: var(--brand-red-bright);
+  --reg-ink: var(--brand-ink);
+  --reg-bg: var(--brand-bg);
+  --reg-surface: var(--brand-surface);
+  --reg-line: var(--brand-line);
 
   background: var(--reg-bg);
   color: var(--reg-ink);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   min-height: 100vh;
-}
-
-@media (prefers-color-scheme: dark) {
-  .register-page {
-    --reg-black: #0a0a0a;
-    --reg-red: #ff5c5c;
-    --reg-red-bright: #ff8080;
-    --reg-ink: #f0f0f0;
-    --reg-bg: #141414;
-    --reg-surface: #1e1e1e;
-    --reg-line: #333335;
-  }
 }
 
 /* Header */

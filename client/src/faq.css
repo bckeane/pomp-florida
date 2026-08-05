@@ -1,13 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
 .faq-page {
-  --faq-black: #121212;
-  --faq-red: #980000;
-  --faq-red-bright: #b21111;
-  --faq-ink: #1a1a1a;
-  --faq-bg: #f5f3ef;
-  --faq-surface: #ffffff;
-  --faq-line: #ddd7cf;
+  /* Sourced from the shared --brand-* tokens in styles.css — see that
+     file's comment. This used to be its own slightly-drifted palette
+     (#121212/#1a1a1a/#f5f3ef/#ddd7cf, vs. home/register's
+     #111111/#1c1c1c/#f4f4f5/#dcdcdf) — undocumented drift, not a deliberate
+     warm variant, so it's folded into the same shared set as the other two
+     marketing pages. Dark-mode values come along for free. */
+  --faq-black: var(--brand-black);
+  --faq-red: var(--brand-red);
+  --faq-red-bright: var(--brand-red-bright);
+  --faq-ink: var(--brand-ink);
+  --faq-bg: var(--brand-bg);
+  --faq-surface: var(--brand-surface);
+  --faq-line: var(--brand-line);
 
   min-height: 100vh;
   padding: 1.4rem;
@@ -20,16 +26,6 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .faq-page {
-    --faq-black: #0a0a0a;
-    --faq-red: #ff5c5c;
-    --faq-red-bright: #ff8080;
-    --faq-ink: #f0f0f0;
-    --faq-bg: #18150f;
-    --faq-surface: #221f1a;
-    --faq-line: #3a352c;
-  }
-
   /* These read directly from rgba(26, 26, 26, X) / hardcoded white rather
      than the --faq-* variables above, so they need explicit dark overrides
      too — otherwise --faq-ink flips to near-white while these stay tied to
@@ -37,9 +33,6 @@
   .faq-page .faq-hint,
   .faq-page .faq-empty {
     color: rgba(240, 240, 240, 0.72);
-  }
-  .faq-page .faq-card {
-    background: linear-gradient(180deg, #26221c 0%, #221f1a 100%);
   }
   .faq-page .faq-card__date,
   .faq-page .faq-card__asker {
@@ -234,7 +227,7 @@
   border: 1px solid var(--faq-line);
   border-radius: 16px;
   padding: 0.95rem 1rem 1rem;
-  background: linear-gradient(180deg, #fff 0%, #fffdfa 100%);
+  background: var(--faq-surface);
 }
 
 .faq-card--pending {

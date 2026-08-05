@@ -7,13 +7,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@500;600&display=swap');
 
 .home-page {
-  --home-black: #111111;
-  --home-red: #980000;
-  --home-red-bright: #b21111;
-  --home-ink: #1c1c1c;
-  --home-bg: #f4f4f5;
-  --home-surface: #ffffff;
-  --home-line: #dcdcdf;
+  /* Sourced from the shared --brand-* tokens in styles.css, not hardcoded
+     here — see that file's comment for why. Dark-mode values come along
+     for free since --brand-* already flips in styles.css's own media query. */
+  --home-black: var(--brand-black);
+  --home-red: var(--brand-red);
+  --home-red-bright: var(--brand-red-bright);
+  --home-ink: var(--brand-ink);
+  --home-bg: var(--brand-bg);
+  --home-surface: var(--brand-surface);
+  --home-line: var(--brand-line);
 
   max-width: 880px;
   margin: 0 auto;
@@ -21,18 +24,6 @@
   background: var(--home-bg);
   color: var(--home-ink);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  .home-page {
-    --home-black: #0a0a0a;
-    --home-red: #ff5c5c;
-    --home-red-bright: #ff8080;
-    --home-ink: #f0f0f0;
-    --home-bg: #141414;
-    --home-surface: #1e1e1e;
-    --home-line: #333335;
-  }
 }
 
 .home-page a:not(.btn) {
