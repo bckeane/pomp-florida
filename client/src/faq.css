@@ -54,7 +54,7 @@
   display: grid;
   place-items: center;
   align-content: center;
-  gap: 0.8rem;
+  gap: var(--space-6);
   text-align: center;
 }
 
@@ -67,7 +67,7 @@
 .faq-hero {
   position: relative;
   overflow: hidden;
-  padding: 1.25rem 1.25rem 1.75rem;
+  padding: var(--space-9) var(--space-9) 1.75rem;
   border-radius: 22px;
   color: #fff;
   background: linear-gradient(165deg, #141414 0%, #272727 100%);
@@ -88,16 +88,16 @@
 .faq-hero__top {
   display: flex;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--space-5);
   flex-wrap: wrap;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-8);
 }
 
 .faq-back {
   display: inline-flex;
   align-items: center;
   min-height: 40px;
-  padding: 0.55rem 0.9rem;
+  padding: 0.55rem var(--space-7);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
@@ -114,11 +114,11 @@
   width: 76px;
   height: 76px;
   display: block;
-  margin: 0.25rem 0 0.8rem;
+  margin: 0.25rem 0 var(--space-6);
 }
 
 .faq-eyebrow {
-  margin: 0 0 0.35rem;
+  margin: 0 0 var(--space-1);
   font-size: 0.84rem;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -137,7 +137,7 @@
 .faq-subtitle,
 .faq-trip-name {
   max-width: 60ch;
-  margin: 0.8rem 0 0;
+  margin: var(--space-6) 0 0;
   font-size: 1.02rem;
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.86);
@@ -151,8 +151,8 @@
 .faq-layout {
   display: grid;
   grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: var(--space-8);
+  margin-top: var(--space-8);
 }
 
 .faq-form,
@@ -160,12 +160,12 @@
   background: var(--faq-surface);
   border: 1px solid var(--faq-line);
   border-radius: 18px;
-  padding: 1rem;
+  padding: var(--space-8);
 }
 
 .faq-form h2,
 .faq-list-header h2 {
-  margin: 0 0 0.35rem;
+  margin: 0 0 var(--space-1);
   font-family: 'Oswald', sans-serif;
   font-size: 1.15rem;
   text-transform: uppercase;
@@ -179,7 +179,7 @@
 
 .faq-form .form-row,
 .faq-form .modal-actions {
-  margin-top: 1rem;
+  margin-top: var(--space-8);
 }
 
 .faq-form input,
@@ -200,9 +200,9 @@
 .faq-list-header {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-8);
   align-items: end;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-8);
   flex-wrap: wrap;
 }
 
@@ -211,7 +211,7 @@
 }
 
 .faq-empty {
-  padding: 2rem 1rem;
+  padding: 2rem var(--space-8);
   text-align: center;
   border: 1px dashed var(--faq-line);
   border-radius: 14px;
@@ -226,7 +226,7 @@
 .faq-card {
   border: 1px solid var(--faq-line);
   border-radius: 16px;
-  padding: 0.95rem 1rem 1rem;
+  padding: 0.95rem var(--space-8) var(--space-8);
   background: var(--faq-surface);
 }
 
@@ -238,16 +238,16 @@
 .faq-card__top {
   display: flex;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--space-5);
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-5);
 }
 
 .faq-pill {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 0.25rem 0.6rem;
+  padding: 0.25rem var(--space-3);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -277,12 +277,12 @@
 }
 
 .faq-card__asker {
-  margin: 0.35rem 0 0;
+  margin: var(--space-1) 0 0;
 }
 
 .faq-card__answer {
   margin: 0.85rem 0 0;
-  padding: 0.85rem 0.9rem;
+  padding: 0.85rem var(--space-7);
   border-radius: 12px;
   background: rgba(17, 17, 17, 0.04);
   white-space: pre-wrap;

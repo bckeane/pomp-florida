@@ -15,6 +15,23 @@
   --brand-surface: #ffffff;
   --brand-line: #dcdcdf;
 
+  /* Spacing scale — named after the actual most-common margin, padding, and
+     gap values already in use across the app (canonized, not re-invented:
+     every step here matches an existing value exactly, so applying it
+     changes nothing visually, it just gives the repeated values a shared
+     name instead of each call site retyping its own number). Rare one-off
+     values are left as literals; see TODOS.md. */
+  --space-1: 0.35rem;
+  --space-2: 0.5rem;
+  --space-3: 0.6rem;
+  --space-4: 0.7rem;
+  --space-5: 0.75rem;
+  --space-6: 0.8rem;
+  --space-7: 0.9rem;
+  --space-8: 1rem;
+  --space-9: 1.25rem;
+  --space-10: 1.5rem;
+
   --bg: #f7f7f8;
   --surface: #ffffff;
   --border: #dfe1e6;
@@ -58,7 +75,7 @@ body {
 .app {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 4rem;
+  padding: var(--space-10) var(--space-8) 4rem;
 }
 
 .app-header {
@@ -66,8 +83,8 @@ body {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
+  gap: var(--space-8);
+  margin-bottom: var(--space-9);
 }
 
 .app-header h1 {
@@ -78,7 +95,7 @@ body {
 .app-title {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: var(--space-4);
 }
 
 .app-logo {
@@ -94,7 +111,7 @@ body {
 
 .header-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
@@ -103,7 +120,7 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 0.5rem 0.9rem;
+  padding: var(--space-2) var(--space-7);
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -132,9 +149,9 @@ body {
 .trip-switcher {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-3);
   flex-wrap: wrap;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-8);
 }
 
 .trip-select {
@@ -146,7 +163,7 @@ body {
 }
 
 .trip-select select {
-  padding: 0.35rem 0.6rem;
+  padding: var(--space-1) var(--space-3);
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -157,15 +174,15 @@ body {
 .summary-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
+  gap: var(--space-5);
+  margin-bottom: var(--space-9);
 }
 
 .summary-stat {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.6rem 1rem;
+  padding: var(--space-3) var(--space-8);
   min-width: 72px;
   text-align: center;
 }
@@ -187,9 +204,9 @@ body {
 }
 
 .banner {
-  padding: 0.75rem 1rem;
+  padding: var(--space-5) var(--space-8);
   border-radius: 6px;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-8);
 }
 .banner--error {
   background: rgba(192, 57, 43, 0.12);
@@ -204,13 +221,13 @@ body {
 .roster-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.6rem;
+  gap: var(--space-3);
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-8);
 }
 
 .search-input {
-  padding: 0.45rem 0.7rem;
+  padding: 0.45rem var(--space-4);
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -221,12 +238,12 @@ body {
 
 .chip-group {
   display: flex;
-  gap: 0.35rem;
+  gap: var(--space-1);
   flex-wrap: wrap;
 }
 
 .chip {
-  padding: 0.3rem 0.7rem;
+  padding: 0.3rem var(--space-4);
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -251,7 +268,7 @@ body {
 }
 
 .sort-select select {
-  padding: 0.3rem 0.5rem;
+  padding: 0.3rem var(--space-2);
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -270,7 +287,7 @@ body {
 .roster-table th,
 .roster-table td {
   text-align: left;
-  padding: 0.6rem 0.8rem;
+  padding: var(--space-3) var(--space-6);
   border-bottom: 1px solid var(--border);
   font-size: 0.9rem;
 }
@@ -294,7 +311,7 @@ body {
 .row-actions {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-3);
   white-space: nowrap;
 }
 
@@ -354,7 +371,7 @@ body {
   }
   .roster-table tr {
     border-bottom: 1px solid var(--border);
-    padding: 0.6rem 0.8rem;
+    padding: var(--space-3) var(--space-6);
   }
   .roster-table td {
     border: none;
@@ -367,7 +384,7 @@ body {
     color: var(--text-muted);
     font-size: 0.75rem;
     text-transform: uppercase;
-    margin-right: 0.5rem;
+    margin-right: var(--space-2);
   }
   .row-actions {
     justify-content: flex-end;
@@ -383,7 +400,7 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 3vh 1rem;
+  padding: 3vh var(--space-8);
   overflow-y: auto;
   z-index: 50;
 }
@@ -392,7 +409,7 @@ body {
 .form-card {
   background: var(--surface);
   border-radius: 10px;
-  padding: 1.5rem;
+  padding: var(--space-10);
   width: 100%;
   max-width: 480px;
   border: 1px solid var(--border);
@@ -432,7 +449,7 @@ body {
 }
 
 .popover-panel h2 {
-  margin: 0 0 0.9rem;
+  margin: 0 0 var(--space-7);
   font-size: 1rem;
 }
 
@@ -444,11 +461,11 @@ body {
 .admin-auth-page {
   max-width: 480px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 4rem;
+  padding: var(--space-10) var(--space-8) 4rem;
 }
 
 .register-header {
-  margin-bottom: 1.25rem;
+  margin-bottom: var(--space-9);
 }
 
 .register-header h1 {
@@ -472,23 +489,23 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.6rem;
-  margin-bottom: 1rem;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
   font-size: 0.85rem;
   color: var(--text-muted);
 }
 
 .registered-card {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-8);
 }
 
 .registered-card h2 {
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
   font-size: 1rem;
 }
 
 .returning-card {
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-8);
 }
 
 .returning-card h2 {
@@ -502,8 +519,8 @@ body {
 
 .form-row {
   display: flex;
-  gap: 0.8rem;
-  margin-bottom: 0.9rem;
+  gap: var(--space-6);
+  margin-bottom: var(--space-7);
   flex-wrap: wrap;
 }
 
@@ -519,7 +536,7 @@ body {
 .form-row input,
 .form-row select,
 .form-row textarea {
-  padding: 0.45rem 0.6rem;
+  padding: 0.45rem var(--space-3);
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg);
@@ -537,7 +554,7 @@ body {
 .form-row label.checkbox-row {
   flex-direction: row;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   font-size: 0.9rem;
   color: var(--text);
 }
@@ -549,24 +566,24 @@ body {
 }
 
 .allergy-blurb {
-  margin-top: 0.5rem;
+  margin-top: var(--space-2);
 }
 
 .form-error--root {
   background: rgba(192, 57, 43, 0.12);
   color: var(--danger);
-  padding: 0.5rem 0.7rem;
+  padding: var(--space-2) var(--space-4);
   border-radius: 6px;
-  margin-bottom: 0.8rem;
+  margin-bottom: var(--space-6);
   font-size: 0.85rem;
 }
 
 .form-notice--ok {
   background: rgba(30, 130, 76, 0.12);
   color: var(--ok);
-  padding: 0.5rem 0.7rem;
+  padding: var(--space-2) var(--space-4);
   border-radius: 6px;
-  margin-bottom: 0.8rem;
+  margin-bottom: var(--space-6);
   font-size: 0.85rem;
 }
 
@@ -575,12 +592,12 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-8);
 }
 
 .segmented-btn {
   flex: 1;
-  padding: 0.5rem;
+  padding: var(--space-2);
   border: none;
   background: var(--surface);
   color: var(--text);
@@ -596,20 +613,20 @@ body {
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.6rem;
-  margin-top: 1rem;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
 }
 
 .dropzone {
   border: 1px dashed var(--border);
   border-radius: 8px;
-  padding: 0.8rem;
+  padding: var(--space-6);
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-3);
   font-size: 0.85rem;
   color: var(--text-muted);
-  margin-bottom: 0.8rem;
+  margin-bottom: var(--space-6);
 }
 
 .csv-textarea {
@@ -618,20 +635,20 @@ body {
   border-radius: 6px;
   background: var(--bg);
   color: var(--text);
-  padding: 0.6rem;
+  padding: var(--space-3);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.8rem;
-  margin-bottom: 0.8rem;
+  margin-bottom: var(--space-6);
 }
 
 .preview-summary {
   display: flex;
-  gap: 0.6rem;
-  margin-bottom: 0.6rem;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
 .badge {
-  padding: 0.2rem 0.6rem;
+  padding: 0.2rem var(--space-3);
   border-radius: 999px;
   font-size: 0.78rem;
 }
@@ -649,7 +666,7 @@ body {
   overflow: auto;
   border: 1px solid var(--border);
   border-radius: 6px;
-  margin-bottom: 0.8rem;
+  margin-bottom: var(--space-6);
 }
 
 .preview-table {
@@ -660,7 +677,7 @@ body {
 
 .preview-table th,
 .preview-table td {
-  padding: 0.4rem 0.6rem;
+  padding: 0.4rem var(--space-3);
   border-bottom: 1px solid var(--border);
   text-align: left;
 }

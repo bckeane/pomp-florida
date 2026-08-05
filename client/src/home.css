@@ -20,7 +20,7 @@
 
   max-width: 880px;
   margin: 0 auto;
-  padding: 2.5rem 1.25rem 4rem;
+  padding: 2.5rem var(--space-9) 4rem;
   background: var(--home-bg);
   color: var(--home-ink);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -36,7 +36,7 @@
   background: linear-gradient(165deg, var(--home-black) 0%, #232323 100%);
   color: #ffffff;
   border-radius: 16px;
-  padding: 2.25rem 1.5rem 2.5rem;
+  padding: 2.25rem var(--space-10) 2.5rem;
   text-align: center;
 }
 
@@ -60,12 +60,12 @@
 .hero-logo {
   width: 76px;
   height: 76px;
-  margin: 0 auto 1rem;
+  margin: 0 auto var(--space-8);
   display: block;
 }
 
 .eyebrow {
-  margin: 0 0 0.6rem;
+  margin: 0 0 var(--space-3);
   font-family: 'Oswald', sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
@@ -90,7 +90,7 @@
 }
 
 .hero-dates {
-  margin: 0.6rem 0 0;
+  margin: var(--space-3) 0 0;
   font-family: 'Roboto Mono', monospace;
   font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.75);
@@ -107,13 +107,13 @@
 .hero-actions {
   display: flex;
   justify-content: center;
-  gap: 0.75rem;
+  gap: var(--space-5);
   flex-wrap: wrap;
   margin-top: 1.6rem;
 }
 
 .home-page .btn--lg {
-  padding: 0.75rem 1.5rem;
+  padding: var(--space-5) var(--space-10);
   font-size: 1rem;
   border-radius: 8px;
   font-weight: 600;
@@ -150,7 +150,7 @@
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-3);
   margin: 1.75rem auto 0;
   padding: 1.1rem 1.6rem;
   background: var(--home-red);
@@ -179,7 +179,7 @@
 .scoreboard-splits {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .split {
@@ -229,13 +229,13 @@
 }
 
 .section-title {
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-8);
   font-family: 'Oswald', sans-serif;
   font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding-left: 0.75rem;
+  padding-left: var(--space-5);
   border-left: 4px solid var(--home-red);
 }
 
@@ -246,20 +246,20 @@
 .glance-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  gap: var(--space-8);
 }
 
 .glance-card {
   background: var(--home-surface);
   border: 1px solid var(--home-line);
   border-radius: 10px;
-  padding: 1rem 1.1rem;
+  padding: var(--space-8) 1.1rem;
   display: flex;
   flex-direction: column;
 }
 
 .glance-label {
-  margin: 0.6rem 0 0;
+  margin: var(--space-3) 0 0;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -289,7 +289,7 @@
 }
 
 .glance-note {
-  margin: 0.6rem 0 0;
+  margin: var(--space-3) 0 0;
   font-size: 0.85rem;
   opacity: 0.75;
 }
@@ -299,8 +299,8 @@
 .date-tiles {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
-  margin: 0.6rem 0 0.9rem;
+  gap: var(--space-7);
+  margin: var(--space-3) 0 var(--space-7);
 }
 
 .date-tiles-arrow {
@@ -337,7 +337,7 @@
   justify-content: center;
   font-size: 1.7rem;
   line-height: 1;
-  margin: 0.6rem 0 0.9rem;
+  margin: var(--space-3) 0 var(--space-7);
   flex: none;
   align-self: flex-start;
   border: 1.5px solid var(--home-line);
@@ -376,7 +376,7 @@
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 0.6rem 1.5rem;
+  gap: var(--space-3) var(--space-10);
 }
 
 .included-list li {
@@ -395,7 +395,7 @@
 
 .cost-splits {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-8);
   flex-wrap: wrap;
 }
 
@@ -404,7 +404,7 @@
   background: var(--home-surface);
   border: 1px solid var(--home-line);
   border-radius: 10px;
-  padding: 1rem 1.1rem;
+  padding: var(--space-8) 1.1rem;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -430,7 +430,7 @@
 }
 
 .cost-total {
-  margin-top: 1rem;
+  margin-top: var(--space-8);
   font-weight: 600;
 }
 
@@ -442,7 +442,7 @@
 /* Footer — solid black band, matching region15's own footer treatment. */
 .home-footer {
   margin-top: 2.5rem;
-  padding: 2rem 1.5rem;
+  padding: 2rem var(--space-10);
   border-radius: 16px;
   background: var(--home-black);
   color: #ffffff;
@@ -450,7 +450,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-3);
 }
 
 .home-footer .hint {

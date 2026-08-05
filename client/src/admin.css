@@ -63,34 +63,34 @@
 .admin-auth-page .reg-logo {
   width: 44px;
   height: 44px;
-  margin-bottom: 0.6rem;
+  margin-bottom: var(--space-3);
 }
 
 .questions-panel {
-  padding: 1rem;
+  padding: var(--space-8);
 }
 
 .questions-panel__header {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-8);
   align-items: end;
   flex-wrap: wrap;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-8);
 }
 
 .questions-panel__header h2 {
-  margin-bottom: 0.35rem;
+  margin-bottom: var(--space-1);
 }
 
 .questions-panel__stats {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
 .questions-panel__count {
-  padding: 0.35rem 0.7rem;
+  padding: var(--space-1) var(--space-4);
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.05);
   font-size: 0.85rem;
@@ -104,11 +104,11 @@
 
 .question-list {
   display: grid;
-  gap: 0.9rem;
+  gap: var(--space-7);
 }
 
 .question-card {
-  padding: 1rem;
+  padding: var(--space-8);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.8);
@@ -117,16 +117,16 @@
 .question-card__top {
   display: flex;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--space-5);
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-5);
 }
 
 .question-pill {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 0.25rem 0.6rem;
+  padding: 0.25rem var(--space-3);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -156,20 +156,20 @@
 }
 
 .question-card__asker {
-  margin: 0.35rem 0 0;
+  margin: var(--space-1) 0 0;
 }
 
 .question-card__answer {
-  margin-top: 0.9rem;
+  margin-top: var(--space-7);
 }
 
 .question-card__answer textarea {
   width: 100%;
-  margin-top: 0.35rem;
+  margin-top: var(--space-1);
   resize: vertical;
 }
 
 .question-card__actions {
   justify-content: flex-end;
-  margin-top: 0.8rem;
+  margin-top: var(--space-6);
 }

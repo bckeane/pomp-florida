@@ -25,12 +25,12 @@
 .register-page .reg-logo {
   width: 44px;
   height: 44px;
-  margin-bottom: 0.6rem;
+  margin-bottom: var(--space-3);
 }
 
 .register-page .reg-back {
   display: inline-block;
-  margin-bottom: 0.9rem;
+  margin-bottom: var(--space-7);
   font-size: 0.82rem;
   font-weight: 500;
   color: var(--reg-red);
@@ -67,7 +67,7 @@
 
 .register-page .reg-divider {
   height: 4px;
-  margin: 1.25rem 0 1.5rem;
+  margin: var(--space-9) 0 var(--space-10);
   border-radius: 999px;
   background: var(--reg-red);
   opacity: 0.85;
@@ -78,7 +78,7 @@
   background: var(--reg-surface);
   border: 1px solid var(--reg-line);
   border-radius: 8px;
-  padding: 0.55rem 0.9rem;
+  padding: 0.55rem var(--space-7);
   color: var(--reg-ink);
   flex-wrap: wrap;
   row-gap: 0.3rem;
@@ -180,7 +180,7 @@
 
 /* On-this-trip roster chips */
 .register-page .registered-card h2 {
-  margin-bottom: 0.7rem;
+  margin-bottom: var(--space-4);
 }
 
 .register-page .roster-chips {
@@ -189,7 +189,7 @@
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .register-page .roster-chip {
@@ -199,7 +199,7 @@
   background: var(--reg-bg);
   border: 1px solid var(--reg-line);
   border-radius: 999px;
-  padding: 0.32rem 0.75rem 0.32rem 0.6rem;
+  padding: 0.32rem var(--space-5) 0.32rem var(--space-3);
   font-size: 0.85rem;
 }
 
@@ -228,11 +228,11 @@
 
 .register-page .account-roster {
   list-style: none;
-  margin: 0.9rem 0 0;
+  margin: var(--space-7) 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .register-page .account-roster-row {
@@ -240,8 +240,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem 1rem;
-  padding: 0.65rem 0.8rem;
+  gap: var(--space-2) var(--space-8);
+  padding: 0.65rem var(--space-6);
   background: var(--reg-bg);
   border: 1px solid var(--reg-line);
   border-radius: 8px;
@@ -250,7 +250,7 @@
 .register-page .account-roster-who {
   display: flex;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .register-page .account-roster-who .lane-card-name {
@@ -261,12 +261,12 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   font-size: 0.82rem;
 }
 
 .register-page .account-roster-flag {
-  margin-top: 0.7rem;
+  margin-top: var(--space-4);
   color: var(--reg-red);
   opacity: 0.85;
 }
@@ -275,7 +275,7 @@
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 0.2rem 0.6rem;
+  padding: 0.2rem var(--space-3);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -305,7 +305,7 @@
 
 .register-page .lane-cards {
   list-style: none;
-  margin: 0.9rem 0 0.6rem;
+  margin: var(--space-7) 0 var(--space-3);
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -319,7 +319,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 0.1rem;
-  padding: 0.65rem 0.8rem;
+  padding: 0.65rem var(--space-6);
   background: var(--reg-surface);
   border: 1px solid var(--reg-line);
   border-left: 4px solid var(--reg-red);
@@ -376,7 +376,7 @@
 /* Success state */
 .register-page .register-success {
   text-align: center;
-  padding: 2rem 1.5rem;
+  padding: 2rem var(--space-10);
 }
 
 .register-page .register-success::before {
@@ -386,7 +386,7 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  margin: 0 auto 0.8rem;
+  margin: 0 auto var(--space-6);
   border-radius: 999px;
   background: var(--reg-red-bright);
   color: white;
