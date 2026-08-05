@@ -75,3 +75,43 @@ describe('payment tracking', () => {
     expect(p.final_payment_balance).toBeNull();
   });
 });
+
+describe('has_allergy_medication (tri-state)', () => {
+  it('defaults to null (unanswered), not false, when omitted', () => {
+    const trip = createTrip({ year: '2056', name: 'Test', trip_date: '2056-01-01' });
+    const p = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+    expect(p.has_allergy_medication).toBeNull();
+  });
+
+  it('round-trips true and false distinctly from null', () => {
+    const trip = createTrip({ year: '2057', name: 'Test', trip_date: '2057-01-01' });
+    const p = createParticipant({
+      first_name: 'A',
+      last_name: 'A',
+      role: 'Swimmer',
+      trip_id: trip.id,
+      has_allergy_medication: true,
+    });
+    expect(p.has_allergy_medication).toBe(true);
+
+    const answeredNo = updateParticipant(p.id, { has_allergy_medication: false });
+    expect(answeredNo.has_allergy_medication).toBe(false);
+
+    const backToUnanswered = updateParticipant(p.id, { has_allergy_medication: null });
+    expect(backToUnanswered.has_allergy_medication).toBeNull();
+  });
+
+  it('an update that omits the field preserves the existing answer', () => {
+    const trip = createTrip({ year: '2058', name: 'Test', trip_date: '2058-01-01' });
+    const p = createParticipant({
+      first_name: 'A',
+      last_name: 'A',
+      role: 'Swimmer',
+      trip_id: trip.id,
+      has_allergy_medication: true,
+    });
+
+    const afterUnrelatedUpdate = updateParticipant(p.id, { first_name: 'Alice' });
+    expect(afterUnrelatedUpdate.has_allergy_medication).toBe(true);
+  });
+});

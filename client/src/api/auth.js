@@ -41,3 +41,7 @@ export function forgotPassword(email) {
 export function resetPassword(token, password) {
   return request('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) });
 }
+
+export function updateProfile(parent_name, emergency_phone) {
+  return request('/auth/profile', { method: 'PATCH', body: JSON.stringify({ parent_name, emergency_phone }) });
+}

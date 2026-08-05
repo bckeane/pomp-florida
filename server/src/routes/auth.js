@@ -6,6 +6,7 @@ import {
   verifyAccountPassword,
   getAccountById,
   updateAccountPassword,
+  updateAccountProfile,
 } from '../models/accounts.js';
 import { createSession, deleteSession, deleteSessionsByAccount } from '../models/sessions.js';
 import { createResetToken, consumeResetToken } from '../models/passwordResets.js';
@@ -29,6 +30,11 @@ const forgotPasswordSchema = z.object({
 const resetPasswordSchema = z.object({
   token: z.string().min(1, 'missing token'),
   password: z.string().min(8, 'password must be at least 8 characters'),
+});
+
+const profileSchema = z.object({
+  parent_name: z.string().trim().min(1, 'name is required'),
+  emergency_phone: z.string().trim().min(1, 'emergency contact number is required'),
 });
 
 /**
@@ -175,6 +181,21 @@ router.post('/auth/logout', (req, res) => {
 
 router.get('/auth/me', requireAccount, (req, res) => {
   res.json({ account: req.account });
+});
+
+// Parent name + emergency contact, collected once per account via the
+// one-time gate on the register page (see RegisterPage.jsx / ParentProfileGate).
+// Both fields are required here — this is the only route that sets them,
+// so there's no partial-update path that could leave one populated and the
+// other blank.
+router.patch('/auth/profile', requireAccount, (req, res) => {
+  const parsed = profileSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ errors: fieldKeyedZodErrors(parsed.error) });
+  }
+
+  const account = updateAccountProfile(req.account.id, parsed.data);
+  res.json({ account });
 });
 
 export default router;

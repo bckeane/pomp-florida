@@ -11,10 +11,21 @@ const COLUMNS = [
   'active',
   'deposit_received',
   'final_payment_received',
+  'has_allergy_medication',
   'trip_id',
   'created_at',
   'updated_at',
 ];
+
+// Tri-state (see migration 013): stored as 1/0/NULL, read back as
+// true/false/null so callers never have to think about the SQLite encoding.
+// Must accept raw 1/0 as well as JS booleans — updateParticipant's merge can
+// pass either through here depending on whether the field came from
+// validated input or from re-reading an existing row (see below).
+function toTriStateInt(value) {
+  if (value === null || value === undefined) return null;
+  return value ? 1 : 0;
+}
 
 // Age and grade are always computed against the participant's OWN trip_id
 // (date + year), not whichever trip is "current" — so browsing an archived
@@ -34,6 +45,10 @@ function rowToParticipant(row) {
   const withAgeGrade = withDerived(participant, _trip_date, _trip_year);
   return {
     ...withAgeGrade,
+    has_allergy_medication:
+      participant.has_allergy_medication === null || participant.has_allergy_medication === undefined
+        ? null
+        : Boolean(participant.has_allergy_medication),
     // null when the trip has no deposit/final-payment amount set (e.g. an
     // archived trip with no detail fields) — "—" in the UI, not a false $0 owed.
     deposit_balance: _deposit_amount == null ? null : _deposit_amount - participant.deposit_received,
@@ -127,8 +142,8 @@ export function createParticipant(data) {
   const info = db
     .prepare(
       `INSERT INTO participants
-        (first_name, last_name, grad_year, birth_date, role, active, deposit_received, final_payment_received, trip_id, account_id, created_at, updated_at)
-       VALUES (@first_name, @last_name, @grad_year, @birth_date, @role, @active, @deposit_received, @final_payment_received, @trip_id, @account_id, @created_at, @updated_at)`
+        (first_name, last_name, grad_year, birth_date, role, active, deposit_received, final_payment_received, has_allergy_medication, trip_id, account_id, created_at, updated_at)
+       VALUES (@first_name, @last_name, @grad_year, @birth_date, @role, @active, @deposit_received, @final_payment_received, @has_allergy_medication, @trip_id, @account_id, @created_at, @updated_at)`
     )
     .run({
       first_name: data.first_name,
@@ -139,6 +154,7 @@ export function createParticipant(data) {
       active: data.active === false ? 0 : 1,
       deposit_received: Number.isFinite(data.deposit_received) ? data.deposit_received : 0,
       final_payment_received: Number.isFinite(data.final_payment_received) ? data.final_payment_received : 0,
+      has_allergy_medication: toTriStateInt(data.has_allergy_medication),
       trip_id: data.trip_id,
       account_id: data.account_id ?? null,
       created_at: now,
@@ -164,6 +180,7 @@ export function updateParticipant(id, data) {
       active = @active,
       deposit_received = @deposit_received,
       final_payment_received = @final_payment_received,
+      has_allergy_medication = @has_allergy_medication,
       trip_id = @trip_id,
       updated_at = @updated_at
      WHERE id = @id`
@@ -177,6 +194,7 @@ export function updateParticipant(id, data) {
     active: merged.active === false || merged.active === 0 ? 0 : 1,
     deposit_received: Number.isFinite(merged.deposit_received) ? merged.deposit_received : 0,
     final_payment_received: Number.isFinite(merged.final_payment_received) ? merged.final_payment_received : 0,
+    has_allergy_medication: toTriStateInt(merged.has_allergy_medication),
     trip_id: merged.trip_id,
     updated_at: now,
   });

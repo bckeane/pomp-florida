@@ -7,7 +7,7 @@ import { db } from '../src/db/connection.js';
 vi.mock('../src/lib/email.js', () => ({ sendPasswordResetEmail: vi.fn() }));
 
 const { sendPasswordResetEmail } = await import('../src/lib/email.js');
-const { createAccount, verifyAccountPassword } = await import('../src/models/accounts.js');
+const { createAccount, verifyAccountPassword, getAccountById } = await import('../src/models/accounts.js');
 const { createSession } = await import('../src/models/sessions.js');
 const authRouter = (await import('../src/routes/auth.js')).default;
 
@@ -100,5 +100,46 @@ describe('POST /api/auth/reset-password', () => {
 
     const res = await request(app).post('/api/auth/reset-password').send({ token: resetToken, password: 'short' });
     expect(res.status).toBe(400);
+  });
+});
+
+describe('PATCH /api/auth/profile', () => {
+  it('requires a signed-in account', async () => {
+    const res = await request(app)
+      .patch('/api/auth/profile')
+      .send({ parent_name: 'Jamie Rivera', emergency_phone: '555-123-4567' });
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects a blank name or phone', async () => {
+    const account = createAccount('profileroute@example.com', 'password123');
+    const { token } = createSession(account.id);
+    const cookie = `session=${token}`;
+
+    const res = await request(app)
+      .patch('/api/auth/profile')
+      .set('Cookie', cookie)
+      .send({ parent_name: '', emergency_phone: '' });
+    expect(res.status).toBe(400);
+    expect(res.body.errors.parent_name).toBeDefined();
+    expect(res.body.errors.emergency_phone).toBeDefined();
+  });
+
+  it('sets parent_name and emergency_phone and returns them on the account', async () => {
+    const account = createAccount('profileroute2@example.com', 'password123');
+    const { token } = createSession(account.id);
+    const cookie = `session=${token}`;
+
+    const res = await request(app)
+      .patch('/api/auth/profile')
+      .set('Cookie', cookie)
+      .send({ parent_name: 'Jamie Rivera', emergency_phone: '555-123-4567' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.account.parent_name).toBe('Jamie Rivera');
+    expect(res.body.account.emergency_phone).toBe('555-123-4567');
+
+    const reloaded = getAccountById(account.id);
+    expect(reloaded.parent_name).toBe('Jamie Rivera');
   });
 });

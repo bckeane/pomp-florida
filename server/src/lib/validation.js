@@ -28,6 +28,9 @@ const baseShape = {
   active: z.coerce.boolean().optional(),
   deposit_received: z.coerce.number().int().nonnegative().optional(),
   final_payment_received: z.coerce.number().int().nonnegative().optional(),
+  // Tri-state: omitted/null stays "unanswered", never defaults to false —
+  // see migration 013 for why this can't be a plain boolean.
+  has_allergy_medication: z.boolean().nullish(),
 };
 
 const participantSchema = z.object(baseShape);
@@ -50,6 +53,9 @@ export function validateParticipant(input) {
   const data = { ...parsed.data };
   data.birth_date = data.birth_date === '' ? null : data.birth_date ?? null;
   data.grad_year = data.grad_year || null;
+  // undefined (field omitted) and null (explicitly cleared) both mean
+  // "unanswered" — normalize to null so better-sqlite3 never sees undefined.
+  data.has_allergy_medication = data.has_allergy_medication === undefined ? null : data.has_allergy_medication;
 
   if (data.role === 'Adult') {
     if (data.grad_year && !ADULT_GRAD_YEARS.includes(data.grad_year)) {

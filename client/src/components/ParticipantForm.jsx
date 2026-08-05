@@ -9,6 +9,7 @@ function emptyForm(variant) {
     role: variant === 'public' ? '' : 'Swimmer',
     grad_year: '',
     birth_date: '',
+    has_allergy_medication: false,
   };
 }
 
@@ -39,6 +40,7 @@ export default function ParticipantForm({ participant, onSave, onCancel, variant
         role: participant.role || (isPublic ? '' : 'Swimmer'),
         grad_year: participant.grad_year || '',
         birth_date: participant.birth_date || '',
+        has_allergy_medication: participant.has_allergy_medication === true,
       });
     } else {
       setForm(emptyForm(variant));
@@ -80,6 +82,7 @@ export default function ParticipantForm({ participant, onSave, onCancel, variant
         role: form.role,
         grad_year: form.grad_year || null,
         birth_date: form.birth_date || null,
+        has_allergy_medication: form.has_allergy_medication,
       });
     } catch (err) {
       if (err.body?.errors) {
@@ -183,6 +186,23 @@ export default function ParticipantForm({ participant, onSave, onCancel, variant
           />
           {errors.birth_date && <span className="field-error">{errors.birth_date}</span>}
         </label>
+      </div>
+
+      <div className="form-row">
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={form.has_allergy_medication}
+            onChange={(e) => setForm((f) => ({ ...f, has_allergy_medication: e.target.checked }))}
+          />
+          Has an allergy or takes medication that needs to travel with them
+        </label>
+        {form.has_allergy_medication && (
+          <p className="hint allergy-blurb">
+            Thanks for flagging this — our trip nurse will follow up with you directly to get the
+            details and make sure any medication gets to her before departure.
+          </p>
+        )}
       </div>
     </>
   );

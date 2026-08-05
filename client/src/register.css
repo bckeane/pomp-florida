@@ -230,6 +230,84 @@
   opacity: 0.6;
 }
 
+/* Account home — the post-login landing screen (see AccountHome.jsx) */
+.register-page .account-home-actions {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.register-page .account-roster {
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.register-page .account-roster-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.65rem 0.8rem;
+  background: var(--reg-bg);
+  border: 1px solid var(--reg-line);
+  border-radius: 8px;
+}
+
+.register-page .account-roster-who {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.register-page .account-roster-who .lane-card-name {
+  font-size: 0.95rem;
+}
+
+.register-page .account-roster-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.register-page .account-roster-flag {
+  margin-top: 0.7rem;
+  color: var(--reg-red);
+  opacity: 0.85;
+}
+
+.register-page .status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.register-page .status-pill--ok {
+  background: rgba(20, 128, 74, 0.1);
+  color: #11663c;
+}
+
+.register-page .status-pill--warn {
+  background: rgba(178, 17, 17, 0.08);
+  color: var(--reg-red);
+}
+
+.register-page .status-pill--flag {
+  background: rgba(178, 17, 17, 0.14);
+  color: var(--reg-red);
+  font-weight: 700;
+}
+
 /* Returning-participant lane cards — the page's signature element */
 .register-page .returning-card h2 {
   margin-bottom: 0.15rem;

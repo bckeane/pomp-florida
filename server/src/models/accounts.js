@@ -11,7 +11,9 @@ import { isBreakGlassEmail } from '../lib/breakGlass.js';
  * always matches what requireAdmin will actually allow.
  */
 export function getAccountById(id) {
-  const account = db.prepare('SELECT id, email, role, created_at FROM accounts WHERE id = ?').get(id);
+  const account = db
+    .prepare('SELECT id, email, role, parent_name, emergency_phone, created_at FROM accounts WHERE id = ?')
+    .get(id);
   if (!account) return null;
   if (account.role !== 'admin' && isBreakGlassEmail(account.email)) {
     return { ...account, role: 'admin' };
@@ -55,6 +57,21 @@ export function verifyAccountPassword(email, password) {
 export function updateAccountPassword(id, password) {
   const passwordHash = hashPassword(password);
   db.prepare('UPDATE accounts SET password_hash = ? WHERE id = ?').run(passwordHash, id);
+  return getAccountById(id);
+}
+
+/**
+ * Sets the parent's name and emergency contact number — collected once per
+ * account (not per participant) via the one-time profile gate on the
+ * register page. Both fields are required by the route's validation, not
+ * here; this just persists whatever it's given.
+ */
+export function updateAccountProfile(id, { parent_name, emergency_phone }) {
+  db.prepare('UPDATE accounts SET parent_name = ?, emergency_phone = ? WHERE id = ?').run(
+    parent_name,
+    emergency_phone,
+    id
+  );
   return getAccountById(id);
 }
 

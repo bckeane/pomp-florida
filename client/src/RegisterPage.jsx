@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import ParticipantForm from './components/ParticipantForm.jsx';
 import AuthGate from './components/AuthGate.jsx';
+import ParentProfileGate from './components/ParentProfileGate.jsx';
+import AccountHome from './components/AccountHome.jsx';
 import { me, logout } from './api/auth.js';
 import { createMyParticipant, fetchMyParticipants, fetchMyParticipantHistory } from './api/participants.js';
 import { fetchCurrentTrip } from './api/trips.js';
+import { profileComplete } from './lib/profile.js';
 import pantherLogo from './img/pomp_icon.png';
 import './register.css';
 
@@ -18,6 +21,8 @@ export default function RegisterPage() {
   const [error, setError] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [lastAdded, setLastAdded] = useState(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
 
   useEffect(() => {
     fetchCurrentTrip()
@@ -52,6 +57,11 @@ export default function RegisterPage() {
     setHistory(past);
   };
 
+  const handleProfileSaved = (updatedAccount) => {
+    setAccount(updatedAccount);
+    setEditingProfile(false);
+  };
+
   const handleSave = async (data) => {
     const participant = await createMyParticipant(data);
     setMyParticipants((prev) => [...prev, participant]);
@@ -71,6 +81,14 @@ export default function RegisterPage() {
     setHistory([]);
     setPrefill(null);
     setSubmitted(false);
+    setShowAddForm(false);
+    setEditingProfile(false);
+  };
+
+  const backToAccountHome = () => {
+    setShowAddForm(false);
+    setSubmitted(false);
+    setPrefill(null);
   };
 
   return (
@@ -101,34 +119,27 @@ export default function RegisterPage() {
             </button>
           </div>
 
-          {myParticipants.length > 0 && (
-            <div className="form-card registered-card">
-              <h2>Added to this trip</h2>
-              <ul className="roster-chips">
-                {myParticipants.map((p) => (
-                  <li key={p.id} className="roster-chip">
-                    {p.first_name} {p.last_name}
-                    <span className="roster-chip-role">{p.role}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {submitted ? (
+          {!profileComplete(account) || editingProfile ? (
+            <ParentProfileGate account={account} onSaved={handleProfileSaved} />
+          ) : submitted ? (
             <div className="form-card register-success">
               <p>{lastAdded ? `${lastAdded.first_name} is on the roster.` : "You're on the roster."}</p>
-              <button
-                className="btn btn--primary"
-                onClick={() => {
-                  setPrefill(null);
-                  setSubmitted(false);
-                }}
-              >
-                Add another person
-              </button>
+              <div className="modal-actions account-home-actions">
+                <button type="button" className="link-btn" onClick={backToAccountHome}>
+                  Back to my roster
+                </button>
+                <button
+                  className="btn btn--primary"
+                  onClick={() => {
+                    setPrefill(null);
+                    setSubmitted(false);
+                  }}
+                >
+                  Add another person
+                </button>
+              </div>
             </div>
-          ) : (
+          ) : showAddForm ? (
             trip && (
               <>
                 {returningPeople.length > 0 && (
@@ -172,8 +183,19 @@ export default function RegisterPage() {
                   </div>
                 )}
                 <ParticipantForm key={prefill ? personKey(prefill) : 'blank'} variant="public" participant={prefill} onSave={handleSave} />
+                <button type="button" className="link-btn" onClick={backToAccountHome}>
+                  ← Back to my roster
+                </button>
               </>
             )
+          ) : (
+            <AccountHome
+              account={account}
+              trip={trip}
+              participants={myParticipants}
+              onAddAnother={() => setShowAddForm(true)}
+              onEditProfile={() => setEditingProfile(true)}
+            />
           )}
         </>
       )}

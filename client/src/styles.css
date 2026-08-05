@@ -512,6 +512,24 @@ body {
   font-size: 0.78rem;
 }
 
+.form-row label.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.checkbox-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.allergy-blurb {
+  margin-top: 0.5rem;
+}
+
 .form-error--root {
   background: rgba(192, 57, 43, 0.12);
   color: var(--danger);
