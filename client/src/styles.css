@@ -77,7 +77,10 @@ body {
 }
 
 .btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   padding: 0.5rem 0.9rem;
   border-radius: 6px;
   border: 1px solid var(--border);
