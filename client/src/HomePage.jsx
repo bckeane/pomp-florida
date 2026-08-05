@@ -146,7 +146,7 @@ export default function HomePage() {
         <h2 className="section-title">The trip at a glance</h2>
         <div className="glance-grid">
           <div className="glance-card">
-            <span className="glance-label">Trip dates</span>
+            <h3 className="glance-label">Trip dates</h3>
             <div className="date-tiles">
               <DateTile iso={trip.trip_date} />
               <span className="date-tiles-arrow" aria-hidden="true">&rarr;</span>
@@ -164,7 +164,7 @@ export default function HomePage() {
             const [trainingName, trainingDetail] = trip.training_location.split(/\s*—\s*/);
             return (
               <div className="glance-card">
-                <span className="glance-label">Training</span>
+                <h3 className="glance-label">Training</h3>
                 <span className="glance-icon-tile" role="img" aria-label="Swimming pool">🏊</span>
                 <span className="glance-value">
                   {trip.training_location_url ? (
@@ -182,7 +182,7 @@ export default function HomePage() {
 
           {trip.lodging && (
             <div className="glance-card">
-              <span className="glance-label">Staying</span>
+              <h3 className="glance-label">Staying</h3>
               <span className="glance-icon-tile" role="img" aria-label="Hotel">🏨</span>
               <span className="glance-value">
                 {trip.lodging_url ? (
