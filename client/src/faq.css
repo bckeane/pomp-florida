@@ -19,6 +19,40 @@
     var(--faq-bg);
 }
 
+@media (prefers-color-scheme: dark) {
+  .faq-page {
+    --faq-black: #0a0a0a;
+    --faq-red: #ff5c5c;
+    --faq-red-bright: #ff8080;
+    --faq-ink: #f0f0f0;
+    --faq-bg: #18150f;
+    --faq-surface: #221f1a;
+    --faq-line: #3a352c;
+  }
+
+  /* These read directly from rgba(26, 26, 26, X) / hardcoded white rather
+     than the --faq-* variables above, so they need explicit dark overrides
+     too — otherwise --faq-ink flips to near-white while these stay tied to
+     their light-mode values, making card text unreadable. */
+  .faq-page .faq-hint,
+  .faq-page .faq-empty {
+    color: rgba(240, 240, 240, 0.72);
+  }
+  .faq-page .faq-card {
+    background: linear-gradient(180deg, #26221c 0%, #221f1a 100%);
+  }
+  .faq-page .faq-card__date,
+  .faq-page .faq-card__asker {
+    color: rgba(240, 240, 240, 0.58);
+  }
+  .faq-page .faq-card__answer {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .faq-page .faq-card__answer--pending {
+    color: rgba(240, 240, 240, 0.54);
+  }
+}
+
 .faq-page a:not(.btn) {
   color: var(--faq-red);
 }
