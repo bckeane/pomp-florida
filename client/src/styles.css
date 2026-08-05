@@ -66,6 +66,20 @@
   box-sizing: border-box;
 }
 
+/* Universal focus-visible ring — buttons, links, chips, the segmented
+   control, and the register page's lane-cards previously fell back to the
+   browser default outline. One rule, loaded on every route, using
+   --primary (which is var(--brand-red-bright) — the same red the whole
+   app already uses) so it reads correctly on every page without a
+   per-page override. Deliberately :focus-visible, not :focus, so a mouse
+   click doesn't show a ring on elements that don't need one. Inputs keep
+   their own more specific :focus rule below (border-color + box-shadow),
+   which wins on specificity and overrides this. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 body {
   margin: 0;
   background: var(--bg);
