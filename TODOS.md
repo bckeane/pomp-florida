@@ -1,5 +1,34 @@
 # TODOS
 
+## Design
+
+### Consolidate the duplicated color-token system
+
+**What:** `styles.css`, `home.css`, `register.css`, and `faq.css` each declare their own `--*-red`/`--*-black`/`--*-ink`/`--*-bg`/`--*-surface`/`--*-line` set with the same values under different names, instead of one shared root token set.
+
+**Why:** Surfaced during `/design-review` on 2026-08-04 — the duplication is why `--faq-red` was able to drift to `#9a0000` while every other file had `#980000` (fixed as FINDING-003). Consolidating removes the class of bug, not just this one instance.
+
+**Effort:** M
+**Priority:** P3
+
+### Add a shared spacing scale
+
+**What:** Replace freehand rem values (0.15, 0.35, 0.55, 1.1, 1.75rem, etc.) scattered across `styles.css`/`home.css`/`register.css`/`faq.css` with a shared `--space-*` scale.
+
+**Why:** Surfaced during `/design-review` on 2026-08-04 (independent source-audit finding). Not visibly broken today, but every margin/padding is currently invented per rule with no shared reference.
+
+**Effort:** M
+**Priority:** P3
+
+### Extend focus-visible rings beyond form inputs
+
+**What:** `register.css`/`admin.css` give a custom red focus ring to `input`/`select`/`textarea` only. Buttons, links, chips, and the register page's lane-cards (the "add someone you've registered before" picker) fall back to the browser default blue ring.
+
+**Why:** Surfaced during `/design-review` on 2026-08-04. Not a WCAG failure (a visible focus indicator does exist), just visually inconsistent. Deferred because a real fix touches the admin panel, which wasn't visually verified that session (no break-glass credentials).
+
+**Effort:** S
+**Priority:** P3
+
 ## Testing
 
 ### Extend test coverage to the rest of the app
