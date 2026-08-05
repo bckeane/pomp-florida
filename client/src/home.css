@@ -467,7 +467,12 @@
 }
 
 .home-page a.footer-admin-link {
-  margin-top: 0.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin: 0.4rem -12px -12px;
+  padding: 12px;
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.55);
   text-decoration: none;
