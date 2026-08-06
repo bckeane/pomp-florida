@@ -310,11 +310,18 @@ body {
   overflow: hidden;
 }
 
-/* The actions column (Edit/Delete + payment links) reserves real width up
-   front instead of being squeezed to whatever auto table-layout decides —
-   otherwise it stays cramped even on a wide screen with room to spare. */
+/* Both columns reserve width up front instead of leaving table auto-layout
+   to decide — otherwise Name wraps unpredictably on ordinary names (e.g.
+   "Keane, Brennan" wrapping while "Keane, Hunter" doesn't, breaking row
+   rhythm) and actions gets squeezed. col-actions is sized to what its
+   content (2 icons + 2 links) actually needs plus breathing room, not an
+   arbitrary large number — an oversized reservation just moves the
+   crowding problem into a dead-space problem. */
+.roster-table .col-name {
+  width: 190px;
+}
 .roster-table .col-actions {
-  width: 480px;
+  width: 340px;
 }
 
 .roster-table th,
@@ -349,7 +356,7 @@ body {
   /* Capped so a long payment-link error/success message wraps within this
      row instead of expanding the column (and therefore every row's column,
      since HTML tables size a column to its widest cell across all rows). */
-  max-width: 480px;
+  max-width: 340px;
 }
 
 .link-btn {
@@ -400,7 +407,11 @@ body {
   gap: var(--space-3);
   padding-left: var(--space-3);
   margin-left: var(--space-1);
-  border-left: 1px solid var(--border);
+  /* --border (#dfe1e6) reads as almost invisible at 1px against a white
+     row — the divider exists per design doc D1 but wasn't doing its job.
+     --text-muted gives it enough weight to actually register as a group
+     separator without looking like a heavy rule. */
+  border-left: 1px solid var(--text-muted);
 }
 
 .payment-link-btn {
@@ -487,6 +498,14 @@ body {
     display: block;
     width: 100%;
     min-width: 0;
+  }
+  /* .col-name/.col-actions set a fixed desktop width with higher
+     specificity (2 classes) than the reset above (1 class + type) — needs
+     an explicit override here or they stay pinned to their desktop pixel
+     width instead of collapsing to the mobile card's full width. */
+  .roster-table td.col-name,
+  .roster-table td.col-actions {
+    width: 100%;
   }
   .roster-table tr {
     border-bottom: 1px solid var(--border);

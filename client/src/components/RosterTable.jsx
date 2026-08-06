@@ -240,7 +240,7 @@ export default function RosterTable({
       <table className="roster-table">
         <thead>
           <tr>
-            <th>Last, First</th>
+            <th className="col-name">Last, First</th>
             <th>Role</th>
             <th>Grad year</th>
             <th>Grade</th>
@@ -255,7 +255,7 @@ export default function RosterTable({
         <tbody>
           {participants.map((p) => (
             <tr key={p.id} className={p.active ? '' : 'row--inactive'}>
-              <td data-label="Name">{p.full_name}</td>
+              <td data-label="Name" className="col-name">{p.full_name}</td>
               <td data-label="Role">{p.role}</td>
               <td data-label="Grad year">{p.grad_year || '—'}</td>
               <td data-label="Grade">{p.grade ?? '—'}</td>
