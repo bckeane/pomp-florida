@@ -85,6 +85,16 @@
   padding: var(--space-8);
 }
 
+/* .form-card's 480px max-width is meant for narrow standalone forms
+   (sign-in, access-denied) — reused here for the padding/border/surface
+   styling, but it also stranded this panel as a narrow centered card while
+   Roster/Budget/Trip details all use the full admin width. .app prefix
+   matches .form-card's specificity deterministically instead of depending
+   on which stylesheet happens to load last. */
+.app .questions-panel {
+  max-width: none;
+}
+
 .questions-panel__header {
   display: flex;
   justify-content: space-between;

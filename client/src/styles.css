@@ -713,6 +713,11 @@ body {
   font-size: 0.9rem;
   font-family: 'Roboto Mono', monospace;
   resize: vertical;
+  /* Browser default (2 rows, ~50px) already clips this field's typical
+     paragraph-length content on page load — the admin sees a cut-off
+     sentence before touching anything. Tall enough for ~5 lines at mobile
+     width, where the same text wraps into more lines than on desktop. */
+  min-height: 7rem;
 }
 
 .markdown-field-preview {
@@ -809,6 +814,14 @@ body {
 
 .admin-auth-page {
   max-width: 480px;
+  /* Was top-aligned only — on anything taller than the card itself (i.e.
+     almost every real monitor) the whole sign-in flow reads as a small
+     block stranded in a huge empty page. Vertically centering makes this
+     first thing an admin sees feel intentional, not unfinished. */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .register-page {
