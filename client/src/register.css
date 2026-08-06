@@ -21,6 +21,12 @@
   min-height: 100vh;
 }
 
+/* Widen form cards to use the page's full 720px, not the 480px default
+   shared with admin modals — see styles.css .register-page. */
+.register-page .form-card {
+  max-width: 100%;
+}
+
 /* Header */
 .register-page .reg-logo {
   width: 44px;
@@ -125,10 +131,21 @@
 .register-page .form-row input,
 .register-page .form-row select,
 .register-page .form-row textarea {
-  background: var(--reg-bg);
+  background: var(--reg-surface);
   border: 1px solid var(--reg-line);
   border-radius: 8px;
   color: var(--reg-ink);
+}
+
+.register-page .form-row input:disabled,
+.register-page .form-row select:disabled,
+.register-page .form-row textarea:disabled,
+.register-page .form-row input:read-only,
+.register-page .form-row textarea:read-only {
+  background: var(--reg-bg);
+  color: var(--reg-ink);
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .register-page .form-row input:focus,

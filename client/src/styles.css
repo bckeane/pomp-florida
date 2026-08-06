@@ -433,6 +433,212 @@ body {
   max-width: 720px;
 }
 
+/* Trip details tab — plain full-width page content (like .budget-tab),
+   not a card: it shares the .app shell's own max-width instead of being
+   capped to a small modal. */
+.trip-details-page__header {
+  margin-bottom: var(--space-8);
+}
+
+.trip-details-page__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-9);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
+}
+
+.trip-details-page__footer .form-notice--ok {
+  margin: 0 auto 0 0;
+}
+
+.form-section + .form-section {
+  margin-top: var(--space-9);
+}
+
+.form-section h3 {
+  margin: 0 0 var(--space-6);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-7) var(--space-8);
+}
+
+.form-grid .field--full {
+  grid-column: 1 / -1;
+}
+
+/* Read-only computed breakdown (deposit/final payment, 60/40 of the
+   estimated cost above) — each amount sits directly beside the due date it
+   governs, and lives in its own bordered block so it reads as "computed
+   summary" rather than another row of editable inputs. */
+.cost-breakdown {
+  margin-top: var(--space-7);
+  padding: var(--space-6) var(--space-7);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.deposit-slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding-bottom: var(--space-6);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px dashed var(--border);
+}
+
+.deposit-slider input[type='range'] {
+  flex: 1 1 200px;
+  accent-color: var(--primary);
+}
+
+.deposit-slider-value {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.cost-breakdown-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+}
+
+.cost-breakdown-row + .cost-breakdown-row {
+  margin-top: var(--space-5);
+}
+
+.cost-breakdown-label {
+  flex: 1 1 160px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.cost-breakdown-value {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.cost-breakdown-due {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.cost-breakdown-due input {
+  padding: 0.45rem var(--space-3);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.cost-breakdown-range {
+  margin: var(--space-5) 0 0;
+}
+
+/* Markdown-enabled fields (trip copy) — textarea on the left, live rendered
+   preview on the right, so admins can see bold/italic/links before saving. */
+.markdown-field {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-7);
+  align-items: start;
+}
+
+.markdown-field label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.markdown-hint {
+  font-weight: 400;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.markdown-field textarea {
+  padding: 0.45rem var(--space-3);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: 'Roboto Mono', monospace;
+  resize: vertical;
+}
+
+.markdown-field-preview {
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: var(--space-5) var(--space-6);
+  min-height: 100%;
+}
+
+.markdown-field-preview-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+
+.markdown-line-preview {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .markdown-field {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Shared typography for rendered markdown output, used both in the admin
+   preview and on the public home page. */
+.markdown-body p {
+  margin: 0 0 0.6em;
+}
+
+.markdown-body p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body ul {
+  margin: 0 0 0.6em;
+  padding-left: 1.2em;
+}
+
+.markdown-body a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 /* Quick Add popover — same form/validation as the full Add participant
    modal, just anchored near the triggering button instead of centered
    with a dimming backdrop. The backdrop here is transparent and only
@@ -473,9 +679,16 @@ body {
    stays plain/utilitarian, so it's kept out of that selector. */
 .register-page,
 .admin-auth-page {
-  max-width: 480px;
   margin: 0 auto;
   padding: var(--space-10) var(--space-8) 4rem;
+}
+
+.admin-auth-page {
+  max-width: 480px;
+}
+
+.register-page {
+  max-width: 900px;
 }
 
 .register-header {
@@ -538,7 +751,8 @@ body {
   flex-wrap: wrap;
 }
 
-.form-row label {
+.form-row label,
+.form-grid label {
   flex: 1 1 140px;
   display: flex;
   flex-direction: column;
@@ -549,15 +763,38 @@ body {
 
 .form-row input,
 .form-row select,
-.form-row textarea {
+.form-row textarea,
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
   padding: 0.45rem var(--space-3);
   border-radius: 6px;
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text);
   font-size: 0.95rem;
   font-family: inherit;
   resize: vertical;
+}
+
+/* Non-enterable fields (disabled or read-only) get the page's grey instead
+   of the white "you can type here" surface, so it reads at a glance which
+   fields actually accept input. */
+.form-row input:disabled,
+.form-row select:disabled,
+.form-row textarea:disabled,
+.form-row input:read-only,
+.form-row textarea:read-only,
+.form-grid input:disabled,
+.form-grid select:disabled,
+.form-grid textarea:disabled,
+.form-grid input:read-only,
+.form-grid textarea:read-only,
+.markdown-field textarea:disabled,
+.markdown-field textarea:read-only {
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: not-allowed;
 }
 
 .field-error {
@@ -647,7 +884,7 @@ body {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--bg);
+  background: var(--surface);
   color: var(--text);
   padding: var(--space-3);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

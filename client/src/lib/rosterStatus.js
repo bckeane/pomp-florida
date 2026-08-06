@@ -11,8 +11,8 @@ export function allergyStatusLabel(value) {
 }
 
 // Joins whichever installment balances are actually tracked on the trip
-// (null means the trip has no deposit_amount/final_payment_estimate set,
-// not a false "nothing owed") into one line for the account-home roster row.
+// (null means the trip has no estimated_cost set, not a false "nothing
+// owed") into one line for the account-home roster row.
 export function paymentStatusText({ deposit_balance, final_payment_balance }) {
   if (deposit_balance == null && final_payment_balance == null) return null;
 

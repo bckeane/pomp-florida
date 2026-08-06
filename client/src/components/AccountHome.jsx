@@ -19,7 +19,7 @@ function PaymentStatus({ participant }) {
  * participant. "Add another" is the only way into the participant form
  * (see RegisterPage.jsx).
  */
-export default function AccountHome({ account, trip, participants, onAddAnother, onEditProfile }) {
+export default function AccountHome({ account, trip, participants, onAddAnother, onEditProfile, onEditParticipant }) {
   const hasParticipants = participants.length > 0;
   const needsReview = participants.filter((p) => p.has_allergy_medication === null);
 
@@ -47,6 +47,9 @@ export default function AccountHome({ account, trip, participants, onAddAnother,
                 <div className="account-roster-status">
                   <AllergyStatus value={p.has_allergy_medication} />
                   <PaymentStatus participant={p} />
+                  <button type="button" className="link-btn" onClick={() => onEditParticipant(p)}>
+                    Edit
+                  </button>
                 </div>
               </li>
             ))}

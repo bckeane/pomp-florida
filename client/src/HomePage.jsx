@@ -3,6 +3,8 @@ import { Link } from 'react-router';
 import { fetchCurrentTrip } from './api/trips.js';
 import { formatLongDate, formatShortDate, formatDateTile } from './lib/dates.js';
 import { useCountdown } from './lib/useCountdown.js';
+import { renderMarkdownInline } from './lib/markdown.js';
+import Markdown from './components/Markdown.jsx';
 import pantherLogo from './img/pomp_icon.png';
 import './home.css';
 
@@ -126,7 +128,9 @@ export default function HomePage() {
           {formatShortDate(trip.trip_date)}
           {trip.return_date ? ` – ${formatShortDate(trip.return_date)}` : ''}
         </p>
-        {trip.intro_message && <p className="hero-intro">{trip.intro_message}</p>}
+        {trip.intro_message && (
+          <Markdown className="hero-intro markdown-body" content={trip.intro_message} />
+        )}
 
         <CommitCountdown deadline={trip.commitment_deadline} />
 
@@ -193,7 +197,9 @@ export default function HomePage() {
                   trip.lodging
                 )}
               </span>
-              {trip.meals_info && <p className="glance-note">{trip.meals_info}</p>}
+              {trip.meals_info && (
+              <Markdown className="glance-note markdown-body" content={trip.meals_info} />
+            )}
             </div>
           )}
         </div>
@@ -206,7 +212,7 @@ export default function HomePage() {
             <h2 className="section-title">What&rsquo;s included</h2>
             <ul className="included-list">
               {included.map((line, i) => (
-                <li key={i}>{line}</li>
+                <li key={i} dangerouslySetInnerHTML={{ __html: renderMarkdownInline(line) }} />
               ))}
             </ul>
           </section>
@@ -239,7 +245,9 @@ export default function HomePage() {
               )}
             </div>
             {cost && <p className="cost-total">Estimated total: {cost}</p>}
-            {trip.payment_notes && <p className="hint">{trip.payment_notes}</p>}
+            {trip.payment_notes && (
+              <Markdown className="hint markdown-body" content={trip.payment_notes} />
+            )}
           </section>
         </>
       )}
@@ -250,9 +258,11 @@ export default function HomePage() {
           <section className="section section--contact">
             <h2 className="section-title">Trip coordinators</h2>
             {coordinators.map((name, i) => (
-              <p key={i} className="coordinator-name">
-                {name}
-              </p>
+              <p
+                key={i}
+                className="coordinator-name"
+                dangerouslySetInnerHTML={{ __html: renderMarkdownInline(name) }}
+              />
             ))}
             <p className="hint">
               Questions? Visit the FAQ to see answers and submit a new one.

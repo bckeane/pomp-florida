@@ -104,6 +104,7 @@ describe('POST /api/trips', () => {
       .set('Cookie', adminCookie)
       .send({ year: '2095', name: 'Test Trip', trip_date: '2095-02-01' });
     expect(res.status).toBe(201);
+    expect(res.body.estimated_cost).toBeNull();
     expect(res.body.deposit_amount).toBeNull();
     expect(res.body.training_location).toBeNull();
   });
@@ -112,8 +113,9 @@ describe('POST /api/trips', () => {
     const res = await request(app)
       .post('/api/trips')
       .set('Cookie', adminCookie)
-      .send({ year: '2096', name: 'Test Trip', trip_date: '2096-02-01', deposit_amount: '' });
+      .send({ year: '2096', name: 'Test Trip', trip_date: '2096-02-01', estimated_cost: '' });
     expect(res.status).toBe(201);
+    expect(res.body.estimated_cost).toBeNull();
     expect(res.body.deposit_amount).toBeNull();
   });
 });

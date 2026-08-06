@@ -73,3 +73,7 @@ export function fetchMyParticipantHistory() {
 export function createMyParticipant(data) {
   return request('/my/participants', { method: 'POST', body: JSON.stringify(data) });
 }
+
+export function updateMyParticipant(id, data) {
+  return request(`/my/participants/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}

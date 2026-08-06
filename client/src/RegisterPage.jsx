@@ -5,7 +5,12 @@ import AuthGate from './components/AuthGate.jsx';
 import ParentProfileGate from './components/ParentProfileGate.jsx';
 import AccountHome from './components/AccountHome.jsx';
 import { me, logout } from './api/auth.js';
-import { createMyParticipant, fetchMyParticipants, fetchMyParticipantHistory } from './api/participants.js';
+import {
+  createMyParticipant,
+  updateMyParticipant,
+  fetchMyParticipants,
+  fetchMyParticipantHistory,
+} from './api/participants.js';
 import { fetchCurrentTrip } from './api/trips.js';
 import { profileComplete } from './lib/profile.js';
 import pantherLogo from './img/pomp_icon.png';
@@ -23,6 +28,7 @@ export default function RegisterPage() {
   const [lastAdded, setLastAdded] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
+  const [editingParticipant, setEditingParticipant] = useState(null);
 
   useEffect(() => {
     fetchCurrentTrip()
@@ -70,6 +76,12 @@ export default function RegisterPage() {
     setSubmitted(true);
   };
 
+  const handleUpdateParticipant = async (data) => {
+    const updated = await updateMyParticipant(editingParticipant.id, data);
+    setMyParticipants((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    setEditingParticipant(null);
+  };
+
   const personKey = (p) => `${p.first_name}|${p.last_name}|${p.birth_date ?? ''}`.toLowerCase();
   const registeredKeys = new Set(myParticipants.map(personKey));
   const returningPeople = history.filter((p) => !registeredKeys.has(personKey(p)));
@@ -83,6 +95,7 @@ export default function RegisterPage() {
     setSubmitted(false);
     setShowAddForm(false);
     setEditingProfile(false);
+    setEditingParticipant(null);
   };
 
   const backToAccountHome = () => {
@@ -139,6 +152,18 @@ export default function RegisterPage() {
                 </button>
               </div>
             </div>
+          ) : editingParticipant ? (
+            <>
+              <ParticipantForm
+                key={`edit-${editingParticipant.id}`}
+                variant="public"
+                participant={editingParticipant}
+                onSave={handleUpdateParticipant}
+              />
+              <button type="button" className="link-btn" onClick={() => setEditingParticipant(null)}>
+                ← Back to my roster
+              </button>
+            </>
           ) : showAddForm ? (
             trip && (
               <>
@@ -195,6 +220,7 @@ export default function RegisterPage() {
               participants={myParticipants}
               onAddAnother={() => setShowAddForm(true)}
               onEditProfile={() => setEditingProfile(true)}
+              onEditParticipant={setEditingParticipant}
             />
           )}
         </>

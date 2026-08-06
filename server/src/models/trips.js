@@ -2,14 +2,49 @@ import { db } from '../db/connection.js';
 import { getCurrentTripId, setCurrentTripId } from './settings.js';
 import { seedBudgetForNewTrip } from './budget.js';
 
+// Deposit defaults to 60% of the estimated cost (adjustable per trip via
+// deposit_percent, e.g. a slider in the admin UI), final payment the
+// remainder — computed here (not stored) so the two always sum exactly to
+// estimated_cost with no separate numbers to keep in sync. The deposit is
+// floored to the nearest $100 (a cleaner number to ask families for than an
+// arbitrary percentage of an estimate), with final payment absorbing the
+// rounding difference. Exported so participants.js can derive the same
+// per-trip target for balance-owed math.
+export function computeDepositAndFinal(estimatedCost, depositPercent) {
+  if (estimatedCost == null) return { deposit_amount: null, final_payment_estimate: null };
+  const percent = depositPercent ?? 60;
+  const deposit_amount = Math.floor((estimatedCost * percent) / 100 / 100) * 100;
+  return { deposit_amount, final_payment_estimate: estimatedCost - deposit_amount };
+}
+
+// The low/high range shown to families is estimated_cost ± the admin-set
+// spread percent (defaults to 0 — no spread — when unset).
+function computeCostRange(estimatedCost, spreadPercent) {
+  if (estimatedCost == null) return { cost_low: null, cost_high: null };
+  const spread = spreadPercent ?? 0;
+  return {
+    cost_low: Math.round(estimatedCost * (1 - spread / 100)),
+    cost_high: Math.round(estimatedCost * (1 + spread / 100)),
+  };
+}
+
+function withComputedCostFields(trip) {
+  if (!trip) return trip;
+  return {
+    ...trip,
+    ...computeDepositAndFinal(trip.estimated_cost, trip.deposit_percent),
+    ...computeCostRange(trip.estimated_cost, trip.cost_spread_percent),
+  };
+}
+
 export function listTrips() {
   const trips = db.prepare('SELECT * FROM trips ORDER BY year DESC, id DESC').all();
   const currentId = getCurrentTripId();
-  return trips.map((t) => ({ ...t, is_current: t.id === currentId }));
+  return trips.map((t) => ({ ...withComputedCostFields(t), is_current: t.id === currentId }));
 }
 
 export function getTripById(id) {
-  return db.prepare('SELECT * FROM trips WHERE id = ?').get(id);
+  return withComputedCostFields(db.prepare('SELECT * FROM trips WHERE id = ?').get(id));
 }
 
 export function getCurrentTrip() {
@@ -23,11 +58,12 @@ const DETAIL_FIELDS = [
   'intro_message',
   'return_date',
   'commitment_deadline',
-  'deposit_amount',
   'final_payment_due',
-  'final_payment_estimate',
-  'cost_low',
-  'cost_high',
+  'estimated_cost',
+  'deposit_percent',
+  'cost_spread_percent',
+  'overrun_amount',
+  'overrun_due_date',
   'training_location',
   'training_location_url',
   'lodging',

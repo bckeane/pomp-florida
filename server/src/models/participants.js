@@ -1,5 +1,6 @@
 import { db } from '../db/connection.js';
 import { withDerived } from '../lib/derived.js';
+import { computeDepositAndFinal } from './trips.js';
 
 const COLUMNS = [
   'id',
@@ -30,30 +31,31 @@ function toTriStateInt(value) {
 // Age and grade are always computed against the participant's OWN trip_id
 // (date + year), not whichever trip is "current" — so browsing an archived
 // year still shows historically-correct values even after the active trip
-// changes. The trip's deposit_amount/final_payment_estimate ride along the
-// same join so balance owed can be computed per participant without a
-// second round trip.
+// changes. The trip's estimated_cost/deposit_percent ride along the same
+// join so balance owed (see computeDepositAndFinal) can be computed per
+// participant without a second round trip.
 const SELECT_WITH_TRIP_DATE = `
   SELECT participants.*, trips.trip_date AS _trip_date, trips.year AS _trip_year,
-         trips.deposit_amount AS _deposit_amount, trips.final_payment_estimate AS _final_payment_estimate
+         trips.estimated_cost AS _estimated_cost, trips.deposit_percent AS _deposit_percent
   FROM participants
   JOIN trips ON trips.id = participants.trip_id
 `;
 
 function rowToParticipant(row) {
-  const { _trip_date, _trip_year, _deposit_amount, _final_payment_estimate, ...participant } = row;
+  const { _trip_date, _trip_year, _estimated_cost, _deposit_percent, ...participant } = row;
   const withAgeGrade = withDerived(participant, _trip_date, _trip_year);
+  const { deposit_amount, final_payment_estimate } = computeDepositAndFinal(_estimated_cost, _deposit_percent);
   return {
     ...withAgeGrade,
     has_allergy_medication:
       participant.has_allergy_medication === null || participant.has_allergy_medication === undefined
         ? null
         : Boolean(participant.has_allergy_medication),
-    // null when the trip has no deposit/final-payment amount set (e.g. an
-    // archived trip with no detail fields) — "—" in the UI, not a false $0 owed.
-    deposit_balance: _deposit_amount == null ? null : _deposit_amount - participant.deposit_received,
+    // null when the trip has no estimated cost set (e.g. an archived trip
+    // with no detail fields) — "—" in the UI, not a false $0 owed.
+    deposit_balance: deposit_amount == null ? null : deposit_amount - participant.deposit_received,
     final_payment_balance:
-      _final_payment_estimate == null ? null : _final_payment_estimate - participant.final_payment_received,
+      final_payment_estimate == null ? null : final_payment_estimate - participant.final_payment_received,
   };
 }
 

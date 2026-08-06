@@ -22,6 +22,12 @@ const optionalInt = z
   .union([z.literal(''), z.null(), z.coerce.number().int().nonnegative()])
   .optional()
   .transform((v) => (v === '' ? null : v));
+// Whole-percent spread (e.g. 10 for ±10%) — same blank-to-null handling as
+// optionalInt, just bounded to a sane 0–100 range.
+const optionalPercent = z
+  .union([z.literal(''), z.null(), z.coerce.number().int().min(0).max(100)])
+  .optional()
+  .transform((v) => (v === '' ? null : v));
 const optionalText = z
   .union([z.string(), z.null()])
   .optional()
@@ -34,11 +40,12 @@ const tripSchema = z.object({
   intro_message: optionalText,
   return_date: optionalDate,
   commitment_deadline: optionalDate,
-  deposit_amount: optionalInt,
   final_payment_due: optionalDate,
-  final_payment_estimate: optionalInt,
-  cost_low: optionalInt,
-  cost_high: optionalInt,
+  estimated_cost: optionalInt,
+  deposit_percent: optionalPercent,
+  cost_spread_percent: optionalPercent,
+  overrun_amount: optionalInt,
+  overrun_due_date: optionalDate,
   training_location: optionalText,
   training_location_url: optionalText,
   lodging: optionalText,

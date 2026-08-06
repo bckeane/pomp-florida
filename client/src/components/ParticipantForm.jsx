@@ -26,6 +26,9 @@ function emptyForm(variant) {
 export default function ParticipantForm({ participant, onSave, onCancel, variant = 'admin' }) {
   const isPublic = variant === 'public';
   const isPopover = variant === 'popover';
+  // Public "add another" prefills from history with a plain (id-less) object,
+  // so only an id means this is an edit of an already-registered participant.
+  const isEditingExisting = isPublic && Boolean(participant?.id);
   const [form, setForm] = useState(() => emptyForm(variant));
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -210,10 +213,11 @@ export default function ParticipantForm({ participant, onSave, onCancel, variant
   if (isPublic) {
     return (
       <form className="form-card" onSubmit={handleSubmit}>
+        {isEditingExisting && <h2>Edit participant</h2>}
         {fields}
         <div className="modal-actions">
           <button type="submit" className="btn btn--primary" disabled={saving}>
-            {saving ? 'Submitting…' : 'Submit'}
+            {isEditingExisting ? (saving ? 'Saving…' : 'Save changes') : saving ? 'Submitting…' : 'Submit'}
           </button>
         </div>
       </form>

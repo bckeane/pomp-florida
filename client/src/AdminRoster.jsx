@@ -45,7 +45,6 @@ export default function AdminRoster() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showManageAdmins, setShowManageAdmins] = useState(false);
-  const [showTripDetails, setShowTripDetails] = useState(false);
   const [activeTab, setActiveTab] = useState('roster');
 
   const isAdmin = account?.role === 'admin';
@@ -144,7 +143,6 @@ export default function AdminRoster() {
   };
 
   const handleTripDetailsSaved = async () => {
-    setShowTripDetails(false);
     await loadTrips(selectedTripId);
   };
 
@@ -201,6 +199,7 @@ export default function AdminRoster() {
     roster: 'Roster',
     budget: 'Budget',
     questions: 'Questions',
+    'trip-details': 'Trip details',
   }[activeTab] || 'Roster';
 
   return (
@@ -220,11 +219,6 @@ export default function AdminRoster() {
           <Link className="btn btn--ghost" to="/register">
             Registration form
           </Link>
-          {selectedTrip && (
-            <button className="btn btn--ghost" onClick={() => setShowTripDetails(true)}>
-              Edit trip details
-            </button>
-          )}
           {activeTab === 'roster' && (
             <>
               <button className="btn btn--ghost" onClick={() => setShowImport(true)}>
@@ -277,7 +271,7 @@ export default function AdminRoster() {
       <SummaryBar stats={stats} />
 
       {selectedTrip && (
-        <div className="segmented" style={{ maxWidth: 280, marginBottom: '1rem' }}>
+        <div className="segmented" style={{ maxWidth: 420, marginBottom: '1rem' }}>
           <button
             type="button"
             className={`segmented-btn ${activeTab === 'roster' ? 'segmented-btn--active' : ''}`}
@@ -299,6 +293,13 @@ export default function AdminRoster() {
           >
             Questions
           </button>
+          <button
+            type="button"
+            className={`segmented-btn ${activeTab === 'trip-details' ? 'segmented-btn--active' : ''}`}
+            onClick={() => setActiveTab('trip-details')}
+          >
+            Trip details
+          </button>
         </div>
       )}
 
@@ -308,6 +309,8 @@ export default function AdminRoster() {
         <BudgetPanel tripId={selectedTrip.id} />
       ) : activeTab === 'questions' && selectedTrip ? (
         <QuestionsPanel tripId={selectedTrip.id} tripName={selectedTrip.name} />
+      ) : activeTab === 'trip-details' && selectedTrip ? (
+        <TripDetailsForm trip={selectedTrip} onSaved={handleTripDetailsSaved} />
       ) : loading && !participants.length ? (
         <p className="hint">Loading roster…</p>
       ) : (
@@ -339,14 +342,6 @@ export default function AdminRoster() {
       )}
 
       {showManageAdmins && <ManageAdmins onClose={() => setShowManageAdmins(false)} />}
-
-      {showTripDetails && selectedTrip && (
-        <TripDetailsForm
-          trip={selectedTrip}
-          onSaved={handleTripDetailsSaved}
-          onCancel={() => setShowTripDetails(false)}
-        />
-      )}
     </div>
   );
 }

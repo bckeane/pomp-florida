@@ -55,16 +55,27 @@ describe('payment tracking', () => {
     expect(afterFinal.final_payment_received).toBe(500);
   });
 
-  it("computes balance owed against the trip's deposit_amount/final_payment_estimate", () => {
+  it("computes balance owed against 60%/40% of the trip's estimated_cost, deposit floored to the nearest $100", () => {
     const trip = createTrip({ year: '2054', name: 'Test', trip_date: '2054-01-01' });
-    updateTrip(trip.id, { deposit_amount: 750, final_payment_estimate: 1000 });
+    updateTrip(trip.id, { estimated_cost: 1250 });
     const p = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
 
-    expect(p.deposit_balance).toBe(750);
-    expect(p.final_payment_balance).toBe(1000);
+    // 1250 * 60% = 750, floored to the nearest $100 -> 700; final payment
+    // absorbs the rounding difference (550) so the two still sum to 1250.
+    expect(p.deposit_balance).toBe(700);
+    expect(p.final_payment_balance).toBe(550);
 
     const afterPartial = updateParticipant(p.id, { deposit_received: 500 });
-    expect(afterPartial.deposit_balance).toBe(250);
+    expect(afterPartial.deposit_balance).toBe(200);
+  });
+
+  it('honors a per-trip deposit_percent override instead of the 60% default', () => {
+    const trip = createTrip({ year: '2058', name: 'Test', trip_date: '2058-01-01' });
+    updateTrip(trip.id, { estimated_cost: 2000, deposit_percent: 25 });
+    const p = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+
+    expect(p.deposit_balance).toBe(500);
+    expect(p.final_payment_balance).toBe(1500);
   });
 
   it('balance is null (not a false $0 owed) when the trip has no amount set', () => {
