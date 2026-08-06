@@ -43,6 +43,13 @@ export function deleteParticipant(id, { hard = false } = {}) {
   return request(`/participants/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' });
 }
 
+export function fetchPaymentLink(id, installment) {
+  return request(`/participants/${id}/payment-link`, {
+    method: 'POST',
+    body: JSON.stringify({ installment }),
+  });
+}
+
 export function importParticipants(csv, { partial = false, tripId } = {}) {
   const params = new URLSearchParams();
   if (partial) params.set('partial', 'true');

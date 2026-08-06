@@ -27,26 +27,23 @@
 
 ## Payments
 
-### Document the admin runbook for manual payment reconciliation
+### Admin runbook: manual Stripe reconciliation and refunds
 
-**What:** A short doc (or in-app copy near the "Get payment link" action) covering: (1) after a parent pays via Stripe, how the admin finds that payment and updates `deposit_received`/`final_payment_received` on the roster; (2) if a refund happens (participant drops the trip), the admin must manually adjust the roster field to match — pompFlorida has no automatic sync with Stripe.
+Shipped 2026-08-06 with the payment-links feature (`POST /participants/:id/payment-link`, "Get deposit/final link" on each roster row). pompFlorida has **no webhook and no automatic sync with Stripe** — every payment must be manually reconciled by the admin. This is the runbook.
 
-**Why:** The per-participant Stripe Checkout Session design (see `~/.gstack/projects/pompFlorida/brian-main-design-20260802-202400.md`) deliberately keeps reconciliation manual — no webhook, no auto-sync. That's a correctness gap (two ledgers, no defined process to keep them consistent) that an independent cross-model review flagged during `/plan-eng-review`. It's safe only if the manual step is actually documented somewhere discoverable, not left as tribal knowledge the admin has to remember.
+**After a parent pays:**
+1. Log in to the Stripe Dashboard and check Payments for a completed charge. Each Checkout Session carries `participant_id` and `installment` (`deposit` or `final`) in its metadata, so a payment can be matched to the exact roster row without guessing from the payer's name.
+2. In pompFlorida's roster, manually update the participant's `deposit_received` or `final_payment_received` field (the same inline-editable field used for check/cash/Venmo payments today) to reflect the new total received for that installment.
+3. The "Balance owed" column recomputes automatically — no other step needed. Once a balance hits $0, the "Get \[installment\] link" button on that row is replaced with "Paid in full" and can no longer generate a new Checkout Session for that installment.
 
-**Context:** Surfaced during the `/plan-eng-review` outside-voice pass on the payment-links design. Not built as code — this is a process/documentation gap, not a missing feature. Reasonable home: a short section in the design doc itself, or in-app help text next to the payment-link button.
+**If a participant drops the trip after paying:**
+1. Issue the refund manually in the Stripe Dashboard (Payments → find the charge → Refund). pompFlorida has no in-app refund flow.
+2. Manually reduce (or zero out) the corresponding `deposit_received`/`final_payment_received` value on the roster to match what actually happened in Stripe. **This step is easy to forget** — if skipped, the roster will show a balance as paid when it isn't, silently drifting from the real Stripe ledger. There's no code guard against this; it depends on the admin remembering.
 
-**Effort:** S
-**Priority:** P2
-**Depends on:** Payment-links feature (Approach B) landing
+**Other things to know:**
+- Checkout Sessions expire 24 hours after being generated if the parent hasn't paid. An expired link just needs a fresh "Get \[installment\] link" click — no cleanup required, expired sessions cause no harm.
+- Nothing stops clicking "Get \[installment\] link" twice, creating two live sessions for the same installment. Low-risk at this app's volume (one admin, infrequent clicks) — the unused one simply expires. Not worth building dedup logic for.
+- The booster club absorbs the ~2.9% + $0.30 Stripe fee — parents are charged exactly the balance shown in pompFlorida, no added fee line item.
+- The link always charges the **remaining balance owed** (installment price minus whatever's already recorded as received), not the full fixed installment price — so a parent who already paid something by check isn't double-charged.
 
-### Verify --ok green contrast for the new payment-link text
-
-**What:** Check `--ok` (#1e824c light / dark-mode override) against WCAG AA contrast (4.5:1 minimum for body text) now that it's used as body-sized clickable link text (`link-btn--pay`), not just as a small checkmark accent like its prior usage.
-
-**Why:** This app has a documented prior contrast failure (FINDING-002: footer admin link failed WCAG AA, ~2.1:1) from before this feature existed. `--ok` was chosen deliberately in `/plan-design-review` to separate payment actions from `--danger`/`--primary` reds, but it hasn't been used at this size/weight before — worth confirming it clears the bar rather than assuming.
-
-**Context:** Surfaced during `/plan-design-review` on the payment-links design (`~/.gstack/projects/pompFlorida/brian-main-design-20260802-202400.md`). Check both light and dark mode values.
-
-**Effort:** S
-**Priority:** P2
-**Depends on:** Payment-links feature (Approach B) landing
+**Depends on:** `STRIPE_SECRET_KEY` set in the server environment (see `server/.env.example`) — without it, "Get \[installment\] link" returns a clear "Stripe is not configured" error instead of attempting to reach Stripe.

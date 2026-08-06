@@ -50,6 +50,21 @@
   color: var(--primary);
 }
 
+/* Payment-link actions are deliberately --ok green, not the neutral text
+   color above — a money-handling action must read as visually distinct
+   from Edit, not folded into the same neutral treatment (design doc D1).
+   The error-state "try again" link stays --danger red (next rule, higher
+   specificity so it wins over this one). */
+.app .roster-table .link-btn.payment-link-btn {
+  color: var(--ok);
+}
+.app .roster-table .link-btn.payment-link-btn:hover {
+  color: var(--ok);
+}
+.app .roster-table .payment-link-status--error .link-btn.payment-link-btn {
+  color: var(--danger);
+}
+
 .app .roster-table tbody tr:hover {
   background: rgba(178, 17, 17, 0.04);
 }

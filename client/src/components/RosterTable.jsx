@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ROLES } from '../constants.js';
 import { fmtMoney, totalBalance } from '../lib/money.js';
+import { fetchPaymentLink } from '../api/participants.js';
 
 const SORT_OPTIONS = [
   { value: 'last_name', label: 'Last name' },
@@ -38,6 +39,10 @@ function RestoreIcon() {
   );
 }
 
+function Spinner() {
+  return <span className="spinner" aria-hidden="true" />;
+}
+
 export default function RosterTable({
   participants,
   filters,
@@ -49,10 +54,32 @@ export default function RosterTable({
 }) {
   const { q, role, grad_year, sort, showInactive } = filters;
   const [drafts, setDrafts] = useState({});
+  const [paymentLinks, setPaymentLinks] = useState({});
 
   const setFilter = (patch) => onFiltersChange({ ...filters, ...patch });
 
   const draftKey = (id, field) => `${id}:${field}`;
+
+  const handleGetPaymentLink = async (p, installment) => {
+    const key = draftKey(p.id, installment);
+    setPaymentLinks((s) => ({ ...s, [key]: { status: 'loading' } }));
+    try {
+      const { url, amount } = await fetchPaymentLink(p.id, installment);
+      setPaymentLinks((s) => ({ ...s, [key]: { status: 'success', url, amount, copied: false } }));
+    } catch (err) {
+      const message = err.body?.error || "Couldn't reach Stripe — try again";
+      setPaymentLinks((s) => ({ ...s, [key]: { status: 'error', message } }));
+    }
+  };
+
+  const handleCopyPaymentLink = async (p, installment, url) => {
+    const key = draftKey(p.id, installment);
+    await navigator.clipboard.writeText(url);
+    setPaymentLinks((s) => ({ ...s, [key]: { ...s[key], copied: true } }));
+    setTimeout(() => {
+      setPaymentLinks((s) => (s[key]?.copied ? { ...s, [key]: { ...s[key], copied: false } } : s));
+    }, 2000);
+  };
 
   const handlePaymentBlur = async (p, field) => {
     const key = draftKey(p.id, field);
@@ -75,6 +102,70 @@ export default function RosterTable({
       delete next[key];
       return next;
     });
+  };
+
+  const renderPaymentAction = (p, installment) => {
+    const key = draftKey(p.id, installment);
+    const state = paymentLinks[key];
+    const label = installment === 'deposit' ? 'deposit' : 'final';
+    const balance = installment === 'deposit' ? p.deposit_balance : p.final_payment_balance;
+
+    if (balance != null && balance <= 0 && state?.status !== 'success') {
+      return (
+        <span className="payment-link-status" title="Already paid in full">
+          Paid in full
+        </span>
+      );
+    }
+
+    if (state?.status === 'loading') {
+      return (
+        <span className="payment-link-status">
+          <Spinner /> Generating…
+        </span>
+      );
+    }
+
+    if (state?.status === 'error') {
+      return (
+        <span className="payment-link-status payment-link-status--error">
+          <span className="payment-link-message">{state.message}</span>{' '}
+          <button className="link-btn payment-link-btn" onClick={() => handleGetPaymentLink(p, installment)}>
+            try again
+          </button>
+        </span>
+      );
+    }
+
+    if (state?.status === 'success') {
+      return (
+        <span className="payment-link-success">
+          <span className="payment-link-summary">
+            {label === 'deposit' ? 'Deposit' : 'Final'} link for <strong>{p.full_name}</strong> —{' '}
+            <strong>{fmtMoney(state.amount)}</strong>
+          </span>
+          <span className="payment-link-url" title={state.url}>
+            {state.url}
+          </span>
+          <button
+            className="link-btn payment-link-btn"
+            onClick={() => handleCopyPaymentLink(p, installment, state.url)}
+            aria-label={`Copy ${label} payment link for ${p.full_name}`}
+          >
+            {state.copied ? '✓ Copied' : 'Copy'}
+          </button>
+          <button className="link-btn payment-link-btn" onClick={() => handleGetPaymentLink(p, installment)}>
+            Regenerate {label} link
+          </button>
+        </span>
+      );
+    }
+
+    return (
+      <button className="link-btn payment-link-btn" onClick={() => handleGetPaymentLink(p, installment)}>
+        Get {label} link
+      </button>
+    );
   };
 
   return (
@@ -145,6 +236,7 @@ export default function RosterTable({
         </label>
       </div>
 
+      <div className="roster-table-wrap">
       <table className="roster-table">
         <thead>
           <tr>
@@ -157,7 +249,7 @@ export default function RosterTable({
             <th>Deposit paid</th>
             <th>Final pmt paid</th>
             <th>Balance owed</th>
-            <th></th>
+            <th className="col-actions"></th>
           </tr>
         </thead>
         <tbody>
@@ -199,7 +291,7 @@ export default function RosterTable({
                 />
               </td>
               <td data-label="Balance owed">{fmtMoney(totalBalance(p))}</td>
-              <td data-label="">
+              <td data-label="" className="col-actions">
                 <div className="row-actions">
                   <button
                     className="link-btn icon-btn"
@@ -217,6 +309,10 @@ export default function RosterTable({
                   >
                     {p.active ? <TrashIcon /> : <RestoreIcon />}
                   </button>
+                  <div className="payment-actions" aria-live="polite">
+                    {renderPaymentAction(p, 'deposit')}
+                    {renderPaymentAction(p, 'final')}
+                  </div>
                 </div>
               </td>
             </tr>
@@ -230,6 +326,7 @@ export default function RosterTable({
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

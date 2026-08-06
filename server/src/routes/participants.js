@@ -4,6 +4,7 @@ import { mapImportRecord } from '../lib/importMapping.js';
 import { parseCSV, toCSV } from '../lib/csv.js';
 import { getCurrentTrip, getTripById } from '../models/trips.js';
 import { requireAdmin } from '../middleware/auth.js';
+import { createCheckoutSession } from '../services/stripe.js';
 import {
   listParticipants,
   getParticipantById,
@@ -15,6 +16,27 @@ import {
   insertParticipantsBulk,
   getStats,
 } from '../models/participants.js';
+
+// Charges the remaining balance (installment price minus whatever's already
+// recorded as received via check/cash/Venmo), not the fixed installment
+// price — otherwise a parent who's already paid something outside Stripe
+// would be charged the full amount again. Same fields already surfaced as
+// the roster's "Balance owed" column (lib/money.js totalBalance).
+const INSTALLMENT_BALANCE_FIELDS = {
+  deposit: 'deposit_balance',
+  final: 'final_payment_balance',
+};
+
+// Same fallback as auth.js's resetUrlFor — the client app's origin, not this
+// API's. No dedicated parent-facing return page exists (out of scope for
+// this feature, see design doc), so these just land back on the public
+// home page with a query param.
+function clientBaseUrl() {
+  return (process.env.APP_BASE_URL || process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')[0]
+    .trim()
+    .replace(/\/+$/, '');
+}
 
 const router = Router();
 // Every route here is the admin roster's own CRUD/import/export — the
@@ -111,6 +133,45 @@ router.put('/participants/:id', requireAdmin, (req, res) => {
 
   const participant = updateParticipant(req.params.id, { ...data, trip_id: existing.trip_id });
   res.json(participant);
+});
+
+router.post('/participants/:id/payment-link', requireAdmin, async (req, res) => {
+  const participant = getParticipantById(req.params.id);
+  if (!participant) return res.status(404).json({ error: 'Participant not found' });
+
+  const { installment } = req.body;
+  const balanceField = INSTALLMENT_BALANCE_FIELDS[installment];
+  if (!balanceField) {
+    return res.status(400).json({ error: "installment must be 'deposit' or 'final'" });
+  }
+
+  const amountDollars = participant[balanceField];
+  if (amountDollars == null) {
+    return res.status(400).json({
+      error: "This trip has no estimated cost set, so a payment amount can't be calculated yet.",
+    });
+  }
+  if (amountDollars <= 0) {
+    return res.status(400).json({ error: 'Already paid in full — no balance is owed for this installment.' });
+  }
+
+  const base = clientBaseUrl();
+  try {
+    const session = await createCheckoutSession({
+      participant,
+      installment,
+      amountDollars,
+      successUrl: `${base}/?payment=success`,
+      cancelUrl: `${base}/?payment=cancelled`,
+    });
+    res.json({ url: session.url, amount: amountDollars });
+  } catch (err) {
+    if (err.code === 'STRIPE_NOT_CONFIGURED') {
+      return res.status(500).json({ error: 'Stripe is not configured on this server.' });
+    }
+    console.error('[payment-link] Stripe error:', err);
+    res.status(502).json({ error: "Couldn't reach Stripe — try again shortly." });
+  }
 });
 
 router.delete('/participants/:id', requireAdmin, (req, res) => {
