@@ -12,7 +12,7 @@ import { createSession, deleteSession, deleteSessionsByAccount } from '../models
 import { createResetToken, consumeResetToken } from '../models/passwordResets.js';
 import { requireAccount, SESSION_COOKIE } from '../middleware/auth.js';
 import { isBreakGlassLogin } from '../lib/breakGlass.js';
-import { sendPasswordResetEmail } from '../lib/email.js';
+import { sendPasswordResetEmail, resetUrlFor } from '../lib/email.js';
 
 const router = Router();
 
@@ -36,19 +36,6 @@ const profileSchema = z.object({
   parent_name: z.string().trim().min(1, 'name is required'),
   emergency_phone: z.string().trim().min(1, 'emergency contact number is required'),
 });
-
-/**
- * The reset link points at the client app, not this API — in prod they're
- * the same origin (see index.js), so falling back to the first allowed CORS
- * origin covers local dev too, where the client runs on a different port.
- */
-function resetUrlFor(token) {
-  const base = (process.env.APP_BASE_URL || process.env.CORS_ALLOWED_ORIGINS || '')
-    .split(',')[0]
-    .trim()
-    .replace(/\/+$/, '');
-  return `${base}/reset-password?token=${token}`;
-}
 
 function setSessionCookie(res, token) {
   const sameSite = (process.env.COOKIE_SAME_SITE || 'lax').toLowerCase();

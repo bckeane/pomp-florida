@@ -39,3 +39,7 @@ export function changeAccountRole(id, role) {
 export function deleteAccount(id) {
   return request(`/admin/accounts/${id}`, { method: 'DELETE' });
 }
+
+export function sendPasswordReset(id) {
+  return request(`/admin/accounts/${id}/reset-password`, { method: 'POST' });
+}

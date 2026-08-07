@@ -4,7 +4,10 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { db } from '../src/db/connection.js';
 
-vi.mock('../src/lib/email.js', () => ({ sendPasswordResetEmail: vi.fn() }));
+vi.mock('../src/lib/email.js', () => ({
+  sendPasswordResetEmail: vi.fn(),
+  resetUrlFor: (token) => `http://localhost/reset-password?token=${token}`,
+}));
 
 const { sendPasswordResetEmail } = await import('../src/lib/email.js');
 const { createAccount, verifyAccountPassword, getAccountById } = await import('../src/models/accounts.js');

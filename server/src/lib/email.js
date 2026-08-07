@@ -11,6 +11,19 @@ function getClient() {
   return apiKey ? new Resend(apiKey) : null;
 }
 
+/**
+ * The reset link points at the client app, not this API — in prod they're
+ * the same origin (see index.js), so falling back to the first allowed CORS
+ * origin covers local dev too, where the client runs on a different port.
+ */
+export function resetUrlFor(token) {
+  const base = (process.env.APP_BASE_URL || process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')[0]
+    .trim()
+    .replace(/\/+$/, '');
+  return `${base}/reset-password?token=${token}`;
+}
+
 export async function sendPasswordResetEmail(to, resetUrl) {
   const client = getClient();
   const from = process.env.EMAIL_FROM;
@@ -22,7 +35,11 @@ export async function sendPasswordResetEmail(to, resetUrl) {
     return;
   }
 
-  await client.emails.send({
+  // The Resend SDK resolves with { data, error } instead of rejecting on
+  // API-level failures (e.g. a 422 for an invalid recipient) — only
+  // network-level failures throw on their own. Without this check, an
+  // await here always "succeeds" even when Resend refused to send.
+  const { error } = await client.emails.send({
     from,
     to,
     subject: 'Reset your password — Pomperaug Panthers Florida Trip',
@@ -32,4 +49,7 @@ export async function sendPasswordResetEmail(to, resetUrl) {
       <p>If you didn't request this, you can safely ignore this email — your password won't change.</p>
     `,
   });
+  if (error) {
+    throw new Error(error.message || 'Resend API error');
+  }
 }

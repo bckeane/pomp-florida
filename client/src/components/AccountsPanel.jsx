@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchAllAccounts, addAdminAccount, changeAccountRole, deleteAccount } from '../api/adminAccounts.js';
+import {
+  fetchAllAccounts,
+  addAdminAccount,
+  changeAccountRole,
+  deleteAccount,
+  sendPasswordReset,
+} from '../api/adminAccounts.js';
 import { displayField } from '../lib/accountDisplay.js';
 
 /** Admin-only, lists every registered account regardless of role — independent
@@ -16,6 +22,7 @@ export default function AccountsPanel({ currentAccountId }) {
   const [formErrors, setFormErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
+  const [actionNotice, setActionNotice] = useState(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -61,6 +68,20 @@ export default function AccountsPanel({ currentAccountId }) {
     }
   };
 
+  const handleResetPassword = async (account) => {
+    setBusyId(account.id);
+    setError(null);
+    setActionNotice(null);
+    try {
+      await sendPasswordReset(account.id);
+      setActionNotice(`Password reset email sent to ${account.email}.`);
+    } catch (err) {
+      setError(err.body?.error || 'Could not send a password reset email for that account.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const handleAddAdmin = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -86,6 +107,7 @@ export default function AccountsPanel({ currentAccountId }) {
       <p className="hint">Every registered account, independent of the selected trip.</p>
 
       {error && <div className="form-error form-error--root">{error}</div>}
+      {actionNotice && <div className="form-notice--ok">{actionNotice}</div>}
 
       {loading ? (
         <p className="hint">Loading…</p>
@@ -133,6 +155,15 @@ export default function AccountsPanel({ currentAccountId }) {
                             Promote
                           </button>
                         )}
+                        {' · '}
+                        <button
+                          type="button"
+                          className="link-btn"
+                          disabled={busyId === a.id}
+                          onClick={() => handleResetPassword(a)}
+                        >
+                          Send password reset
+                        </button>
                         {' · '}
                         <button
                           type="button"

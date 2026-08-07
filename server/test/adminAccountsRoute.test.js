@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
@@ -7,7 +7,14 @@ import { createAccount, setAccountRole, findAccountByEmail } from '../src/models
 import { createSession } from '../src/models/sessions.js';
 import { createTrip } from '../src/models/trips.js';
 import { createParticipant } from '../src/models/participants.js';
-import adminAccountsRouter from '../src/routes/adminAccounts.js';
+
+vi.mock('../src/lib/email.js', () => ({
+  sendPasswordResetEmail: vi.fn(),
+  resetUrlFor: (token) => `http://localhost/reset-password?token=${token}`,
+}));
+
+const { sendPasswordResetEmail } = await import('../src/lib/email.js');
+const adminAccountsRouter = (await import('../src/routes/adminAccounts.js')).default;
 
 function buildApp() {
   const app = express();
@@ -21,12 +28,13 @@ let app;
 let adminCookie;
 
 beforeEach(() => {
-  db.exec('DELETE FROM sessions; DELETE FROM accounts;');
+  db.exec('DELETE FROM password_reset_tokens; DELETE FROM sessions; DELETE FROM accounts;');
   app = buildApp();
   const account = createAccount('root-admin@example.com', 'password123');
   setAccountRole(account.id, 'admin');
   const { token } = createSession(account.id);
   adminCookie = `session=${token}`;
+  sendPasswordResetEmail.mockClear();
 });
 
 describe('GET /api/admin/accounts', () => {
@@ -185,6 +193,53 @@ describe('POST /api/admin/accounts/:id/role', () => {
       .send({ role: 'parent' });
     expect(res.status).toBe(200);
     expect(res.body.account.role).toBe('parent');
+  });
+});
+
+describe('POST /api/admin/accounts/:id/reset-password', () => {
+  it('401s when not signed in', async () => {
+    const res = await request(app).post('/api/admin/accounts/1/reset-password');
+    expect(res.status).toBe(401);
+  });
+
+  it('404s for an unknown id', async () => {
+    const res = await request(app).post('/api/admin/accounts/999999/reset-password').set('Cookie', adminCookie);
+    expect(res.status).toBe(404);
+  });
+
+  it('sends a reset email for the target account', async () => {
+    const target = createAccount('reset-target@example.com', 'password123');
+    const res = await request(app)
+      .post(`/api/admin/accounts/${target.id}/reset-password`)
+      .set('Cookie', adminCookie);
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(sendPasswordResetEmail).toHaveBeenCalledTimes(1);
+    expect(sendPasswordResetEmail.mock.calls[0][0]).toBe('reset-target@example.com');
+  });
+
+  it('403s on resetting the break-glass account', async () => {
+    process.env.BREAK_GLASS_EMAIL = 'break-glass@example.com';
+    try {
+      const bgAccount = createAccount('break-glass@example.com', 'password123');
+      const res = await request(app)
+        .post(`/api/admin/accounts/${bgAccount.id}/reset-password`)
+        .set('Cookie', adminCookie);
+      expect(res.status).toBe(403);
+      expect(sendPasswordResetEmail).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.BREAK_GLASS_EMAIL;
+    }
+  });
+
+  it('502s and reports an error when the email fails to send', async () => {
+    sendPasswordResetEmail.mockRejectedValueOnce(new Error('send failed'));
+    const target = createAccount('reset-fail@example.com', 'password123');
+    const res = await request(app)
+      .post(`/api/admin/accounts/${target.id}/reset-password`)
+      .set('Cookie', adminCookie);
+    expect(res.status).toBe(502);
+    expect(res.body.error).toBeDefined();
   });
 });
 

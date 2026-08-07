@@ -11,6 +11,8 @@ import {
   deleteAccount,
 } from '../models/accounts.js';
 import { isBreakGlassEmail } from '../lib/breakGlass.js';
+import { createResetToken } from '../models/passwordResets.js';
+import { sendPasswordResetEmail, resetUrlFor } from '../lib/email.js';
 
 const router = Router();
 
@@ -104,6 +106,40 @@ router.post('/admin/accounts/:id/role', requireAdmin, (req, res) => {
 
   const account = setAccountRole(id, parsed.data.role);
   res.json({ account });
+});
+
+// Admin-initiated password reset: sends the same emailed reset link as the
+// self-serve /auth/forgot-password flow, so it reuses that token model and
+// 1-hour expiry rather than e.g. setting a temp password directly. Unlike
+// forgot-password, failures are reported back (no enumeration risk here —
+// the admin already knows this account exists, it's in front of them).
+router.post('/admin/accounts/:id/reset-password', requireAdmin, async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(404).json({ error: 'Account not found' });
+  }
+
+  const target = getAccountById(id);
+  if (!target) {
+    return res.status(404).json({ error: 'Account not found' });
+  }
+
+  // Same break-glass guard as the role-change/delete routes above — that
+  // account's login bypasses the DB password entirely, so a reset link
+  // would be sent but wouldn't actually change how it logs in.
+  if (isBreakGlassEmail(target.email)) {
+    return res.status(403).json({ error: 'Cannot reset the break-glass account password' });
+  }
+
+  const token = createResetToken(target.id);
+  try {
+    await sendPasswordResetEmail(target.email, resetUrlFor(token));
+  } catch (err) {
+    console.error('Failed to send admin-initiated password reset email:', err.message);
+    return res.status(502).json({ error: 'Could not send the reset email. Try again in a moment.' });
+  }
+
+  res.json({ ok: true });
 });
 
 router.delete('/admin/accounts/:id', requireAdmin, (req, res) => {
