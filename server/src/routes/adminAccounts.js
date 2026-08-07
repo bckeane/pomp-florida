@@ -8,6 +8,7 @@ import {
   createAccount,
   setAccountRole,
   getAccountById,
+  deleteAccount,
 } from '../models/accounts.js';
 import { isBreakGlassEmail } from '../lib/breakGlass.js';
 
@@ -103,6 +104,35 @@ router.post('/admin/accounts/:id/role', requireAdmin, (req, res) => {
 
   const account = setAccountRole(id, parsed.data.role);
   res.json({ account });
+});
+
+router.delete('/admin/accounts/:id', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(404).json({ error: 'Account not found' });
+  }
+
+  const target = getAccountById(id);
+  if (!target) {
+    return res.status(404).json({ error: 'Account not found' });
+  }
+
+  // Same self-lockout and break-glass guards as the role-change route above.
+  if (id === req.account.id) {
+    return res.status(403).json({ error: 'You cannot delete your own account' });
+  }
+  if (isBreakGlassEmail(target.email)) {
+    return res.status(403).json({ error: 'Cannot delete the break-glass account' });
+  }
+
+  const result = deleteAccount(id);
+  if (result.error === 'has_participants') {
+    return res.status(409).json({
+      error: `Cannot delete: this account has ${result.count} swimmer(s)/diver(s) registered. Reassign or remove them first.`,
+    });
+  }
+
+  res.status(204).end();
 });
 
 export default router;

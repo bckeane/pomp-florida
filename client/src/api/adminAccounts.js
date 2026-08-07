@@ -35,3 +35,7 @@ export function addAdminAccount(email, password) {
 export function changeAccountRole(id, role) {
   return request(`/admin/accounts/${id}/role`, { method: 'POST', body: JSON.stringify({ role }) });
 }
+
+export function deleteAccount(id) {
+  return request(`/admin/accounts/${id}`, { method: 'DELETE' });
+}

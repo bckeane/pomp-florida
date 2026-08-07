@@ -5,6 +5,8 @@ import request from 'supertest';
 import { db } from '../src/db/connection.js';
 import { createAccount, setAccountRole, findAccountByEmail } from '../src/models/accounts.js';
 import { createSession } from '../src/models/sessions.js';
+import { createTrip } from '../src/models/trips.js';
+import { createParticipant } from '../src/models/participants.js';
 import adminAccountsRouter from '../src/routes/adminAccounts.js';
 
 function buildApp() {
@@ -183,5 +185,52 @@ describe('POST /api/admin/accounts/:id/role', () => {
       .send({ role: 'parent' });
     expect(res.status).toBe(200);
     expect(res.body.account.role).toBe('parent');
+  });
+});
+
+describe('DELETE /api/admin/accounts/:id', () => {
+  it('401s when not signed in', async () => {
+    const res = await request(app).delete('/api/admin/accounts/1');
+    expect(res.status).toBe(401);
+  });
+
+  it('404s for an unknown id', async () => {
+    const res = await request(app).delete('/api/admin/accounts/999999').set('Cookie', adminCookie);
+    expect(res.status).toBe(404);
+  });
+
+  it('403s on self-deletion', async () => {
+    const self = findAccountByEmail('root-admin@example.com');
+    const res = await request(app).delete(`/api/admin/accounts/${self.id}`).set('Cookie', adminCookie);
+    expect(res.status).toBe(403);
+    expect(findAccountByEmail('root-admin@example.com')).not.toBeNull();
+  });
+
+  it('403s on deleting the break-glass account', async () => {
+    process.env.BREAK_GLASS_EMAIL = 'break-glass@example.com';
+    try {
+      const bgAccount = createAccount('break-glass@example.com', 'password123');
+      const res = await request(app).delete(`/api/admin/accounts/${bgAccount.id}`).set('Cookie', adminCookie);
+      expect(res.status).toBe(403);
+    } finally {
+      delete process.env.BREAK_GLASS_EMAIL;
+    }
+  });
+
+  it('deletes an account with no participants', async () => {
+    const target = createAccount('delete-me@example.com', 'password123');
+    const res = await request(app).delete(`/api/admin/accounts/${target.id}`).set('Cookie', adminCookie);
+    expect(res.status).toBe(204);
+    expect(findAccountByEmail('delete-me@example.com')).toBeNull();
+  });
+
+  it('409s and does not delete when the account has participants', async () => {
+    const target = createAccount('has-swimmer@example.com', 'password123');
+    const trip = createTrip({ year: '2099', name: 'Test Trip', trip_date: '2099-01-01' });
+    createParticipant({ first_name: 'Kid', last_name: 'Swimmer', role: 'Swimmer', trip_id: trip.id, account_id: target.id });
+
+    const res = await request(app).delete(`/api/admin/accounts/${target.id}`).set('Cookie', adminCookie);
+    expect(res.status).toBe(409);
+    expect(findAccountByEmail('has-swimmer@example.com')).not.toBeNull();
   });
 });

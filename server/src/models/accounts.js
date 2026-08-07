@@ -86,6 +86,28 @@ export function setAccountRole(id, role) {
 }
 
 /**
+ * Deletes an account along with its sessions and password-reset tokens.
+ * Refuses if the account still has participants (swimmers/divers)
+ * registered under it — those must be reassigned or removed first, since
+ * participants.account_id has no ON DELETE clause and the caller shouldn't
+ * silently orphan a family's roster entries.
+ */
+export function deleteAccount(id) {
+  const { count } = db.prepare('SELECT COUNT(*) AS count FROM participants WHERE account_id = ?').get(id);
+  if (count > 0) {
+    return { error: 'has_participants', count };
+  }
+
+  const deleteTx = db.transaction(() => {
+    db.prepare('DELETE FROM sessions WHERE account_id = ?').run(id);
+    db.prepare('DELETE FROM password_reset_tokens WHERE account_id = ?').run(id);
+    db.prepare('DELETE FROM accounts WHERE id = ?').run(id);
+  });
+  deleteTx();
+  return { ok: true };
+}
+
+/**
  * All admin accounts, for the "manage admins" screen — excluding the
  * break-glass account (if configured), which stays invisible even to other
  * admins.

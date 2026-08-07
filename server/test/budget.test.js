@@ -6,10 +6,13 @@ import {
   listActiveCategories,
   createCategory,
   retireCategory,
+  unretireCategory,
   getBudgetForTrip,
   attachCategoryToTrip,
+  detachCategoryFromTrip,
   updateLineItemValue,
   switchLineItemType,
+  updateStudentCountOverride,
   setExclusion,
   clearExclusion,
 } from '../src/models/budget.js';
@@ -123,18 +126,82 @@ describe('category management', () => {
     expect(() => createCategory('airfare')).toThrowError(/already exists/);
   });
 
-  it('blocks retiring a category still referenced by a trip line item', () => {
+  it('retires a category even while a trip still references it, without touching that row', () => {
     const trip = createTrip({ year: '2065', name: 'Test', trip_date: '2065-01-01' });
-    const airfare = category('Airfare');
-    setTotal(trip.id, airfare.id, 100);
+    // A freshly created category, not the shared 'Airfare' fixture — retiring
+    // it must not leak into other tests in this file that rely on 'Airfare'
+    // remaining active.
+    const fresh = createCategory('Still-Referenced Test Category');
+    setTotal(trip.id, fresh.id, 100);
 
-    expect(() => retireCategory(airfare.id)).toThrowError(/referenced/);
+    const retired = retireCategory(fresh.id);
+    expect(retired.retired).toBe(1);
+
+    const row = getBudgetForTrip(trip.id).find((i) => i.category_id === fresh.id);
+    expect(row.total).toBe(100);
   });
 
   it('allows retiring a category with no line items', () => {
     const fresh = createCategory('Unused Test Category');
     const retired = retireCategory(fresh.id);
     expect(retired.retired).toBe(1);
+  });
+
+  it('unretireCategory reverses a retire', () => {
+    const fresh = createCategory('Restorable Test Category');
+    retireCategory(fresh.id);
+    const restored = unretireCategory(fresh.id);
+    expect(restored.retired).toBe(0);
+  });
+});
+
+describe('detachCategoryFromTrip', () => {
+  it('removes a zero-value line item from just this trip', () => {
+    const trip = createTrip({ year: '2090', name: 'Test', trip_date: '2090-01-01' });
+    const airfare = category('Airfare');
+
+    detachCategoryFromTrip(trip.id, airfare.id);
+
+    const row = getBudgetForTrip(trip.id).find((i) => i.category_id === airfare.id);
+    expect(row).toBeUndefined();
+  });
+
+  it('rejects a totals row with a nonzero total', () => {
+    const trip = createTrip({ year: '2091', name: 'Test', trip_date: '2091-01-01' });
+    const airfare = category('Airfare');
+    setTotal(trip.id, airfare.id, 250);
+
+    expect(() => detachCategoryFromTrip(trip.id, airfare.id)).toThrowError(/Zero out/);
+    const row = getBudgetForTrip(trip.id).find((i) => i.category_id === airfare.id);
+    expect(row.total).toBe(250);
+  });
+
+  it('rejects a per_swimmer row with a nonzero rate', () => {
+    const trip = createTrip({ year: '2092', name: 'Test', trip_date: '2092-01-01' });
+    const airfare = category('Airfare');
+    const item = attachCategoryToTrip(trip.id, airfare.id);
+    switchLineItemType(item.id, 'per_swimmer');
+    updateLineItemValue(trip.id, airfare.id, { rate_per_athlete: 40 });
+
+    expect(() => detachCategoryFromTrip(trip.id, airfare.id)).toThrowError(/Zero out/);
+  });
+
+  it('does not affect other trips referencing the same category', () => {
+    const other = createTrip({ year: '2093', name: 'Other', trip_date: '2093-01-01' });
+    const trip = createTrip({ year: '2094', name: 'Test', trip_date: '2094-01-01' });
+    const airfare = category('Airfare');
+    setTotal(other.id, airfare.id, 300);
+
+    detachCategoryFromTrip(trip.id, airfare.id);
+
+    const otherRow = getBudgetForTrip(other.id).find((i) => i.category_id === airfare.id);
+    expect(otherRow.total).toBe(300);
+  });
+
+  it('errors when no line item exists for this trip/category', () => {
+    const trip = createTrip({ year: '2095', name: 'Test', trip_date: '2095-01-01' });
+    const fresh = createCategory('Detach-Test-Only Category');
+    expect(() => detachCategoryFromTrip(trip.id, fresh.id)).toThrowError(/No line item/);
   });
 });
 
@@ -289,6 +356,225 @@ describe('switchLineItemType', () => {
 
   it('returns null for an unknown line item id', () => {
     expect(switchLineItemType(999999, 'totals')).toBeNull();
+  });
+});
+
+describe('service_charge rows', () => {
+  it("applies percent_rate to the summed Total/Panther of every OTHER item, not to itself", () => {
+    const trip = createTrip({ year: '2082', name: 'Test', trip_date: '2082-01-01' });
+    for (let i = 0; i < 10; i++) addStudent(trip.id);
+    const airfare = category('Airfare');
+    const hotel = category('Hotel');
+    const overrun = category('Overrun');
+    setTotal(trip.id, airfare.id, 1000);
+    setTotal(trip.id, hotel.id, 1000);
+
+    const item = attachCategoryToTrip(trip.id, overrun.id);
+    switchLineItemType(item.id, 'service_charge');
+    updateLineItemValue(trip.id, overrun.id, { percent_rate: 2.9 });
+
+    // No exclusions here, so every row shares the same 10-student divisor —
+    // summed Total/Panther (100 + 100 = 200/panther) times students (2000)
+    // coincides with the grand total, same as the dedicated exclusions test
+    // below where they diverge.
+    const row = getBudgetForTrip(trip.id).find((i) => i.category_id === overrun.id);
+    expect(row.total_per_panther).toBeCloseTo(200 * 0.029);
+    expect(row.total).toBe(Math.round(2000 * 0.029));
+
+    const grandTotal = getBudgetForTrip(trip.id).reduce((sum, i) => sum + i.total, 0);
+    expect(grandTotal).toBe(2000 + row.total);
+  });
+
+  it('bases the percentage on summed Total/Panther, not the grand total, when categories have different opt-out divisors', () => {
+    const trip = createTrip({ year: '2098', name: 'Test', trip_date: '2098-01-01' });
+    const s1 = addStudent(trip.id);
+    addStudent(trip.id);
+    const airfare = category('Airfare');
+    const hotel = category('Hotel');
+    const overrun = category('Overrun');
+    setTotal(trip.id, airfare.id, 1000); // 2 students -> $500/panther
+    setTotal(trip.id, hotel.id, 1000);
+
+    const hotelItem = getBudgetForTrip(trip.id).find((i) => i.category_id === hotel.id);
+    setExclusion(hotelItem.trip_budget_item_id, s1.id); // 1 student -> $1000/panther
+
+    const item = attachCategoryToTrip(trip.id, overrun.id);
+    switchLineItemType(item.id, 'service_charge');
+    updateLineItemValue(trip.id, overrun.id, { percent_rate: 10 });
+
+    // Grand total is 2000 (10% -> 200), but Total/Panther basis is
+    // 500 (airfare) + 1000 (hotel) = 1500/panther (10% -> 150/panther).
+    const row = getBudgetForTrip(trip.id).find((i) => i.category_id === overrun.id);
+    expect(row.total_per_panther).toBeCloseTo(150);
+    expect(row.total).toBe(150 * 2);
+  });
+
+  it('defaults percent_rate to 2.9 on switch, and resets total/rate_per_athlete', () => {
+    const trip = createTrip({ year: '2083', name: 'Test', trip_date: '2083-01-01' });
+    const airfare = category('Airfare');
+    const item = setTotal(trip.id, airfare.id, 500);
+
+    const switched = switchLineItemType(item.id, 'service_charge');
+    expect(switched.type).toBe('service_charge');
+    expect(switched.percent_rate).toBe(2.9);
+    expect(switched.total).toBe(0);
+    expect(switched.rate_per_athlete).toBeNull();
+  });
+
+  it('rejects a second service_charge row on the same trip', () => {
+    const trip = createTrip({ year: '2084', name: 'Test', trip_date: '2084-01-01' });
+    const airfare = category('Airfare');
+    const hotel = category('Hotel');
+    const first = attachCategoryToTrip(trip.id, airfare.id);
+    switchLineItemType(first.id, 'service_charge');
+
+    const second = attachCategoryToTrip(trip.id, hotel.id);
+    expect(() => switchLineItemType(second.id, 'service_charge')).toThrowError(/only one is allowed/);
+  });
+
+  it('allows a service_charge row on a different trip', () => {
+    const tripA = createTrip({ year: '2085', name: 'A', trip_date: '2085-01-01' });
+    const tripB = createTrip({ year: '2086', name: 'B', trip_date: '2086-01-01' });
+    const airfare = category('Airfare');
+
+    const itemA = attachCategoryToTrip(tripA.id, airfare.id);
+    switchLineItemType(itemA.id, 'service_charge');
+
+    const itemB = attachCategoryToTrip(tripB.id, airfare.id);
+    expect(() => switchLineItemType(itemB.id, 'service_charge')).not.toThrow();
+  });
+
+  it('rejects total and rate_per_athlete on a service_charge row', () => {
+    const trip = createTrip({ year: '2087', name: 'Test', trip_date: '2087-01-01' });
+    const airfare = category('Airfare');
+    const item = attachCategoryToTrip(trip.id, airfare.id);
+    switchLineItemType(item.id, 'service_charge');
+
+    expect(() => updateLineItemValue(trip.id, airfare.id, { total: 100 })).toThrowError(
+      /service charge/
+    );
+    expect(() => updateLineItemValue(trip.id, airfare.id, { rate_per_athlete: 50 })).toThrowError(
+      /service charge/
+    );
+  });
+
+  it('rejects a negative percent_rate', () => {
+    const trip = createTrip({ year: '2088', name: 'Test', trip_date: '2088-01-01' });
+    const airfare = category('Airfare');
+    const item = attachCategoryToTrip(trip.id, airfare.id);
+    switchLineItemType(item.id, 'service_charge');
+    expect(() => updateLineItemValue(trip.id, airfare.id, { percent_rate: -1 })).toThrowError(
+      /non-negative/
+    );
+  });
+
+  it("detachCategoryFromTrip rejects a service_charge row with a nonzero percent_rate", () => {
+    const trip = createTrip({ year: '2089', name: 'Test', trip_date: '2089-01-01' });
+    const airfare = category('Airfare');
+    const item = attachCategoryToTrip(trip.id, airfare.id);
+    switchLineItemType(item.id, 'service_charge');
+
+    expect(() => detachCategoryFromTrip(trip.id, airfare.id)).toThrowError(/Zero out/);
+  });
+});
+
+describe('student_count_override', () => {
+  it('overrides the live roster count for just that row', () => {
+    const trip = createTrip({ year: '2099', name: 'Test', trip_date: '2099-01-01' });
+    for (let i = 0; i < 4; i++) addStudent(trip.id);
+    const airfare = category('Airfare');
+    const hotel = category('Hotel');
+    setTotal(trip.id, airfare.id, 400);
+    setTotal(trip.id, hotel.id, 400);
+
+    const item = getBudgetForTrip(trip.id).find((i) => i.category_id === airfare.id);
+    updateStudentCountOverride(item.trip_budget_item_id, 8);
+
+    const after = getBudgetForTrip(trip.id);
+    const airfareRow = after.find((i) => i.category_id === airfare.id);
+    expect(airfareRow.students).toBe(8);
+    expect(airfareRow.student_count_override).toBe(8);
+    expect(airfareRow.total_per_panther).toBe(50);
+    // A different row's category is untouched by another row's override.
+    expect(after.find((i) => i.category_id === hotel.id).students).toBe(4);
+  });
+
+  it('clearing the override (null) reverts to the live roster count', () => {
+    const trip = createTrip({ year: '2100', name: 'Test', trip_date: '2100-01-01' });
+    for (let i = 0; i < 5; i++) addStudent(trip.id);
+    const airfare = category('Airfare');
+    const item = getBudgetForTrip(trip.id).find((i) => i.category_id === airfare.id);
+
+    updateStudentCountOverride(item.trip_budget_item_id, 20);
+    expect(getBudgetForTrip(trip.id).find((i) => i.category_id === airfare.id).students).toBe(20);
+
+    updateStudentCountOverride(item.trip_budget_item_id, null);
+    const restored = getBudgetForTrip(trip.id).find((i) => i.category_id === airfare.id);
+    expect(restored.students).toBe(5);
+    expect(restored.student_count_override).toBeNull();
+  });
+
+  it('feeds into per_swimmer and service_charge computations too', () => {
+    const trip = createTrip({ year: '2101', name: 'Test', trip_date: '2101-01-01' });
+    for (let i = 0; i < 3; i++) addStudent(trip.id);
+    const airfare = category('Airfare');
+    const overrun = category('Overrun');
+
+    const item = attachCategoryToTrip(trip.id, airfare.id);
+    switchLineItemType(item.id, 'per_swimmer');
+    updateLineItemValue(trip.id, airfare.id, { rate_per_athlete: 100 });
+    updateStudentCountOverride(item.id, 10);
+
+    const svcItem = attachCategoryToTrip(trip.id, overrun.id);
+    switchLineItemType(svcItem.id, 'service_charge');
+    updateLineItemValue(trip.id, overrun.id, { percent_rate: 10 });
+    updateStudentCountOverride(svcItem.id, 10);
+
+    const budget = getBudgetForTrip(trip.id);
+    // per_swimmer total = rate(100) x overridden students(10), not the
+    // real 3-student roster.
+    expect(budget.find((i) => i.category_id === airfare.id).total).toBe(1000);
+    // service_charge total_per_panther is 10% of airfare's 100/panther rate
+    // (unaffected by its own override — that only scales its own total),
+    // and its total uses ITS OWN overridden student count (10).
+    const svcRow = budget.find((i) => i.category_id === overrun.id);
+    expect(svcRow.total_per_panther).toBeCloseTo(10);
+    expect(svcRow.total).toBe(100);
+  });
+
+  it('rejects a negative override', () => {
+    const trip = createTrip({ year: '2102', name: 'Test', trip_date: '2102-01-01' });
+    const airfare = category('Airfare');
+    const item = getBudgetForTrip(trip.id).find((i) => i.category_id === airfare.id);
+    expect(() => updateStudentCountOverride(item.trip_budget_item_id, -1)).toThrowError(
+      /non-negative/
+    );
+  });
+
+  it('rejects a non-integer override', () => {
+    const trip = createTrip({ year: '2103', name: 'Test', trip_date: '2103-01-01' });
+    const airfare = category('Airfare');
+    const item = getBudgetForTrip(trip.id).find((i) => i.category_id === airfare.id);
+    expect(() => updateStudentCountOverride(item.trip_budget_item_id, 2.5)).toThrowError(
+      /non-negative/
+    );
+  });
+
+  it('returns null for an unknown line item id', () => {
+    expect(updateStudentCountOverride(999999, 5)).toBeNull();
+  });
+
+  it('never carries forward to a new trip year', () => {
+    const prior = createTrip({ year: '2104', name: 'Prior', trip_date: '2104-01-01' });
+    const airfare = category('Airfare');
+    const priorItem = getBudgetForTrip(prior.id).find((i) => i.category_id === airfare.id);
+    updateStudentCountOverride(priorItem.trip_budget_item_id, 99);
+
+    const current = createTrip({ year: '2105', name: 'Current', trip_date: '2105-01-01' });
+    const currentItem = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(current.id, airfare.id);
+    expect(currentItem.student_count_override).toBeNull();
   });
 });
 

@@ -27,20 +27,52 @@ export function createCategory(name) {
   return db.prepare('SELECT * FROM budget_categories WHERE id = ?').get(info.lastInsertRowid);
 }
 
-// Soft-retire only (Premise 7) — a category that any trip_budget_items row
-// still references can't be retired, since that row's category name/sort
-// order needs to keep resolving for historical display.
+// Soft-retire only — never deletes the category row, so any trip_budget_items
+// row that already references it keeps resolving its name/sort_order for
+// historical display exactly as before. retired only affects two forward-
+// looking things: the "add existing category" picker (listAllCategories
+// callers filter it client-side) and seedBudgetForNewTrip's active-category
+// scan below — it does not touch any trip's existing line items.
 export function retireCategory(id) {
-  const referenced = db
-    .prepare('SELECT 1 FROM trip_budget_items WHERE category_id = ? LIMIT 1')
-    .get(id);
-  if (referenced) {
-    const err = new Error('Category is still referenced by a trip budget item');
-    err.code = 'CATEGORY_IN_USE';
-    throw err;
-  }
   db.prepare('UPDATE budget_categories SET retired = 1 WHERE id = ?').run(id);
   return db.prepare('SELECT * FROM budget_categories WHERE id = ?').get(id);
+}
+
+export function unretireCategory(id) {
+  db.prepare('UPDATE budget_categories SET retired = 0 WHERE id = ?').run(id);
+  return db.prepare('SELECT * FROM budget_categories WHERE id = ?').get(id);
+}
+
+// Detaches a category from a single trip's budget table — the "per year"
+// counterpart to retireCategory's global scope. Only allowed at zero value
+// (zero total, or zero/unset rate_per_athlete) so a real dollar figure can
+// never be silently dropped; the admin must zero it out first, same spirit
+// as switchLineItemType resetting rather than converting a value.
+export function detachCategoryFromTrip(tripId, categoryId) {
+  const item = db.prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?').get(tripId, categoryId);
+  if (!item) {
+    const err = new Error('No line item exists for this trip/category');
+    err.code = 'ITEM_NOT_FOUND';
+    throw err;
+  }
+
+  const hasValue =
+    item.type === 'totals'
+      ? item.total !== 0
+      : item.type === 'per_swimmer'
+        ? (item.rate_per_athlete ?? 0) !== 0
+        : (item.percent_rate ?? 0) !== 0;
+  if (hasValue) {
+    const err = new Error('Zero out the total before removing this category from this trip');
+    err.code = 'ITEM_HAS_VALUE';
+    throw err;
+  }
+
+  const detachTx = db.transaction(() => {
+    db.prepare('DELETE FROM trip_budget_exclusions WHERE trip_budget_item_id = ?').run(item.id);
+    db.prepare('DELETE FROM trip_budget_items WHERE id = ?').run(item.id);
+  });
+  detachTx();
 }
 
 // Most recent trip strictly before `year` — not `year - 1`, so a skipped
@@ -81,7 +113,7 @@ function perPanther(total, students) {
 // roster changes), and total is derived (rate × students) purely for Diff
 // and the grand-totals footer. rate_per_athlete NULL (no rate set yet) means
 // total_per_panther renders "—" and total is 0, not NaN.
-function computeAmounts(item, students) {
+function computeSingleAmount(item, students) {
   if (item.type === 'per_swimmer') {
     const rate = item.rate_per_athlete;
     return { total: (rate ?? 0) * students, total_per_panther: rate };
@@ -89,17 +121,54 @@ function computeAmounts(item, students) {
   return { total: item.total, total_per_panther: perPanther(item.total, students) };
 }
 
+// 'service_charge' rows (e.g. Stripe's 2.9%) apply to the summed Total/Panther
+// of every OTHER item — the per-family figure, not the trip's grand total —
+// so two categories with different opt-out divisors are weighted per-family
+// the same way the footer's own Total/Panther sum already is (a null
+// total_per_panther, from a zero-student divisor, counts as 0 toward that
+// sum). Computed in a second pass once that base is known — never carried in
+// from a prior year's stale figure, and never applied to itself.
+// total_per_panther for the service_charge row is percent × that base
+// directly (independent of this row's own student count, same as
+// per_swimmer's rate); total is that rate × this row's own students,
+// rounded to the nearest whole dollar (Premise 6).
+function computeAmountsForItems(items, studentsForItem) {
+  const amounts = {};
+  let basePerPanther = 0;
+  for (const item of items) {
+    if (item.type === 'service_charge') continue;
+    const result = computeSingleAmount(item, studentsForItem(item));
+    amounts[item.id] = result;
+    basePerPanther += result.total_per_panther ?? 0;
+  }
+  for (const item of items) {
+    if (item.type !== 'service_charge') continue;
+    const total_per_panther = ((item.percent_rate ?? 0) / 100) * basePerPanther;
+    const total = Math.round(total_per_panther * studentsForItem(item));
+    amounts[item.id] = { total, total_per_panther };
+  }
+  return amounts;
+}
+
 function lineItemsForTrip(tripId) {
   return db
     .prepare(
-      `SELECT i.id, i.category_id, i.total, i.type, i.rate_per_athlete,
-              c.name AS category, c.sort_order
+      `SELECT i.id, i.category_id, i.total, i.type, i.rate_per_athlete, i.percent_rate,
+              i.student_count_override, c.name AS category, c.sort_order
        FROM trip_budget_items i
        JOIN budget_categories c ON c.id = i.category_id
        WHERE i.trip_id = ?
        ORDER BY c.sort_order`
     )
     .all(tripId);
+}
+
+// The live roster count minus this item's own exclusions, UNLESS an admin
+// has pinned a manual student_count_override for this line item — set,
+// it replaces the roster-derived figure outright (see migration 019).
+function resolveStudents(item, studentsActive, excludedIds) {
+  if (item.student_count_override != null) return item.student_count_override;
+  return Math.max(0, studentsActive - excludedIds.length);
 }
 
 // Returns null if the trip doesn't exist, so the route can 400 (Data Flow).
@@ -110,17 +179,21 @@ export function getBudgetForTrip(tripId) {
   const items = lineItemsForTrip(trip.id);
   const exclusions = exclusionsByItem(items.map((i) => i.id));
   const studentsActive = getStats(trip.id).students_active;
+  const studentsForItem = (item) => resolveStudents(item, studentsActive, exclusions[item.id]);
+  const amounts = computeAmountsForItems(items, studentsForItem);
 
   const previousTrip = resolvePreviousTrip(trip.year);
   const priorItems = previousTrip ? lineItemsForTrip(previousTrip.id) : [];
   const priorExclusions = exclusionsByItem(priorItems.map((i) => i.id));
   const priorStudentsActive = previousTrip ? getStats(previousTrip.id).students_active : 0;
+  const priorStudentsForItem = (item) => resolveStudents(item, priorStudentsActive, priorExclusions[item.id]);
+  const priorAmounts = computeAmountsForItems(priorItems, priorStudentsForItem);
   const priorByCategory = Object.fromEntries(priorItems.map((i) => [i.category_id, i]));
 
   return items.map((item) => {
     const excludedIds = exclusions[item.id];
-    const students = Math.max(0, studentsActive - excludedIds.length);
-    const { total, total_per_panther } = computeAmounts(item, students);
+    const students = studentsForItem(item);
+    const { total, total_per_panther } = amounts[item.id];
 
     // Symmetric branch: the prior item's OWN stored type drives its own
     // computation — never retroactively affected by this year's row type.
@@ -128,10 +201,8 @@ export function getBudgetForTrip(tripId) {
     let priorTotal = null;
     let priorTotalPerPanther = null;
     if (priorItem) {
-      const priorStudents = Math.max(0, priorStudentsActive - priorExclusions[priorItem.id].length);
-      const priorAmounts = computeAmounts(priorItem, priorStudents);
-      priorTotal = priorAmounts.total;
-      priorTotalPerPanther = priorAmounts.total_per_panther;
+      priorTotal = priorAmounts[priorItem.id].total;
+      priorTotalPerPanther = priorAmounts[priorItem.id].total_per_panther;
     }
 
     return {
@@ -140,8 +211,10 @@ export function getBudgetForTrip(tripId) {
       category: item.category,
       type: item.type,
       rate_per_athlete: item.rate_per_athlete,
+      percent_rate: item.percent_rate,
       total,
       students,
+      student_count_override: item.student_count_override,
       total_per_panther,
       diff: priorTotal == null ? null : total - priorTotal,
       prior_total_per_panther: priorTotalPerPanther,
@@ -188,10 +261,11 @@ export function attachCategoryToTrip(tripId, categoryId) {
 }
 
 // Edits an EXISTING row's value — total for a 'totals' row, rate_per_athlete
-// for a 'per_swimmer' row, keyed off that row's own stored type. Rejects the
-// field that doesn't match (WRONG_FIELD_FOR_TYPE) the same way a negative
-// value is rejected — creation is a separate action (attachCategoryToTrip).
-export function updateLineItemValue(tripId, categoryId, { total, rate_per_athlete }) {
+// for a 'per_swimmer' row, percent_rate for a 'service_charge' row, keyed off
+// that row's own stored type. Rejects the fields that don't match
+// (WRONG_FIELD_FOR_TYPE) the same way a negative value is rejected —
+// creation is a separate action (attachCategoryToTrip).
+export function updateLineItemValue(tripId, categoryId, { total, rate_per_athlete, percent_rate }) {
   const item = db
     .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
     .get(tripId, categoryId);
@@ -202,8 +276,8 @@ export function updateLineItemValue(tripId, categoryId, { total, rate_per_athlet
   }
 
   if (item.type === 'totals') {
-    if (rate_per_athlete !== undefined) {
-      const err = new Error('This row is totals-based; set total, not rate_per_athlete');
+    if (rate_per_athlete !== undefined || percent_rate !== undefined) {
+      const err = new Error('This row is totals-based; set total, not rate_per_athlete or percent_rate');
       err.code = 'WRONG_FIELD_FOR_TYPE';
       throw err;
     }
@@ -213,9 +287,9 @@ export function updateLineItemValue(tripId, categoryId, { total, rate_per_athlet
       throw err;
     }
     db.prepare('UPDATE trip_budget_items SET total = ? WHERE id = ?').run(total, item.id);
-  } else {
-    if (total !== undefined) {
-      const err = new Error('This row is per-swimmer-based; set rate_per_athlete, not total');
+  } else if (item.type === 'per_swimmer') {
+    if (total !== undefined || percent_rate !== undefined) {
+      const err = new Error('This row is per-swimmer-based; set rate_per_athlete, not total or percent_rate');
       err.code = 'WRONG_FIELD_FOR_TYPE';
       throw err;
     }
@@ -225,26 +299,79 @@ export function updateLineItemValue(tripId, categoryId, { total, rate_per_athlet
       throw err;
     }
     db.prepare('UPDATE trip_budget_items SET rate_per_athlete = ? WHERE id = ?').run(rate_per_athlete, item.id);
+  } else {
+    if (total !== undefined || rate_per_athlete !== undefined) {
+      const err = new Error('This row is a service charge; set percent_rate, not total or rate_per_athlete');
+      err.code = 'WRONG_FIELD_FOR_TYPE';
+      throw err;
+    }
+    if (!Number.isFinite(percent_rate) || percent_rate < 0) {
+      const err = new Error('percent_rate must be a non-negative number');
+      err.code = 'INVALID_PERCENT';
+      throw err;
+    }
+    db.prepare('UPDATE trip_budget_items SET percent_rate = ? WHERE id = ?').run(percent_rate, item.id);
   }
 
   return db.prepare('SELECT * FROM trip_budget_items WHERE id = ?').get(item.id);
 }
 
-// Switches an existing row's type, clearing the other field rather than
-// converting it — a computed guess (e.g. deriving a rate from
+// Switches an existing row's type, clearing the other fields rather than
+// converting them — a computed guess (e.g. deriving a rate from
 // total ÷ current students) would present a fabricated number as if it were
 // a real fact. Returns null if the row doesn't exist (route 404s).
+//
+// 'service_charge' defaults its percent_rate to 2.9 (Stripe's processing
+// fee, the reason this type exists) rather than NULL like the other types'
+// reset fields — a concrete starting point since the real-world value is
+// almost always exactly this, still editable afterward if a fee changes.
+// Only one service_charge row is allowed per trip (SERVICE_CHARGE_LIMIT) —
+// a second would be ambiguous about what base it applies to — backstopped
+// by the partial unique index in migration 018.
 export function switchLineItemType(tripBudgetItemId, type) {
-  if (type !== 'totals' && type !== 'per_swimmer') {
-    const err = new Error("type must be 'totals' or 'per_swimmer'");
+  if (type !== 'totals' && type !== 'per_swimmer' && type !== 'service_charge') {
+    const err = new Error("type must be 'totals', 'per_swimmer', or 'service_charge'");
     err.code = 'INVALID_TYPE';
+    throw err;
+  }
+  const item = db.prepare('SELECT * FROM trip_budget_items WHERE id = ?').get(tripBudgetItemId);
+  if (!item) return null;
+
+  if (type === 'service_charge') {
+    const existing = db
+      .prepare(
+        `SELECT 1 FROM trip_budget_items WHERE trip_id = ? AND type = 'service_charge' AND id != ?`
+      )
+      .get(item.trip_id, tripBudgetItemId);
+    if (existing) {
+      const err = new Error('This trip already has a service charge row — only one is allowed per trip');
+      err.code = 'SERVICE_CHARGE_LIMIT';
+      throw err;
+    }
+  }
+
+  const percentRate = type === 'service_charge' ? 2.9 : null;
+  db.prepare(
+    'UPDATE trip_budget_items SET type = ?, total = 0, rate_per_athlete = NULL, percent_rate = ? WHERE id = ?'
+  ).run(type, percentRate, tripBudgetItemId);
+  return db.prepare('SELECT * FROM trip_budget_items WHERE id = ?').get(tripBudgetItemId);
+}
+
+// Pins (or, with value=null, clears) this row's # Students figure — see
+// resolveStudents/migration 019. Independent of type/exclusions, so unlike
+// switchLineItemType this never resets any other field. Returns null if the
+// row doesn't exist (route 404s).
+export function updateStudentCountOverride(tripBudgetItemId, value) {
+  if (value !== null && (!Number.isInteger(value) || value < 0)) {
+    const err = new Error('student_count_override must be null or a non-negative integer');
+    err.code = 'INVALID_STUDENT_COUNT';
     throw err;
   }
   if (!db.prepare('SELECT 1 FROM trip_budget_items WHERE id = ?').get(tripBudgetItemId)) {
     return null;
   }
-  db.prepare('UPDATE trip_budget_items SET type = ?, total = 0, rate_per_athlete = NULL WHERE id = ?').run(
-    type,
+  db.prepare('UPDATE trip_budget_items SET student_count_override = ? WHERE id = ?').run(
+    value,
     tripBudgetItemId
   );
   return db.prepare('SELECT * FROM trip_budget_items WHERE id = ?').get(tripBudgetItemId);

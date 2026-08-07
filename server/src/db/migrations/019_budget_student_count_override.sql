@@ -1,0 +1,12 @@
+-- Per-line-item override for the "# Students" divisor: some categories'
+-- real headcount doesn't match the live roster minus this item's own
+-- opt-outs closely enough that exclusions alone can express it (e.g. a
+-- vendor-agreed count). NULL (the default) keeps today's exact behavior —
+-- the live roster count minus this item's own exclusions. Set, it replaces
+-- that computation outright for this one trip-year's line item.
+--
+-- Never carried forward to a new trip year (same as total/rate_per_athlete/
+-- percent_rate in 017/018) since each year's real roster differs — a plain
+-- ADD COLUMN is enough here, no CHECK constraint to widen, so no table
+-- rebuild is needed the way 018 needed one.
+ALTER TABLE trip_budget_items ADD COLUMN student_count_override INTEGER;

@@ -6,9 +6,12 @@ import {
   fetchBudgetCategories,
   createBudgetCategory,
   retireBudgetCategory,
+  unretireBudgetCategory,
   attachBudgetCategory,
+  detachBudgetCategory,
   updateBudgetLineItem,
   switchBudgetItemType,
+  setBudgetStudentCountOverride,
   setBudgetExclusion,
   clearBudgetExclusion,
 } from '../api/budget.js';
@@ -18,6 +21,15 @@ import {
  * (minus per-category opt-outs) so Total Per Panther never drifts from the
  * real roster the way the hand-typed spreadsheet divisor did. Rendered as its
  * own tab in AdminRoster, alongside the Roster tab — not a modal. */
+
+// The field each row type stores its value in — drafts/blur/input all need
+// to key off the same three-way branch.
+function valueField(item) {
+  if (item.type === 'per_swimmer') return item.rate_per_athlete;
+  if (item.type === 'service_charge') return item.percent_rate;
+  return item.total;
+}
+
 export default function BudgetPanel({ tripId }) {
   const [items, setItems] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
@@ -25,11 +37,13 @@ export default function BudgetPanel({ tripId }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [drafts, setDrafts] = useState({});
+  const [studentDrafts, setStudentDrafts] = useState({});
   const [newCategoryName, setNewCategoryName] = useState('');
   const [addingCategory, setAddingCategory] = useState(false);
   const [existingCategoryId, setExistingCategoryId] = useState('');
   const [addingExisting, setAddingExisting] = useState(false);
   const [showMatrix, setShowMatrix] = useState(false);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -48,12 +62,13 @@ export default function BudgetPanel({ tripId }) {
       );
       setDrafts(
         Object.fromEntries(
-          budgetItems.map((i) => [
-            i.category_id,
-            i.type === 'per_swimmer' ? (i.rate_per_athlete == null ? '' : String(i.rate_per_athlete)) : String(i.total),
-          ])
+          budgetItems.map((i) => {
+            const value = valueField(i);
+            return [i.category_id, value == null ? '' : String(value)];
+          })
         )
       );
+      setStudentDrafts(Object.fromEntries(budgetItems.map((i) => [i.category_id, String(i.students)])));
     } catch {
       setError('Could not load the budget. Is the API running?');
     } finally {
@@ -68,18 +83,54 @@ export default function BudgetPanel({ tripId }) {
   const handleValueBlur = async (item) => {
     const raw = drafts[item.category_id];
     const value = Number(raw);
-    const currentValue = item.type === 'per_swimmer' ? item.rate_per_athlete : item.total;
+    const currentValue = valueField(item);
     if (raw === '' || Number.isNaN(value) || value < 0) {
       setDrafts((d) => ({ ...d, [item.category_id]: currentValue == null ? '' : String(currentValue) }));
       return;
     }
     if (value === currentValue) return;
     try {
-      const payload = item.type === 'per_swimmer' ? { rate_per_athlete: value } : { total: value };
+      const payload =
+        item.type === 'per_swimmer'
+          ? { rate_per_athlete: value }
+          : item.type === 'service_charge'
+            ? { percent_rate: value }
+            : { total: value };
       await updateBudgetLineItem(tripId, item.category_id, payload);
       await load();
     } catch {
       setError('Could not save that value.');
+    }
+  };
+
+  // Pins this row's # Students to a manual figure, overriding the live
+  // roster count minus this item's own exclusions — for a category whose
+  // real headcount doesn't match the roster closely enough for exclusions
+  // alone to express (e.g. a vendor-agreed count).
+  const handleStudentCountBlur = async (item) => {
+    const raw = studentDrafts[item.category_id];
+    const value = Number(raw);
+    const currentValue = item.students;
+    if (raw === '' || !Number.isInteger(value) || value < 0) {
+      setStudentDrafts((d) => ({ ...d, [item.category_id]: String(currentValue) }));
+      return;
+    }
+    if (value === currentValue) return;
+    try {
+      await setBudgetStudentCountOverride(item.trip_budget_item_id, value);
+      await load();
+    } catch {
+      setError('Could not save that student count.');
+    }
+  };
+
+  const handleResetStudentCount = async (item) => {
+    setError(null);
+    try {
+      await setBudgetStudentCountOverride(item.trip_budget_item_id, null);
+      await load();
+    } catch {
+      setError('Could not reset that student count.');
     }
   };
 
@@ -88,8 +139,8 @@ export default function BudgetPanel({ tripId }) {
     try {
       await switchBudgetItemType(item.trip_budget_item_id, type);
       await load();
-    } catch {
-      setError("Could not change that row's type.");
+    } catch (err) {
+      setError(err.body?.error || "Could not change that row's type.");
     }
   };
 
@@ -147,13 +198,36 @@ export default function BudgetPanel({ tripId }) {
     }
   };
 
-  const handleRetire = async (item) => {
+  // Detaches this category from just the trip being viewed — the server
+  // rejects it with a clear message if the row still has a nonzero
+  // total/rate, since that's real budget data, not clutter.
+  const handleRemoveFromTrip = async (item) => {
     setError(null);
     try {
-      await retireBudgetCategory(item.category_id);
+      await detachBudgetCategory(tripId, item.category_id);
+      await load();
+    } catch (err) {
+      setError(err.body?.error || 'Could not remove that category from this trip.');
+    }
+  };
+
+  const handleRetireCategory = async (category) => {
+    setError(null);
+    try {
+      await retireBudgetCategory(category.id);
       await load();
     } catch (err) {
       setError(err.body?.error || 'Could not retire that category.');
+    }
+  };
+
+  const handleUnretireCategory = async (category) => {
+    setError(null);
+    try {
+      await unretireBudgetCategory(category.id);
+      await load();
+    } catch (err) {
+      setError(err.body?.error || 'Could not restore that category.');
     }
   };
 
@@ -189,7 +263,8 @@ export default function BudgetPanel({ tripId }) {
     <div className="budget-tab">
       <p className="hint">
         Totals per family are computed from the live roster, minus anyone opted out of a category
-        below.
+        below. The # Students column can be edited directly to override that count for a single
+        category — click Auto to go back to the live roster count.
       </p>
 
       {error && <div className="form-error form-error--root">{error}</div>}
@@ -222,22 +297,58 @@ export default function BudgetPanel({ tripId }) {
                     >
                       <option value="totals">Totals</option>
                       <option value="per_swimmer">Per swimmer/diver</option>
+                      <option value="service_charge">Service charge (%)</option>
                     </select>
                   </td>
-                  <td data-label={item.type === 'per_swimmer' ? 'Rate/athlete' : 'Total'}>
+                  <td
+                    data-label={
+                      item.type === 'per_swimmer'
+                        ? 'Rate/athlete'
+                        : item.type === 'service_charge'
+                          ? 'Rate %'
+                          : 'Total'
+                    }
+                  >
                     <input
                       type="number"
                       min="0"
-                      step="1"
+                      step={item.type === 'service_charge' ? '0.1' : '1'}
                       value={drafts[item.category_id] ?? ''}
-                      placeholder={item.type === 'per_swimmer' ? '$/athlete' : '$ total'}
+                      placeholder={
+                        item.type === 'per_swimmer'
+                          ? '$/athlete'
+                          : item.type === 'service_charge'
+                            ? '% of total'
+                            : '$ total'
+                      }
                       onChange={(e) =>
                         setDrafts((d) => ({ ...d, [item.category_id]: e.target.value }))
                       }
                       onBlur={() => handleValueBlur(item)}
                     />
                   </td>
-                  <td data-label="# Students">{item.students}</td>
+                  <td data-label="# Students">
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={studentDrafts[item.category_id] ?? ''}
+                      title={item.student_count_override != null ? 'Overridden — click Auto to use the live roster count again' : 'Live roster count minus opt-outs — edit to override'}
+                      onChange={(e) =>
+                        setStudentDrafts((d) => ({ ...d, [item.category_id]: e.target.value }))
+                      }
+                      onBlur={() => handleStudentCountBlur(item)}
+                    />
+                    {item.student_count_override != null && (
+                      <button
+                        type="button"
+                        className="link-btn"
+                        onClick={() => handleResetStudentCount(item)}
+                      >
+                        Auto
+                      </button>
+                    )}
+                  </td>
                   <td data-label="Total/Panther">{fmtMoney(item.total_per_panther)}</td>
                   <td data-label="Diff vs prior yr">{fmtMoney(item.diff)}</td>
                   <td data-label="Prior yr/Panther">{fmtMoney(item.prior_total_per_panther)}</td>
@@ -245,9 +356,9 @@ export default function BudgetPanel({ tripId }) {
                     <button
                       type="button"
                       className="link-btn link-btn--danger"
-                      onClick={() => handleRetire(item)}
+                      onClick={() => handleRemoveFromTrip(item)}
                     >
-                      Retire
+                      Remove from trip
                     </button>
                   </td>
                 </tr>
@@ -332,6 +443,57 @@ export default function BudgetPanel({ tripId }) {
           <button type="button" className="link-btn" onClick={() => setShowMatrix((v) => !v)}>
             {showMatrix ? 'Hide' : 'Manage'} per-student opt-outs
           </button>
+          {' · '}
+          <button
+            type="button"
+            className="link-btn"
+            onClick={() => setShowCategoryManager((v) => !v)}
+          >
+            {showCategoryManager ? 'Hide' : 'Manage'} categories
+          </button>
+
+          {showCategoryManager && (
+            <div className="preview-table-wrap" style={{ marginTop: '0.6rem' }}>
+              <p className="hint">
+                Retiring a category here stops it being auto-added to future trip years and
+                hides it from the "add existing category" picker above. It never touches any
+                trip's existing line items — use "Remove from trip" on a zero-value row above
+                for that.
+              </p>
+              <table className="preview-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allCategories.map((c) => (
+                    <tr key={c.id}>
+                      <td>{c.name}</td>
+                      <td>{c.retired ? 'Retired' : 'Active'}</td>
+                      <td>
+                        {c.retired ? (
+                          <button type="button" className="link-btn" onClick={() => handleUnretireCategory(c)}>
+                            Restore
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="link-btn link-btn--danger"
+                            onClick={() => handleRetireCategory(c)}
+                          >
+                            Retire
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {showMatrix && (
             <div className="preview-table-wrap" style={{ marginTop: '0.6rem' }}>

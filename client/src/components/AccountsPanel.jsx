@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchAllAccounts, addAdminAccount, changeAccountRole } from '../api/adminAccounts.js';
+import { fetchAllAccounts, addAdminAccount, changeAccountRole, deleteAccount } from '../api/adminAccounts.js';
 import { displayField } from '../lib/accountDisplay.js';
 
 /** Admin-only, lists every registered account regardless of role — independent
@@ -40,6 +40,22 @@ export default function AccountsPanel({ currentAccountId }) {
       await load();
     } catch (err) {
       setError(err.body?.error || "Could not change that account's role.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleDelete = async (account) => {
+    if (!window.confirm(`Delete the account ${account.email}? This cannot be undone.`)) {
+      return;
+    }
+    setBusyId(account.id);
+    setError(null);
+    try {
+      await deleteAccount(account.id);
+      await load();
+    } catch (err) {
+      setError(err.body?.error || 'Could not delete that account.');
     } finally {
       setBusyId(null);
     }
@@ -96,24 +112,37 @@ export default function AccountsPanel({ currentAccountId }) {
                   <td data-label="">
                     {isSelf ? (
                       <span className="hint">(you)</span>
-                    ) : a.role === 'admin' ? (
-                      <button
-                        type="button"
-                        className="link-btn link-btn--danger"
-                        disabled={busyId === a.id}
-                        onClick={() => handleRoleChange(a, 'parent')}
-                      >
-                        Demote
-                      </button>
                     ) : (
-                      <button
-                        type="button"
-                        className="link-btn"
-                        disabled={busyId === a.id}
-                        onClick={() => handleRoleChange(a, 'admin')}
-                      >
-                        Promote
-                      </button>
+                      <>
+                        {a.role === 'admin' ? (
+                          <button
+                            type="button"
+                            className="link-btn link-btn--danger"
+                            disabled={busyId === a.id}
+                            onClick={() => handleRoleChange(a, 'parent')}
+                          >
+                            Demote
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="link-btn"
+                            disabled={busyId === a.id}
+                            onClick={() => handleRoleChange(a, 'admin')}
+                          >
+                            Promote
+                          </button>
+                        )}
+                        {' · '}
+                        <button
+                          type="button"
+                          className="link-btn link-btn--danger"
+                          disabled={busyId === a.id}
+                          onClick={() => handleDelete(a)}
+                        >
+                          Delete
+                        </button>
+                      </>
                     )}
                   </td>
                 </tr>

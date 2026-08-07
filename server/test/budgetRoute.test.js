@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { db } from '../src/db/connection.js';
 import { createTrip } from '../src/models/trips.js';
+import { createParticipant } from '../src/models/participants.js';
 import { createAccount, setAccountRole } from '../src/models/accounts.js';
 import { createSession } from '../src/models/sessions.js';
 import { listActiveCategories } from '../src/models/budget.js';
@@ -19,6 +20,10 @@ function buildApp() {
 
 function category(name) {
   return listActiveCategories().find((c) => c.name === name);
+}
+
+function addStudent(tripId) {
+  return createParticipant({ first_name: 'S', last_name: 'Test', role: 'Swimmer', trip_id: tripId });
 }
 
 let app;
@@ -205,6 +210,146 @@ describe('PUT /api/budget/items/:id/type', () => {
   });
 });
 
+describe('service_charge type via the route layer', () => {
+  it('switches a row to service_charge, defaulting percent_rate to 2.9', async () => {
+    const trip = createTrip({ year: '2092', name: 'Test', trip_date: '2092-01-01' });
+    const airfare = category('Airfare');
+    const item = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(trip.id, airfare.id);
+
+    const res = await request(app)
+      .put(`/api/budget/items/${item.id}/type`)
+      .set('Cookie', adminCookie)
+      .send({ type: 'service_charge' });
+    expect(res.status).toBe(200);
+    expect(res.body.type).toBe('service_charge');
+    expect(res.body.percent_rate).toBe(2.9);
+  });
+
+  it('409s when a second service_charge row is switched on the same trip', async () => {
+    const trip = createTrip({ year: '2093', name: 'Test', trip_date: '2093-01-01' });
+    const airfare = category('Airfare');
+    const hotel = category('Hotel');
+    const airfareItem = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(trip.id, airfare.id);
+    const hotelItem = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(trip.id, hotel.id);
+    await request(app)
+      .put(`/api/budget/items/${airfareItem.id}/type`)
+      .set('Cookie', adminCookie)
+      .send({ type: 'service_charge' });
+
+    const res = await request(app)
+      .put(`/api/budget/items/${hotelItem.id}/type`)
+      .set('Cookie', adminCookie)
+      .send({ type: 'service_charge' });
+    expect(res.status).toBe(409);
+  });
+
+  it('updates percent_rate and reflects it in the computed total', async () => {
+    const trip = createTrip({ year: '2094', name: 'Test', trip_date: '2094-01-01' });
+    for (let i = 0; i < 10; i++) addStudent(trip.id);
+    const airfare = category('Airfare');
+    const hotel = category('Hotel');
+    await request(app)
+      .put('/api/budget/items')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: trip.id, category_id: hotel.id, total: 1000 });
+    const item = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(trip.id, airfare.id);
+    await request(app)
+      .put(`/api/budget/items/${item.id}/type`)
+      .set('Cookie', adminCookie)
+      .send({ type: 'service_charge' });
+
+    const res = await request(app)
+      .put('/api/budget/items')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: trip.id, category_id: airfare.id, percent_rate: 2.9 });
+    expect(res.status).toBe(200);
+    expect(res.body.percent_rate).toBe(2.9);
+
+    const budget = await request(app).get(`/api/budget?trip_id=${trip.id}`).set('Cookie', adminCookie);
+    const row = budget.body.find((i) => i.category_id === airfare.id);
+    expect(row.total).toBe(Math.round(1000 * 0.029));
+  });
+});
+
+describe('PUT /api/budget/items/:id/student-count-override', () => {
+  it('overrides the # Students figure for that row', async () => {
+    const trip = createTrip({ year: '2095', name: 'Test', trip_date: '2095-01-01' });
+    for (let i = 0; i < 4; i++) addStudent(trip.id);
+    const airfare = category('Airfare');
+    await request(app)
+      .put('/api/budget/items')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: trip.id, category_id: airfare.id, total: 400 });
+    const item = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(trip.id, airfare.id);
+
+    const res = await request(app)
+      .put(`/api/budget/items/${item.id}/student-count-override`)
+      .set('Cookie', adminCookie)
+      .send({ student_count_override: 8 });
+    expect(res.status).toBe(200);
+    expect(res.body.student_count_override).toBe(8);
+
+    const budget = await request(app).get(`/api/budget?trip_id=${trip.id}`).set('Cookie', adminCookie);
+    const row = budget.body.find((i) => i.category_id === airfare.id);
+    expect(row.students).toBe(8);
+    expect(row.total_per_panther).toBe(50);
+  });
+
+  it('clears the override when sent null', async () => {
+    const trip = createTrip({ year: '2096', name: 'Test', trip_date: '2096-01-01' });
+    for (let i = 0; i < 5; i++) addStudent(trip.id);
+    const airfare = category('Airfare');
+    const item = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(trip.id, airfare.id);
+    await request(app)
+      .put(`/api/budget/items/${item.id}/student-count-override`)
+      .set('Cookie', adminCookie)
+      .send({ student_count_override: 20 });
+
+    const res = await request(app)
+      .put(`/api/budget/items/${item.id}/student-count-override`)
+      .set('Cookie', adminCookie)
+      .send({ student_count_override: null });
+    expect(res.status).toBe(200);
+    expect(res.body.student_count_override).toBeNull();
+
+    const budget = await request(app).get(`/api/budget?trip_id=${trip.id}`).set('Cookie', adminCookie);
+    expect(budget.body.find((i) => i.category_id === airfare.id).students).toBe(5);
+  });
+
+  it('400s on a negative override', async () => {
+    const trip = createTrip({ year: '2097', name: 'Test', trip_date: '2097-01-01' });
+    const airfare = category('Airfare');
+    const item = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(trip.id, airfare.id);
+    const res = await request(app)
+      .put(`/api/budget/items/${item.id}/student-count-override`)
+      .set('Cookie', adminCookie)
+      .send({ student_count_override: -3 });
+    expect(res.status).toBe(400);
+  });
+
+  it('404s for an unknown line item id', async () => {
+    const res = await request(app)
+      .put('/api/budget/items/999999/student-count-override')
+      .set('Cookie', adminCookie)
+      .send({ student_count_override: 5 });
+    expect(res.status).toBe(404);
+  });
+});
+
 describe('POST /api/budget/categories', () => {
   it('400s on a duplicate name', async () => {
     const res = await request(app)
@@ -216,18 +361,90 @@ describe('POST /api/budget/categories', () => {
 });
 
 describe('POST /api/budget/categories/:id/retire', () => {
-  it('409s when the category is still referenced', async () => {
+  it('succeeds even while a trip still references the category, and leaves that row alone', async () => {
     const trip = createTrip({ year: '2074', name: 'Test', trip_date: '2074-01-01' });
+    // A freshly created category, not the shared 'Airfare' fixture — retiring
+    // it must not leak into other tests in this file that rely on 'Airfare'
+    // remaining active (budget_categories rows aren't reset in beforeEach).
+    const fresh = await request(app)
+      .post('/api/budget/categories')
+      .set('Cookie', adminCookie)
+      .send({ name: 'Still-Referenced Route Test Category' });
+    await request(app)
+      .post('/api/budget/items/attach')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: trip.id, category_id: fresh.body.id });
+    await request(app)
+      .put('/api/budget/items')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: trip.id, category_id: fresh.body.id, total: 50 });
+
+    const res = await request(app)
+      .post(`/api/budget/categories/${fresh.body.id}/retire`)
+      .set('Cookie', adminCookie);
+    expect(res.status).toBe(200);
+    expect(res.body.retired).toBe(1);
+
+    const budget = await request(app).get(`/api/budget?trip_id=${trip.id}`).set('Cookie', adminCookie);
+    expect(budget.body.find((i) => i.category_id === fresh.body.id).total).toBe(50);
+  });
+});
+
+describe('POST /api/budget/categories/:id/unretire', () => {
+  it('reverses a retire', async () => {
+    const fresh = await request(app)
+      .post('/api/budget/categories')
+      .set('Cookie', adminCookie)
+      .send({ name: 'Restorable Route Test Category' });
+    await request(app).post(`/api/budget/categories/${fresh.body.id}/retire`).set('Cookie', adminCookie);
+
+    const res = await request(app)
+      .post(`/api/budget/categories/${fresh.body.id}/unretire`)
+      .set('Cookie', adminCookie);
+    expect(res.status).toBe(200);
+    expect(res.body.retired).toBe(0);
+  });
+});
+
+describe('DELETE /api/budget/items/:tripId/:categoryId', () => {
+  it('removes a zero-value line item from this trip', async () => {
+    const trip = createTrip({ year: '2089', name: 'Test', trip_date: '2089-01-01' });
+    const airfare = category('Airfare');
+
+    const res = await request(app)
+      .delete(`/api/budget/items/${trip.id}/${airfare.id}`)
+      .set('Cookie', adminCookie);
+    expect(res.status).toBe(204);
+
+    const budget = await request(app).get(`/api/budget?trip_id=${trip.id}`).set('Cookie', adminCookie);
+    expect(budget.body.find((i) => i.category_id === airfare.id)).toBeUndefined();
+  });
+
+  it('409s when the row still has a nonzero total', async () => {
+    const trip = createTrip({ year: '2090', name: 'Test', trip_date: '2090-01-01' });
     const airfare = category('Airfare');
     await request(app)
       .put('/api/budget/items')
       .set('Cookie', adminCookie)
-      .send({ trip_id: trip.id, category_id: airfare.id, total: 50 });
+      .send({ trip_id: trip.id, category_id: airfare.id, total: 75 });
 
     const res = await request(app)
-      .post(`/api/budget/categories/${airfare.id}/retire`)
+      .delete(`/api/budget/items/${trip.id}/${airfare.id}`)
       .set('Cookie', adminCookie);
     expect(res.status).toBe(409);
+  });
+
+  it('404s when no line item exists for this trip/category', async () => {
+    const trip = createTrip({ year: '2091', name: 'Test', trip_date: '2091-01-01' });
+    const newCategory = await request(app)
+      .post('/api/budget/categories')
+      .set('Cookie', adminCookie)
+      .send({ name: 'Detach-Route-Test-Only Category' });
+
+    const res = await request(app)
+      .delete(`/api/budget/items/${trip.id}/${newCategory.body.id}`)
+      .set('Cookie', adminCookie);
+    expect(res.status).toBe(404);
   });
 });
 

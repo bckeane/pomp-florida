@@ -35,6 +35,17 @@ export function retireBudgetCategory(id) {
   return request(`/budget/categories/${id}/retire`, { method: 'POST' });
 }
 
+export function unretireBudgetCategory(id) {
+  return request(`/budget/categories/${id}/unretire`, { method: 'POST' });
+}
+
+/** Removes a category from just this trip's budget table — only succeeds
+ * if the line item is at zero value. Separate from retireBudgetCategory,
+ * which is global and doesn't touch any trip's existing line items. */
+export function detachBudgetCategory(tripId, categoryId) {
+  return request(`/budget/items/${tripId}/${categoryId}`, { method: 'DELETE' });
+}
+
 /** Attaches a category to a trip that's missing it, at zero value — type
  * carries forward from that category's most recent prior-year item. A
  * distinct action from editing a row's value below, since a brand-new row
@@ -47,11 +58,12 @@ export function attachBudgetCategory(tripId, categoryId) {
 }
 
 /** Edits an existing row's value — exactly one of total (for a 'totals'
- * row) or rate_per_athlete (for a 'per_swimmer' row). */
-export function updateBudgetLineItem(tripId, categoryId, { total, rate_per_athlete } = {}) {
+ * row), rate_per_athlete (for a 'per_swimmer' row), or percent_rate (for a
+ * 'service_charge' row). */
+export function updateBudgetLineItem(tripId, categoryId, { total, rate_per_athlete, percent_rate } = {}) {
   return request('/budget/items', {
     method: 'PUT',
-    body: JSON.stringify({ trip_id: tripId, category_id: categoryId, total, rate_per_athlete }),
+    body: JSON.stringify({ trip_id: tripId, category_id: categoryId, total, rate_per_athlete, percent_rate }),
   });
 }
 
@@ -59,6 +71,16 @@ export function switchBudgetItemType(tripBudgetItemId, type) {
   return request(`/budget/items/${tripBudgetItemId}/type`, {
     method: 'PUT',
     body: JSON.stringify({ type }),
+  });
+}
+
+/** Pins (value: a number) or clears (value: null) this row's # Students
+ * figure — overriding the live roster count minus this item's own
+ * exclusions. */
+export function setBudgetStudentCountOverride(tripBudgetItemId, value) {
+  return request(`/budget/items/${tripBudgetItemId}/student-count-override`, {
+    method: 'PUT',
+    body: JSON.stringify({ student_count_override: value }),
   });
 }
 
