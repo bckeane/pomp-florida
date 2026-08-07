@@ -10,18 +10,19 @@ export function allergyStatusLabel(value) {
   return { variant: 'warn', text: 'Needs allergy info' };
 }
 
-// Joins whichever installment balances are actually tracked on the trip
-// (null means the trip has no estimated_cost set, not a false "nothing
-// owed") into one line for the account-home roster row.
-export function paymentStatusText({ deposit_balance, final_payment_balance }) {
-  if (deposit_balance == null && final_payment_balance == null) return null;
+// One colored status-pill per installment (see AllergyStatus for the same
+// pattern) — null when that installment isn't tracked at all (the trip has
+// no estimated_cost set), not a false "nothing owed".
+export function depositStatusLabel(deposit_balance) {
+  if (deposit_balance == null) return null;
+  return deposit_balance > 0
+    ? { variant: 'warn', text: `${fmtMoney(deposit_balance)} deposit due` }
+    : { variant: 'ok', text: 'Deposit paid' };
+}
 
-  const parts = [];
-  if (deposit_balance != null) {
-    parts.push(deposit_balance > 0 ? `${fmtMoney(deposit_balance)} deposit due` : 'Deposit paid');
-  }
-  if (final_payment_balance != null) {
-    parts.push(final_payment_balance > 0 ? `${fmtMoney(final_payment_balance)} balance due` : 'Balance paid');
-  }
-  return parts.join(' · ');
+export function finalPaymentStatusLabel(final_payment_balance) {
+  if (final_payment_balance == null) return null;
+  return final_payment_balance > 0
+    ? { variant: 'warn', text: `${fmtMoney(final_payment_balance)} balance due` }
+    : { variant: 'ok', text: 'Balance paid' };
 }

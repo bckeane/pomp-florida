@@ -204,6 +204,31 @@ export function updateParticipant(id, data) {
   return getParticipantById(id);
 }
 
+// Increments (never overwrites) deposit_received/final_payment_received —
+// used only by the Stripe webhook, where a successful payment adds to
+// whatever was already recorded (e.g. a prior check/cash payment) rather
+// than replacing it.
+export function recordPaymentReceived(id, { depositAmount = 0, finalAmount = 0 } = {}) {
+  const existing = db.prepare('SELECT deposit_received, final_payment_received FROM participants WHERE id = ?').get(id);
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+  db.prepare(
+    `UPDATE participants SET
+      deposit_received = @deposit_received,
+      final_payment_received = @final_payment_received,
+      updated_at = @updated_at
+     WHERE id = @id`
+  ).run({
+    id,
+    deposit_received: existing.deposit_received + depositAmount,
+    final_payment_received: existing.final_payment_received + finalAmount,
+    updated_at: now,
+  });
+
+  return getParticipantById(id);
+}
+
 export function softDeleteParticipant(id) {
   const now = new Date().toISOString();
   const info = db

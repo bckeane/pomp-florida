@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { allergyStatusLabel, paymentStatusText } from './rosterStatus.js';
+import { allergyStatusLabel, depositStatusLabel, finalPaymentStatusLabel } from './rosterStatus.js';
 
 describe('allergyStatusLabel', () => {
   it('flags true as an on-file allergy/medication', () => {
@@ -19,22 +19,30 @@ describe('allergyStatusLabel', () => {
   });
 });
 
-describe('paymentStatusText', () => {
-  it('is null when the trip has no amounts set on either installment', () => {
-    expect(paymentStatusText({ deposit_balance: null, final_payment_balance: null })).toBeNull();
+describe('depositStatusLabel', () => {
+  it('is null when the trip has no deposit amount set', () => {
+    expect(depositStatusLabel(null)).toBeNull();
   });
 
-  it('shows amount due when a balance is owed', () => {
-    expect(paymentStatusText({ deposit_balance: 250, final_payment_balance: null })).toBe('$250 deposit due');
+  it('warns with the amount due when a balance is owed', () => {
+    expect(depositStatusLabel(250)).toEqual({ variant: 'warn', text: '$250 deposit due' });
   });
 
-  it('shows "paid" when the balance is fully covered', () => {
-    expect(paymentStatusText({ deposit_balance: 0, final_payment_balance: null })).toBe('Deposit paid');
+  it('shows ok "paid" when the balance is fully covered', () => {
+    expect(depositStatusLabel(0)).toEqual({ variant: 'ok', text: 'Deposit paid' });
+  });
+});
+
+describe('finalPaymentStatusLabel', () => {
+  it('is null when the trip has no final payment amount set', () => {
+    expect(finalPaymentStatusLabel(null)).toBeNull();
   });
 
-  it('joins both installments when both are tracked', () => {
-    expect(paymentStatusText({ deposit_balance: 0, final_payment_balance: 500 })).toBe(
-      'Deposit paid · $500 balance due'
-    );
+  it('warns with the amount due when a balance is owed', () => {
+    expect(finalPaymentStatusLabel(500)).toEqual({ variant: 'warn', text: '$500 balance due' });
+  });
+
+  it('shows ok "paid" when the balance is fully covered', () => {
+    expect(finalPaymentStatusLabel(0)).toEqual({ variant: 'ok', text: 'Balance paid' });
   });
 });

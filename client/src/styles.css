@@ -230,6 +230,10 @@ body {
   background: rgba(192, 57, 43, 0.12);
   color: var(--danger);
 }
+.banner--success {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--ok);
+}
 
 .hint {
   color: var(--text-muted);

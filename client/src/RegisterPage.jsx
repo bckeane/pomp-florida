@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import ParticipantForm from './components/ParticipantForm.jsx';
 import AuthGate from './components/AuthGate.jsx';
 import ParentProfileGate from './components/ParentProfileGate.jsx';
 import AccountHome from './components/AccountHome.jsx';
+import PaymentPrompt from './components/PaymentPrompt.jsx';
 import { me, logout } from './api/auth.js';
 import {
   createMyParticipant,
@@ -16,7 +17,21 @@ import { profileComplete } from './lib/profile.js';
 import pantherLogo from './img/pomp_icon.png';
 import './register.css';
 
+// Stripe's redirect after Checkout — success_url/cancel_url in
+// myParticipants.js both point back here with this query param. Reconciling
+// deposit_received/final_payment_received itself happens server-side via
+// the webhook (routes/stripeWebhook.js); this is purely a "here's what just
+// happened" banner for the parent's benefit.
+function paymentBannerFrom(searchParams) {
+  const payment = searchParams.get('payment');
+  if (payment === 'success') return { variant: 'success', text: 'Payment received — thank you!' };
+  if (payment === 'cancelled') return { variant: 'error', text: 'Payment was cancelled — nothing was charged.' };
+  return null;
+}
+
 export default function RegisterPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [paymentBanner] = useState(() => paymentBannerFrom(searchParams));
   const [trip, setTrip] = useState(null);
   const [account, setAccount] = useState(null);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -34,6 +49,17 @@ export default function RegisterPage() {
     fetchCurrentTrip()
       .then(setTrip)
       .catch(() => setError('Could not reach the server.'));
+  }, []);
+
+  // Strip ?payment=... from the URL once read so a page refresh doesn't
+  // keep re-showing a stale banner; paymentBanner itself was already
+  // captured into state above before this runs.
+  useEffect(() => {
+    if (searchParams.has('payment')) {
+      searchParams.delete('payment');
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadSession = async () => {
@@ -118,6 +144,7 @@ export default function RegisterPage() {
       <div className="reg-divider" aria-hidden="true" />
 
       {error && <div className="banner banner--error">{error}</div>}
+      {paymentBanner && <div className={`banner banner--${paymentBanner.variant}`}>{paymentBanner.text}</div>}
 
       {checkingSession ? (
         <p className="hint">Loading…</p>
@@ -137,6 +164,7 @@ export default function RegisterPage() {
           ) : submitted ? (
             <div className="form-card register-success">
               <p>{lastAdded ? `${lastAdded.first_name} is on the roster.` : "You're on the roster."}</p>
+              {lastAdded && <PaymentPrompt participant={lastAdded} />}
               <div className="modal-actions account-home-actions">
                 <button type="button" className="link-btn" onClick={backToAccountHome}>
                   Back to my roster

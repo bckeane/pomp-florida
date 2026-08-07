@@ -84,3 +84,13 @@ export function createMyParticipant(data) {
 export function updateMyParticipant(id, data) {
   return request(`/my/participants/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 }
+
+// Self-serve Checkout Session — the parent pays for their own child right
+// from the register page, as opposed to fetchPaymentLink's admin-generated
+// link the roster page copies out to send manually.
+export function fetchMyPaymentLink(id, installment) {
+  return request(`/my/participants/${id}/payment-link`, {
+    method: 'POST',
+    body: JSON.stringify({ installment }),
+  });
+}

@@ -5,6 +5,7 @@ import { parseCSV, toCSV } from '../lib/csv.js';
 import { getCurrentTrip, getTripById } from '../models/trips.js';
 import { requireAdmin } from '../middleware/auth.js';
 import { createCheckoutSession } from '../services/stripe.js';
+import { clientBaseUrl } from '../lib/urls.js';
 import {
   listParticipants,
   getParticipantById,
@@ -26,17 +27,6 @@ const INSTALLMENT_BALANCE_FIELDS = {
   deposit: 'deposit_balance',
   final: 'final_payment_balance',
 };
-
-// Same fallback as auth.js's resetUrlFor — the client app's origin, not this
-// API's. No dedicated parent-facing return page exists (out of scope for
-// this feature, see design doc), so these just land back on the public
-// home page with a query param.
-function clientBaseUrl() {
-  return (process.env.APP_BASE_URL || process.env.CORS_ALLOWED_ORIGINS || '')
-    .split(',')[0]
-    .trim()
-    .replace(/\/+$/, '');
-}
 
 const router = Router();
 // Every route here is the admin roster's own CRUD/import/export — the

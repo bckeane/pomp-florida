@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { requireAccount } from '../middleware/auth.js';
 import { validateParticipant } from '../lib/validation.js';
 import { getCurrentTrip } from '../models/trips.js';
+import { createCheckoutSession } from '../services/stripe.js';
+import { clientBaseUrl } from '../lib/urls.js';
 import {
   listParticipants,
   listParticipantHistory,
@@ -12,6 +14,20 @@ import {
 } from '../models/participants.js';
 
 const router = Router();
+
+// Payments are only ever collected from swimmers/divers — adult chaperones
+// don't pay a trip fee, so 'full' just means "deposit + final together" for
+// whichever of those two still has a balance (mirrors the admin route's
+// per-installment pricing in routes/participants.js).
+function installmentAmount(participant, installment) {
+  if (installment === 'deposit') return participant.deposit_balance;
+  if (installment === 'final') return participant.final_payment_balance;
+  if (installment === 'full') {
+    if (participant.deposit_balance == null && participant.final_payment_balance == null) return null;
+    return (participant.deposit_balance ?? 0) + (participant.final_payment_balance ?? 0);
+  }
+  return undefined;
+}
 
 function fieldKeyed(errors) {
   const out = {};
@@ -87,6 +103,55 @@ router.put('/my/participants/:id', requireAccount, (req, res) => {
 
   const participant = updateParticipant(req.params.id, data);
   res.json(participant);
+});
+
+// Self-serve Checkout Session — a parent paying for their own child right
+// after signup (or later, from their account roster), as opposed to the
+// admin-generated link in routes/participants.js. Same 404-not-403 pattern
+// as PUT above so this can't be used to probe which participant ids exist.
+router.post('/my/participants/:id/payment-link', requireAccount, async (req, res) => {
+  const participant = getParticipantById(req.params.id);
+  if (!participant || participant.account_id !== req.account.id) {
+    return res.status(404).json({ error: 'Participant not found' });
+  }
+
+  if (participant.role === 'Adult') {
+    return res.status(400).json({ error: "Payments aren't collected for adult chaperones." });
+  }
+
+  const { installment } = req.body;
+  const amountDollars = installmentAmount(participant, installment);
+  if (amountDollars === undefined) {
+    return res.status(400).json({ error: "installment must be 'deposit', 'final', or 'full'" });
+  }
+  if (amountDollars == null) {
+    return res.status(400).json({
+      error: "This trip has no estimated cost set, so a payment amount can't be calculated yet.",
+    });
+  }
+  if (amountDollars <= 0) {
+    return res.status(400).json({ error: 'Already paid in full — no balance is owed.' });
+  }
+
+  const base = clientBaseUrl();
+  try {
+    const session = await createCheckoutSession({
+      participant,
+      installment,
+      amountDollars,
+      successUrl: `${base}/register?payment=success`,
+      cancelUrl: `${base}/register?payment=cancelled`,
+      depositPortion: installment === 'full' ? participant.deposit_balance ?? 0 : undefined,
+      finalPortion: installment === 'full' ? participant.final_payment_balance ?? 0 : undefined,
+    });
+    res.json({ url: session.url, amount: amountDollars });
+  } catch (err) {
+    if (err.code === 'STRIPE_NOT_CONFIGURED') {
+      return res.status(500).json({ error: 'Stripe is not configured on this server.' });
+    }
+    console.error('[my-payment-link] Stripe error:', err);
+    res.status(502).json({ error: "Couldn't reach Stripe — try again shortly." });
+  }
 });
 
 export default router;

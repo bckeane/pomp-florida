@@ -253,33 +253,55 @@
 }
 
 .register-page .account-roster-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1.8fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-8);
+  gap: var(--space-2) var(--space-6);
   padding: 0.65rem var(--space-6);
   background: var(--reg-bg);
   border: 1px solid var(--reg-line);
   border-radius: 8px;
 }
 
-.register-page .account-roster-who {
+.register-page .account-roster-col {
   display: flex;
-  align-items: baseline;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
+  font-size: 0.82rem;
+}
+
+.register-page .account-roster-who {
+  align-items: baseline;
 }
 
 .register-page .account-roster-who .lane-card-name {
   font-size: 0.95rem;
 }
 
-.register-page .account-roster-status {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 0.82rem;
+.register-page .account-roster-payment {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.register-page .account-roster-actions {
+  justify-content: flex-end;
+}
+
+/* Below this width the 4-column grid stops having room to breathe — stack
+   each row's columns instead, same breakpoint the admin roster table
+   collapses at (styles.css). */
+@media (max-width: 640px) {
+  .register-page .account-roster-row {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .register-page .account-roster-actions {
+    justify-content: flex-start;
+  }
 }
 
 .register-page .account-roster-flag {
@@ -431,4 +453,28 @@
 .register-page .register-success p {
   font-size: 1.05rem;
   font-weight: 500;
+}
+
+.register-page .payment-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin: var(--space-7) 0;
+}
+
+.register-page .payment-prompt--compact {
+  margin: 0;
+  gap: var(--space-2);
+  justify-content: flex-start;
+}
+
+.register-page .payment-prompt-btn {
+  white-space: nowrap;
+}
+
+.register-page .payment-prompt-error {
+  flex-basis: 100%;
+  color: var(--danger);
+  font-size: 0.82rem;
 }

@@ -14,6 +14,7 @@ import myParticipantsRouter from './routes/myParticipants.js';
 import adminAccountsRouter from './routes/adminAccounts.js';
 import budgetRouter from './routes/budget.js';
 import questionsRouter from './routes/questions.js';
+import stripeWebhookRouter from './routes/stripeWebhook.js';
 
 runMigrations();
 
@@ -48,6 +49,13 @@ app.disable('x-powered-by');
 // browser to accept/send the session cookie set by /api/auth/*.
 app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(cookieParser());
+
+// Mounted before express.json(): Stripe webhook signature verification
+// needs the raw request body, and its own route-scoped express.raw() (see
+// routes/stripeWebhook.js) would otherwise be shadowed by the global JSON
+// parser consuming the stream first.
+app.use('/api', stripeWebhookRouter);
+
 app.use(express.json({ limit: '2mb' }));
 
 app.use('/api', participantsRouter);

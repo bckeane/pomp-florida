@@ -1,14 +1,28 @@
-import { allergyStatusLabel, paymentStatusText } from '../lib/rosterStatus.js';
+import { allergyStatusLabel, depositStatusLabel, finalPaymentStatusLabel } from '../lib/rosterStatus.js';
+import PaymentPrompt from './PaymentPrompt.jsx';
 
 function AllergyStatus({ value }) {
   const { variant, text } = allergyStatusLabel(value);
   return <span className={`status-pill status-pill--${variant}`}>{text}</span>;
 }
 
+// Two independent pills (deposit, final) rather than one merged line — lets
+// a parent see at a glance which installment still needs attention instead
+// of parsing a joined sentence. Same Adult gate as PaymentPrompt (chaperones
+// don't pay a trip fee) — showing a loud red "balance due" pill with no way
+// to pay it would just confuse people. Both null (trip has no cost set)
+// also renders nothing.
 function PaymentStatus({ participant }) {
-  const text = paymentStatusText(participant);
-  if (!text) return null;
-  return <span className="hint">{text}</span>;
+  if (participant.role === 'Adult') return null;
+  const deposit = depositStatusLabel(participant.deposit_balance);
+  const final = finalPaymentStatusLabel(participant.final_payment_balance);
+  if (!deposit && !final) return null;
+  return (
+    <>
+      {deposit && <span className={`status-pill status-pill--${deposit.variant}`}>{deposit.text}</span>}
+      {final && <span className={`status-pill status-pill--${final.variant}`}>{final.text}</span>}
+    </>
+  );
 }
 
 /**
@@ -38,15 +52,20 @@ export default function AccountHome({ account, trip, participants, onAddAnother,
           <ul className="account-roster">
             {participants.map((p) => (
               <li key={p.id} className="account-roster-row">
-                <div className="account-roster-who">
+                <div className="account-roster-col account-roster-who">
                   <span className="lane-card-name">
                     {p.first_name} {p.last_name}
                   </span>
                   <span className="roster-chip-role">{p.role}</span>
                 </div>
-                <div className="account-roster-status">
+                <div className="account-roster-col account-roster-allergy">
                   <AllergyStatus value={p.has_allergy_medication} />
+                </div>
+                <div className="account-roster-col account-roster-payment">
                   <PaymentStatus participant={p} />
+                  <PaymentPrompt participant={p} variant="compact" />
+                </div>
+                <div className="account-roster-col account-roster-actions">
                   <button type="button" className="link-btn" onClick={() => onEditParticipant(p)}>
                     Edit
                   </button>
