@@ -98,7 +98,7 @@ const createTripAndSeedBudget = db.transaction(({ year, name, trip_date }) => {
     .prepare(`INSERT INTO trips (${columns.join(', ')}) VALUES (${columns.map((c) => `@${c}`).join(', ')})`)
     .run(values);
 
-  seedBudgetForNewTrip(info.lastInsertRowid);
+  seedBudgetForNewTrip(info.lastInsertRowid, previous ? previous.id : null);
 
   return info.lastInsertRowid;
 });

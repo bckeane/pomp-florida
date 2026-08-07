@@ -6,7 +6,9 @@ import {
   fetchBudgetCategories,
   createBudgetCategory,
   retireBudgetCategory,
-  upsertBudgetLineItem,
+  attachBudgetCategory,
+  updateBudgetLineItem,
+  switchBudgetItemType,
   setBudgetExclusion,
   clearBudgetExclusion,
 } from '../api/budget.js';
@@ -44,7 +46,14 @@ export default function BudgetPanel({ tripId }) {
           .filter((p) => p.role === 'Swimmer' || p.role === 'Diver')
           .sort((a, b) => a.last_name.localeCompare(b.last_name))
       );
-      setDrafts(Object.fromEntries(budgetItems.map((i) => [i.category_id, String(i.total)])));
+      setDrafts(
+        Object.fromEntries(
+          budgetItems.map((i) => [
+            i.category_id,
+            i.type === 'per_swimmer' ? (i.rate_per_athlete == null ? '' : String(i.rate_per_athlete)) : String(i.total),
+          ])
+        )
+      );
     } catch {
       setError('Could not load the budget. Is the API running?');
     } finally {
@@ -56,19 +65,31 @@ export default function BudgetPanel({ tripId }) {
     load();
   }, [load]);
 
-  const handleTotalBlur = async (item) => {
+  const handleValueBlur = async (item) => {
     const raw = drafts[item.category_id];
     const value = Number(raw);
+    const currentValue = item.type === 'per_swimmer' ? item.rate_per_athlete : item.total;
     if (raw === '' || Number.isNaN(value) || value < 0) {
-      setDrafts((d) => ({ ...d, [item.category_id]: String(item.total) }));
+      setDrafts((d) => ({ ...d, [item.category_id]: currentValue == null ? '' : String(currentValue) }));
       return;
     }
-    if (value === item.total) return;
+    if (value === currentValue) return;
     try {
-      await upsertBudgetLineItem(tripId, item.category_id, value);
+      const payload = item.type === 'per_swimmer' ? { rate_per_athlete: value } : { total: value };
+      await updateBudgetLineItem(tripId, item.category_id, payload);
       await load();
     } catch {
-      setError('Could not save that total.');
+      setError('Could not save that value.');
+    }
+  };
+
+  const handleTypeSwitch = async (item, type) => {
+    setError(null);
+    try {
+      await switchBudgetItemType(item.trip_budget_item_id, type);
+      await load();
+    } catch {
+      setError("Could not change that row's type.");
     }
   };
 
@@ -79,7 +100,7 @@ export default function BudgetPanel({ tripId }) {
     setError(null);
     try {
       const category = await createBudgetCategory(name);
-      await upsertBudgetLineItem(tripId, category.id, 0);
+      await attachBudgetCategory(tripId, category.id);
       setNewCategoryName('');
       await load();
     } catch (err) {
@@ -98,7 +119,7 @@ export default function BudgetPanel({ tripId }) {
     setAddingExisting(true);
     setError(null);
     try {
-      await upsertBudgetLineItem(tripId, Number(existingCategoryId), 0);
+      await attachBudgetCategory(tripId, Number(existingCategoryId));
       setExistingCategoryId('');
       await load();
     } catch (err) {
@@ -116,7 +137,7 @@ export default function BudgetPanel({ tripId }) {
     setError(null);
     try {
       for (const c of missing) {
-        await upsertBudgetLineItem(tripId, c.id, 0);
+        await attachBudgetCategory(tripId, c.id);
       }
       await load();
     } catch (err) {
@@ -181,7 +202,8 @@ export default function BudgetPanel({ tripId }) {
             <thead>
               <tr>
                 <th>Category</th>
-                <th>Total</th>
+                <th>Type</th>
+                <th>Total / Rate</th>
                 <th># Students</th>
                 <th>Total/Panther</th>
                 <th>Diff vs prior yr</th>
@@ -193,16 +215,26 @@ export default function BudgetPanel({ tripId }) {
               {items.map((item) => (
                 <tr key={item.category_id}>
                   <td data-label="Category">{item.category}</td>
-                  <td data-label="Total">
+                  <td data-label="Type">
+                    <select
+                      value={item.type}
+                      onChange={(e) => handleTypeSwitch(item, e.target.value)}
+                    >
+                      <option value="totals">Totals</option>
+                      <option value="per_swimmer">Per swimmer/diver</option>
+                    </select>
+                  </td>
+                  <td data-label={item.type === 'per_swimmer' ? 'Rate/athlete' : 'Total'}>
                     <input
                       type="number"
                       min="0"
                       step="1"
                       value={drafts[item.category_id] ?? ''}
+                      placeholder={item.type === 'per_swimmer' ? '$/athlete' : '$ total'}
                       onChange={(e) =>
                         setDrafts((d) => ({ ...d, [item.category_id]: e.target.value }))
                       }
-                      onBlur={() => handleTotalBlur(item)}
+                      onBlur={() => handleValueBlur(item)}
                     />
                   </td>
                   <td data-label="# Students">{item.students}</td>
@@ -224,6 +256,7 @@ export default function BudgetPanel({ tripId }) {
                 <td data-label="Category">
                   <strong>Total</strong>
                 </td>
+                <td data-label="Type"></td>
                 <td data-label="Total">
                   <strong>{fmtMoney(totals.total)}</strong>
                 </td>

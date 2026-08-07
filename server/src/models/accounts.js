@@ -96,3 +96,17 @@ export function listAdminAccounts() {
     .all();
   return rows.filter((account) => !isBreakGlassEmail(account.email));
 }
+
+/**
+ * Every registered account regardless of role, for the Accounts admin tab —
+ * independent of trip context. Excludes the break-glass account (if
+ * configured), same as listAdminAccounts().
+ */
+export function listAllAccounts() {
+  const rows = db
+    .prepare(
+      'SELECT id, email, role, parent_name, emergency_phone, created_at FROM accounts ORDER BY created_at'
+    )
+    .all();
+  return rows.filter((account) => !isBreakGlassEmail(account.email));
+}

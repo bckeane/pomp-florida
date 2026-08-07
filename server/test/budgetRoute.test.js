@@ -71,7 +71,7 @@ describe('PUT /api/budget/items', () => {
     expect(res.status).toBe(400);
   });
 
-  it('upserts a valid total', async () => {
+  it('updates a valid total on an existing (auto-seeded) row', async () => {
     const trip = createTrip({ year: '2073', name: 'Test', trip_date: '2073-01-01' });
     const airfare = category('Airfare');
     const res = await request(app)
@@ -80,6 +80,128 @@ describe('PUT /api/budget/items', () => {
       .send({ trip_id: trip.id, category_id: airfare.id, total: 1500 });
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(1500);
+  });
+
+  it('400s when both total and rate_per_athlete are provided', async () => {
+    const trip = createTrip({ year: '2082', name: 'Test', trip_date: '2082-01-01' });
+    const airfare = category('Airfare');
+    const res = await request(app)
+      .put('/api/budget/items')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: trip.id, category_id: airfare.id, total: 100, rate_per_athlete: 50 });
+    expect(res.status).toBe(400);
+  });
+
+  it('400s when neither total nor rate_per_athlete is provided', async () => {
+    const trip = createTrip({ year: '2083', name: 'Test', trip_date: '2083-01-01' });
+    const airfare = category('Airfare');
+    const res = await request(app)
+      .put('/api/budget/items')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: trip.id, category_id: airfare.id });
+    expect(res.status).toBe(400);
+  });
+
+  it("400s when total is sent for a 'per_swimmer' row", async () => {
+    const trip = createTrip({ year: '2084', name: 'Test', trip_date: '2084-01-01' });
+    const airfare = category('Airfare');
+    const item = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(trip.id, airfare.id);
+    await request(app)
+      .put(`/api/budget/items/${item.id}/type`)
+      .set('Cookie', adminCookie)
+      .send({ type: 'per_swimmer' });
+
+    const res = await request(app)
+      .put('/api/budget/items')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: trip.id, category_id: airfare.id, total: 100 });
+    expect(res.status).toBe(400);
+  });
+
+  it('404s when no row exists yet for this trip/category', async () => {
+    const trip = createTrip({ year: '2085', name: 'Test', trip_date: '2085-01-01' });
+    const newCategory = await request(app)
+      .post('/api/budget/categories')
+      .set('Cookie', adminCookie)
+      .send({ name: 'Route-Test-Only Category' });
+    const res = await request(app)
+      .put('/api/budget/items')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: trip.id, category_id: newCategory.body.id, total: 100 });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('POST /api/budget/items/attach', () => {
+  it('creates a row for a category missing from this trip', async () => {
+    const trip = createTrip({ year: '2086', name: 'Test', trip_date: '2086-01-01' });
+    const newCategory = await request(app)
+      .post('/api/budget/categories')
+      .set('Cookie', adminCookie)
+      .send({ name: 'Attach-Test-Only Category' });
+
+    const res = await request(app)
+      .post('/api/budget/items/attach')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: trip.id, category_id: newCategory.body.id });
+    expect(res.status).toBe(200);
+    expect(res.body.type).toBe('totals');
+    expect(res.body.total).toBe(0);
+  });
+
+  it('400s for an unknown trip_id', async () => {
+    const airfare = category('Airfare');
+    const res = await request(app)
+      .post('/api/budget/items/attach')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: 999999, category_id: airfare.id });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('PUT /api/budget/items/:id/type', () => {
+  it('switches a row to per_swimmer and clears total', async () => {
+    const trip = createTrip({ year: '2087', name: 'Test', trip_date: '2087-01-01' });
+    const airfare = category('Airfare');
+    await request(app)
+      .put('/api/budget/items')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: trip.id, category_id: airfare.id, total: 500 });
+    const item = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(trip.id, airfare.id);
+
+    const res = await request(app)
+      .put(`/api/budget/items/${item.id}/type`)
+      .set('Cookie', adminCookie)
+      .send({ type: 'per_swimmer' });
+    expect(res.status).toBe(200);
+    expect(res.body.type).toBe('per_swimmer');
+    expect(res.body.total).toBe(0);
+    expect(res.body.rate_per_athlete).toBeNull();
+  });
+
+  it('404s for an unknown line item id', async () => {
+    const res = await request(app)
+      .put('/api/budget/items/999999/type')
+      .set('Cookie', adminCookie)
+      .send({ type: 'per_swimmer' });
+    expect(res.status).toBe(404);
+  });
+
+  it('400s for an invalid type value', async () => {
+    const trip = createTrip({ year: '2088', name: 'Test', trip_date: '2088-01-01' });
+    const airfare = category('Airfare');
+    const item = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(trip.id, airfare.id);
+    const res = await request(app)
+      .put(`/api/budget/items/${item.id}/type`)
+      .set('Cookie', adminCookie)
+      .send({ type: 'bogus' });
+    expect(res.status).toBe(400);
   });
 });
 

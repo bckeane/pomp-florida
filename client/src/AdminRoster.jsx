@@ -8,7 +8,7 @@ import TripSwitcher from './components/TripSwitcher.jsx';
 import TripDetailsForm from './components/TripDetailsForm.jsx';
 import BudgetPanel from './components/BudgetPanel.jsx';
 import AuthGate from './components/AuthGate.jsx';
-import ManageAdmins from './components/ManageAdmins.jsx';
+import AccountsPanel from './components/AccountsPanel.jsx';
 import QuestionsPanel from './components/QuestionsPanel.jsx';
 import { me, logout } from './api/auth.js';
 import {
@@ -44,7 +44,6 @@ export default function AdminRoster() {
   const [editing, setEditing] = useState(null); // participant or 'new' or null
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
-  const [showManageAdmins, setShowManageAdmins] = useState(false);
   const [activeTab, setActiveTab] = useState('roster');
 
   const isAdmin = account?.role === 'admin';
@@ -200,6 +199,7 @@ export default function AdminRoster() {
     budget: 'Budget',
     questions: 'Questions',
     'trip-details': 'Trip details',
+    accounts: 'Accounts',
   }[activeTab] || 'Roster';
 
   return (
@@ -251,10 +251,6 @@ export default function AdminRoster() {
       <div className="account-bar">
         <span>Signed in as {account.email} (admin)</span>
         <span>
-          <button type="button" className="link-btn" onClick={() => setShowManageAdmins(true)}>
-            Manage admins
-          </button>
-          {' · '}
           <button type="button" className="link-btn" onClick={handleLogout}>
             Log out
           </button>
@@ -300,6 +296,13 @@ export default function AdminRoster() {
           >
             Trip details
           </button>
+          <button
+            type="button"
+            className={`segmented-btn ${activeTab === 'accounts' ? 'segmented-btn--active' : ''}`}
+            onClick={() => setActiveTab('accounts')}
+          >
+            Accounts
+          </button>
         </div>
       )}
 
@@ -311,6 +314,8 @@ export default function AdminRoster() {
         <QuestionsPanel tripId={selectedTrip.id} tripName={selectedTrip.name} />
       ) : activeTab === 'trip-details' && selectedTrip ? (
         <TripDetailsForm trip={selectedTrip} onSaved={handleTripDetailsSaved} />
+      ) : activeTab === 'accounts' ? (
+        <AccountsPanel currentAccountId={account.id} />
       ) : loading && !participants.length ? (
         <p className="hint">Loading roster…</p>
       ) : (
@@ -341,7 +346,6 @@ export default function AdminRoster() {
         />
       )}
 
-      {showManageAdmins && <ManageAdmins onClose={() => setShowManageAdmins(false)} />}
     </div>
   );
 }

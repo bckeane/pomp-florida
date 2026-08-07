@@ -22,8 +22,16 @@ export function fetchAdminAccounts() {
   return request('/admin/accounts');
 }
 
+export function fetchAllAccounts() {
+  return request('/admin/accounts/all');
+}
+
 /** password is optional — omit it to promote an existing account to admin. */
 export function addAdminAccount(email, password) {
   const body = password ? { email, password } : { email };
   return request('/admin/accounts', { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function changeAccountRole(id, role) {
+  return request(`/admin/accounts/${id}/role`, { method: 'POST', body: JSON.stringify({ role }) });
 }

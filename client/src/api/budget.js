@@ -35,10 +35,30 @@ export function retireBudgetCategory(id) {
   return request(`/budget/categories/${id}/retire`, { method: 'POST' });
 }
 
-export function upsertBudgetLineItem(tripId, categoryId, total) {
+/** Attaches a category to a trip that's missing it, at zero value — type
+ * carries forward from that category's most recent prior-year item. A
+ * distinct action from editing a row's value below, since a brand-new row
+ * has no existing type of its own yet. */
+export function attachBudgetCategory(tripId, categoryId) {
+  return request('/budget/items/attach', {
+    method: 'POST',
+    body: JSON.stringify({ trip_id: tripId, category_id: categoryId }),
+  });
+}
+
+/** Edits an existing row's value — exactly one of total (for a 'totals'
+ * row) or rate_per_athlete (for a 'per_swimmer' row). */
+export function updateBudgetLineItem(tripId, categoryId, { total, rate_per_athlete } = {}) {
   return request('/budget/items', {
     method: 'PUT',
-    body: JSON.stringify({ trip_id: tripId, category_id: categoryId, total }),
+    body: JSON.stringify({ trip_id: tripId, category_id: categoryId, total, rate_per_athlete }),
+  });
+}
+
+export function switchBudgetItemType(tripBudgetItemId, type) {
+  return request(`/budget/items/${tripBudgetItemId}/type`, {
+    method: 'PUT',
+    body: JSON.stringify({ type }),
   });
 }
 

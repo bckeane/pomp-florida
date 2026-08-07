@@ -7,7 +7,9 @@ import {
   createCategory,
   retireCategory,
   getBudgetForTrip,
-  upsertLineItem,
+  attachCategoryToTrip,
+  updateLineItemValue,
+  switchLineItemType,
   setExclusion,
   clearExclusion,
 } from '../models/budget.js';
@@ -74,25 +76,78 @@ router.post('/budget/categories/:id/retire', requireAdmin, (req, res) => {
   }
 });
 
-const lineItemSchema = z.object({
+// Attaches a category to a trip that's missing it (a newly-added category,
+// or a trip that predates the Budget Tab feature entirely) — a distinct
+// action from editing a row's value below, since a brand-new row has no
+// existing type of its own to key validation off of yet.
+const attachSchema = z.object({
   trip_id: z.coerce.number().int(),
   category_id: z.coerce.number().int(),
-  total: z.coerce.number(),
 });
+
+router.post('/budget/items/attach', requireAdmin, (req, res) => {
+  const parsed = attachSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: fieldKeyedZodErrors(parsed.error) });
+
+  const { trip_id, category_id } = parsed.data;
+  try {
+    res.json(attachCategoryToTrip(trip_id, category_id));
+  } catch (err) {
+    if (err.code === 'TRIP_NOT_FOUND') return res.status(400).json({ error: err.message });
+    throw err;
+  }
+});
+
+// Edits an existing row's value — exactly one of total (for a 'totals' row)
+// or rate_per_athlete (for a 'per_swimmer' row), keyed off that row's own
+// stored type server-side.
+const lineItemSchema = z
+  .object({
+    trip_id: z.coerce.number().int(),
+    category_id: z.coerce.number().int(),
+    total: z.coerce.number().optional(),
+    rate_per_athlete: z.coerce.number().optional(),
+  })
+  .refine((data) => (data.total !== undefined) !== (data.rate_per_athlete !== undefined), {
+    message: 'Provide exactly one of total or rate_per_athlete',
+  });
 
 router.put('/budget/items', requireAdmin, (req, res) => {
   const parsed = lineItemSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: fieldKeyedZodErrors(parsed.error) });
 
-  const { trip_id, category_id, total } = parsed.data;
+  const { trip_id, category_id, total, rate_per_athlete } = parsed.data;
   if (!getTripById(trip_id)) return res.status(400).json({ error: 'Unknown trip_id' });
 
   try {
-    res.json(upsertLineItem(trip_id, category_id, total));
+    res.json(updateLineItemValue(trip_id, category_id, { total, rate_per_athlete }));
   } catch (err) {
-    if (err.code === 'INVALID_TOTAL') return res.status(400).json({ error: err.message });
+    if (
+      err.code === 'INVALID_TOTAL' ||
+      err.code === 'INVALID_RATE' ||
+      err.code === 'WRONG_FIELD_FOR_TYPE'
+    ) {
+      return res.status(400).json({ error: err.message });
+    }
+    if (err.code === 'ITEM_NOT_FOUND') return res.status(404).json({ error: err.message });
     throw err;
   }
+});
+
+const typeSchema = z.object({
+  type: z.enum(['totals', 'per_swimmer']),
+});
+
+router.put('/budget/items/:id/type', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(404).json({ error: 'Line item not found' });
+
+  const parsed = typeSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: fieldKeyedZodErrors(parsed.error) });
+
+  const item = switchLineItemType(id, parsed.data.type);
+  if (!item) return res.status(404).json({ error: 'Line item not found' });
+  res.json(item);
 });
 
 const exclusionSchema = z.object({
