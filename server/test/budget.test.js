@@ -15,6 +15,11 @@ import {
   updateStudentCountOverride,
   setExclusion,
   clearExclusion,
+  listDailyItems,
+  dailyTotalsByItem,
+  addDailyItem,
+  updateDailyItem,
+  deleteDailyItem,
 } from '../src/models/budget.js';
 
 function addStudent(tripId) {
@@ -38,6 +43,7 @@ function setTotal(tripId, categoryId, total) {
 // resolvePreviousTrip's "most recent prior trip" logic are fully isolated.
 beforeEach(() => {
   db.exec(`
+    DELETE FROM trip_budget_daily_items;
     DELETE FROM trip_budget_exclusions;
     DELETE FROM trip_budget_items;
     DELETE FROM participants;
@@ -634,5 +640,163 @@ describe('type carry-forward on trip creation', () => {
       .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
       .get(trip.id, airfare.id);
     expect(item.type).toBe('totals');
+  });
+});
+
+describe('food_planner rows', () => {
+  it("total_per_panther IS the summed daily rate (per-participant, like per_swimmer), and total is rate × students", () => {
+    const trip = createTrip({ year: '2106', name: 'Test', trip_date: '2106-01-01' });
+    for (let i = 0; i < 4; i++) addStudent(trip.id);
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+    switchLineItemType(item.id, 'food_planner');
+
+    addDailyItem(item.id, { date: '2027-02-12', budget: 50, cash: 50, meals_covered: 'Lunch & Dinner' });
+    addDailyItem(item.id, { date: '2027-02-13', budget: 50, cash: 25, meals_covered: 'Lunch & Team Dinner', notes: "Bo's" });
+
+    const row = getBudgetForTrip(trip.id).find((i) => i.category_id === food.id);
+    expect(row.total_per_panther).toBe(100);
+    expect(row.total).toBe(400);
+  });
+
+  it('renders total 0 (not null/NaN) when no days have been entered yet', () => {
+    const trip = createTrip({ year: '2107', name: 'Test', trip_date: '2107-01-01' });
+    addStudent(trip.id);
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+    switchLineItemType(item.id, 'food_planner');
+
+    const row = getBudgetForTrip(trip.id).find((i) => i.category_id === food.id);
+    expect(row.total).toBe(0);
+    expect(row.total_per_panther).toBe(0);
+  });
+
+  it('rejects adding a day to a row that is not food_planner', () => {
+    const trip = createTrip({ year: '2108', name: 'Test', trip_date: '2108-01-01' });
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+    expect(() => addDailyItem(item.id, { date: '2027-02-12', budget: 50, cash: 50 })).toThrowError(
+      /day-by-day planner/
+    );
+  });
+
+  it('rejects a duplicate date on the same row', () => {
+    const trip = createTrip({ year: '2109', name: 'Test', trip_date: '2109-01-01' });
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+    switchLineItemType(item.id, 'food_planner');
+    addDailyItem(item.id, { date: '2027-02-12', budget: 50, cash: 50 });
+    expect(() => addDailyItem(item.id, { date: '2027-02-12', budget: 10, cash: 10 })).toThrowError(
+      /already exists/
+    );
+  });
+
+  it('rejects an invalid date format and a negative amount', () => {
+    const trip = createTrip({ year: '2110', name: 'Test', trip_date: '2110-01-01' });
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+    switchLineItemType(item.id, 'food_planner');
+    expect(() => addDailyItem(item.id, { date: '2/12/2027', budget: 50, cash: 50 })).toThrowError(
+      /YYYY-MM-DD/
+    );
+    expect(() => addDailyItem(item.id, { date: '2027-02-12', budget: -5, cash: 50 })).toThrowError(
+      /non-negative/
+    );
+  });
+
+  it('updateDailyItem edits an existing row in place and re-checks duplicate dates', () => {
+    const trip = createTrip({ year: '2111', name: 'Test', trip_date: '2111-01-01' });
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+    switchLineItemType(item.id, 'food_planner');
+    const day1 = addDailyItem(item.id, { date: '2027-02-12', budget: 50, cash: 50 });
+    addDailyItem(item.id, { date: '2027-02-13', budget: 50, cash: 50 });
+
+    const updated = updateDailyItem(day1.id, { budget: 75 });
+    expect(updated.budget).toBe(75);
+    expect(listDailyItems(item.id)).toHaveLength(2);
+
+    expect(() => updateDailyItem(day1.id, { date: '2027-02-13' })).toThrowError(/already exists/);
+  });
+
+  it('deleteDailyItem removes a day and the row total drops accordingly', () => {
+    const trip = createTrip({ year: '2112', name: 'Test', trip_date: '2112-01-01' });
+    addStudent(trip.id);
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+    switchLineItemType(item.id, 'food_planner');
+    const day1 = addDailyItem(item.id, { date: '2027-02-12', budget: 50, cash: 50 });
+    addDailyItem(item.id, { date: '2027-02-13', budget: 25, cash: 25 });
+
+    expect(getBudgetForTrip(trip.id).find((i) => i.category_id === food.id).total).toBe(75);
+    deleteDailyItem(day1.id);
+    expect(getBudgetForTrip(trip.id).find((i) => i.category_id === food.id).total).toBe(25);
+  });
+
+  it('dailyTotalsByItem batches sums across multiple items in one call', () => {
+    const trip = createTrip({ year: '2113', name: 'Test', trip_date: '2113-01-01' });
+    const food = category('Food');
+    const overrun = category('Overrun');
+    const foodItem = attachCategoryToTrip(trip.id, food.id);
+    switchLineItemType(foodItem.id, 'food_planner');
+    const overrunItem = attachCategoryToTrip(trip.id, overrun.id);
+    switchLineItemType(overrunItem.id, 'food_planner');
+    addDailyItem(foodItem.id, { date: '2027-02-12', budget: 50, cash: 50 });
+    addDailyItem(overrunItem.id, { date: '2027-02-12', budget: 20, cash: 0 });
+
+    const totals = dailyTotalsByItem([foodItem.id, overrunItem.id]);
+    expect(totals[foodItem.id]).toBe(50);
+    expect(totals[overrunItem.id]).toBe(20);
+  });
+
+  it('diffs correctly against a prior trip whose same category was also food_planner', () => {
+    const prior = createTrip({ year: '2114', name: 'Prior', trip_date: '2114-01-01' });
+    const current = createTrip({ year: '2115', name: 'Current', trip_date: '2115-01-01' });
+    for (let i = 0; i < 5; i++) addStudent(prior.id);
+    for (let i = 0; i < 5; i++) addStudent(current.id);
+    const food = category('Food');
+
+    const priorItem = attachCategoryToTrip(prior.id, food.id);
+    switchLineItemType(priorItem.id, 'food_planner');
+    addDailyItem(priorItem.id, { date: '2026-02-12', budget: 50, cash: 50 });
+
+    const currentItem = attachCategoryToTrip(current.id, food.id);
+    switchLineItemType(currentItem.id, 'food_planner');
+    addDailyItem(currentItem.id, { date: '2027-02-12', budget: 75, cash: 75 });
+
+    const row = getBudgetForTrip(current.id).find((i) => i.category_id === food.id);
+    expect(row.total_per_panther).toBe(75);
+    expect(row.total).toBe(375);
+    expect(row.diff).toBe(125);
+    expect(row.prior_total_per_panther).toBe(50);
+  });
+
+  it('switching away from food_planner and back preserves the day entries', () => {
+    const trip = createTrip({ year: '2116', name: 'Test', trip_date: '2116-01-01' });
+    addStudent(trip.id);
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+    switchLineItemType(item.id, 'food_planner');
+    addDailyItem(item.id, { date: '2027-02-12', budget: 50, cash: 50 });
+
+    switchLineItemType(item.id, 'totals');
+    expect(listDailyItems(item.id)).toHaveLength(1);
+
+    switchLineItemType(item.id, 'food_planner');
+    const row = getBudgetForTrip(trip.id).find((i) => i.category_id === food.id);
+    expect(row.total_per_panther).toBe(50);
+    expect(row.total).toBe(50);
+  });
+
+  it('writes are rejected on a day-by-day entry while its row is switched to another type', () => {
+    const trip = createTrip({ year: '2117', name: 'Test', trip_date: '2117-01-01' });
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+    switchLineItemType(item.id, 'food_planner');
+    const day = addDailyItem(item.id, { date: '2027-02-12', budget: 50, cash: 50 });
+
+    switchLineItemType(item.id, 'totals');
+    expect(() => updateDailyItem(day.id, { budget: 60 })).toThrowError(/day-by-day planner/);
+    expect(() => deleteDailyItem(day.id)).toThrowError(/day-by-day planner/);
   });
 });

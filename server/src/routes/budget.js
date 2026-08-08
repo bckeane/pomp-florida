@@ -15,6 +15,10 @@ import {
   updateStudentCountOverride,
   setExclusion,
   clearExclusion,
+  listDailyItems,
+  addDailyItem,
+  updateDailyItem,
+  deleteDailyItem,
 } from '../models/budget.js';
 
 const router = Router();
@@ -155,7 +159,7 @@ router.put('/budget/items', requireAdmin, (req, res) => {
 });
 
 const typeSchema = z.object({
-  type: z.enum(['totals', 'per_swimmer', 'service_charge']),
+  type: z.enum(['totals', 'per_swimmer', 'service_charge', 'food_planner']),
 });
 
 router.put('/budget/items/:id/type', requireAdmin, (req, res) => {
@@ -171,6 +175,80 @@ router.put('/budget/items/:id/type', requireAdmin, (req, res) => {
     res.json(item);
   } catch (err) {
     if (err.code === 'SERVICE_CHARGE_LIMIT') return res.status(409).json({ error: err.message });
+    throw err;
+  }
+});
+
+// Day-by-day entries for a 'food_planner' row (see migration 020) — a
+// separate sub-resource keyed off the trip_budget_item id, same shape as the
+// exclusions routes below.
+router.get('/budget/items/:id/daily', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(404).json({ error: 'Line item not found' });
+  res.json(listDailyItems(id));
+});
+
+const dailyItemSchema = z.object({
+  date: z.string(),
+  budget: z.coerce.number().optional(),
+  cash: z.coerce.number().optional(),
+  meals_covered: z.string().trim().optional(),
+  notes: z.string().trim().optional(),
+});
+
+function dailyItemErrorStatus(err) {
+  if (err.code === 'INVALID_DATE' || err.code === 'INVALID_AMOUNT' || err.code === 'FOOD_PLANNER_TYPE_REQUIRED') {
+    return 400;
+  }
+  if (err.code === 'ITEM_NOT_FOUND' || err.code === 'DAILY_ITEM_NOT_FOUND') return 404;
+  if (err.code === 'DUPLICATE_DATE') return 409;
+  return null;
+}
+
+router.post('/budget/items/:id/daily', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(404).json({ error: 'Line item not found' });
+
+  const parsed = dailyItemSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: fieldKeyedZodErrors(parsed.error) });
+
+  try {
+    res.status(201).json(addDailyItem(id, parsed.data));
+  } catch (err) {
+    const status = dailyItemErrorStatus(err);
+    if (status) return res.status(status).json({ error: err.message });
+    throw err;
+  }
+});
+
+const dailyItemUpdateSchema = dailyItemSchema.partial();
+
+router.put('/budget/items/:id/daily/:dailyId', requireAdmin, (req, res) => {
+  const dailyId = Number(req.params.dailyId);
+  if (!Number.isInteger(dailyId)) return res.status(404).json({ error: 'Day-by-day entry not found' });
+
+  const parsed = dailyItemUpdateSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ errors: fieldKeyedZodErrors(parsed.error) });
+
+  try {
+    res.json(updateDailyItem(dailyId, parsed.data));
+  } catch (err) {
+    const status = dailyItemErrorStatus(err);
+    if (status) return res.status(status).json({ error: err.message });
+    throw err;
+  }
+});
+
+router.delete('/budget/items/:id/daily/:dailyId', requireAdmin, (req, res) => {
+  const dailyId = Number(req.params.dailyId);
+  if (!Number.isInteger(dailyId)) return res.status(404).json({ error: 'Day-by-day entry not found' });
+
+  try {
+    deleteDailyItem(dailyId);
+    res.status(204).end();
+  } catch (err) {
+    const status = dailyItemErrorStatus(err);
+    if (status) return res.status(status).json({ error: err.message });
     throw err;
   }
 });

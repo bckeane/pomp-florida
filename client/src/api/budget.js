@@ -84,6 +84,28 @@ export function setBudgetStudentCountOverride(tripBudgetItemId, value) {
   });
 }
 
+export function fetchBudgetDailyItems(tripBudgetItemId) {
+  return request(`/budget/items/${tripBudgetItemId}/daily`);
+}
+
+export function addBudgetDailyItem(tripBudgetItemId, { date, budget, cash, meals_covered, notes } = {}) {
+  return request(`/budget/items/${tripBudgetItemId}/daily`, {
+    method: 'POST',
+    body: JSON.stringify({ date, budget, cash, meals_covered, notes }),
+  });
+}
+
+export function updateBudgetDailyItem(tripBudgetItemId, dailyId, fields) {
+  return request(`/budget/items/${tripBudgetItemId}/daily/${dailyId}`, {
+    method: 'PUT',
+    body: JSON.stringify(fields),
+  });
+}
+
+export function deleteBudgetDailyItem(tripBudgetItemId, dailyId) {
+  return request(`/budget/items/${tripBudgetItemId}/daily/${dailyId}`, { method: 'DELETE' });
+}
+
 export function setBudgetExclusion(tripBudgetItemId, participantId) {
   return request('/budget/exclusions', {
     method: 'POST',

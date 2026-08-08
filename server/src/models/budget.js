@@ -103,6 +103,28 @@ function exclusionsByItem(tripBudgetItemIds) {
   return byItem;
 }
 
+// Batch-fetches the sum of day-by-day entries for a set of trip_budget_items
+// in one query, same batching shape as exclusionsByItem above — a 'totals'
+// or 'per_swimmer' row's id simply won't appear in the GROUP BY results,
+// which computeSingleAmount handles via `?? 0`.
+export function dailyTotalsByItem(tripBudgetItemIds) {
+  const byItem = {};
+  if (tripBudgetItemIds.length === 0) return byItem;
+
+  const placeholders = tripBudgetItemIds.map(() => '?').join(', ');
+  const rows = db
+    .prepare(
+      `SELECT trip_budget_item_id, SUM(budget) AS total
+       FROM trip_budget_daily_items
+       WHERE trip_budget_item_id IN (${placeholders})
+       GROUP BY trip_budget_item_id`
+    )
+    .all(...tripBudgetItemIds);
+
+  for (const row of rows) byItem[row.trip_budget_item_id] = row.total;
+  return byItem;
+}
+
 function perPanther(total, students) {
   return students === 0 ? null : total / students;
 }
@@ -113,10 +135,22 @@ function perPanther(total, students) {
 // roster changes), and total is derived (rate × students) purely for Diff
 // and the grand-totals footer. rate_per_athlete NULL (no rate set yet) means
 // total_per_panther renders "—" and total is 0, not NaN.
-function computeSingleAmount(item, students) {
+//
+// A 'food_planner' row's day-by-day entries (see migration 020) are a
+// per-PARTICIPANT cash-envelope schedule, not a trip-wide lump sum — the
+// committee's real spreadsheet prices food per swimmer/diver per day, then
+// multiplies by headcount to get the category total. So it computes exactly
+// like 'per_swimmer', except the rate is the live sum of that row's daily
+// entries (dailyTotals, batched by the caller) instead of a hand-typed
+// number.
+function computeSingleAmount(item, students, dailyTotals) {
   if (item.type === 'per_swimmer') {
     const rate = item.rate_per_athlete;
     return { total: (rate ?? 0) * students, total_per_panther: rate };
+  }
+  if (item.type === 'food_planner') {
+    const rate = dailyTotals[item.id] ?? 0;
+    return { total: rate * students, total_per_panther: rate };
   }
   return { total: item.total, total_per_panther: perPanther(item.total, students) };
 }
@@ -132,12 +166,12 @@ function computeSingleAmount(item, students) {
 // directly (independent of this row's own student count, same as
 // per_swimmer's rate); total is that rate × this row's own students,
 // rounded to the nearest whole dollar (Premise 6).
-function computeAmountsForItems(items, studentsForItem) {
+function computeAmountsForItems(items, studentsForItem, dailyTotals) {
   const amounts = {};
   let basePerPanther = 0;
   for (const item of items) {
     if (item.type === 'service_charge') continue;
-    const result = computeSingleAmount(item, studentsForItem(item));
+    const result = computeSingleAmount(item, studentsForItem(item), dailyTotals);
     amounts[item.id] = result;
     basePerPanther += result.total_per_panther ?? 0;
   }
@@ -178,16 +212,18 @@ export function getBudgetForTrip(tripId) {
 
   const items = lineItemsForTrip(trip.id);
   const exclusions = exclusionsByItem(items.map((i) => i.id));
+  const dailyTotals = dailyTotalsByItem(items.map((i) => i.id));
   const studentsActive = getStats(trip.id).students_active;
   const studentsForItem = (item) => resolveStudents(item, studentsActive, exclusions[item.id]);
-  const amounts = computeAmountsForItems(items, studentsForItem);
+  const amounts = computeAmountsForItems(items, studentsForItem, dailyTotals);
 
   const previousTrip = resolvePreviousTrip(trip.year);
   const priorItems = previousTrip ? lineItemsForTrip(previousTrip.id) : [];
   const priorExclusions = exclusionsByItem(priorItems.map((i) => i.id));
+  const priorDailyTotals = dailyTotalsByItem(priorItems.map((i) => i.id));
   const priorStudentsActive = previousTrip ? getStats(previousTrip.id).students_active : 0;
   const priorStudentsForItem = (item) => resolveStudents(item, priorStudentsActive, priorExclusions[item.id]);
-  const priorAmounts = computeAmountsForItems(priorItems, priorStudentsForItem);
+  const priorAmounts = computeAmountsForItems(priorItems, priorStudentsForItem, priorDailyTotals);
   const priorByCategory = Object.fromEntries(priorItems.map((i) => [i.category_id, i]));
 
   return items.map((item) => {
@@ -328,9 +364,16 @@ export function updateLineItemValue(tripId, categoryId, { total, rate_per_athlet
 // Only one service_charge row is allowed per trip (SERVICE_CHARGE_LIMIT) —
 // a second would be ambiguous about what base it applies to — backstopped
 // by the partial unique index in migration 018.
+//
+// Switching to/from 'food_planner' never touches trip_budget_daily_items —
+// unlike total/rate_per_athlete/percent_rate, a food planner's day-by-day
+// rows are real entered data with no fabrication risk, so switching away and
+// back just resumes summing the same days (see migration 020).
+const LINE_ITEM_TYPES = ['totals', 'per_swimmer', 'service_charge', 'food_planner'];
+
 export function switchLineItemType(tripBudgetItemId, type) {
-  if (type !== 'totals' && type !== 'per_swimmer' && type !== 'service_charge') {
-    const err = new Error("type must be 'totals', 'per_swimmer', or 'service_charge'");
+  if (!LINE_ITEM_TYPES.includes(type)) {
+    const err = new Error(`type must be one of: ${LINE_ITEM_TYPES.join(', ')}`);
     err.code = 'INVALID_TYPE';
     throw err;
   }
@@ -355,6 +398,120 @@ export function switchLineItemType(tripBudgetItemId, type) {
     'UPDATE trip_budget_items SET type = ?, total = 0, rate_per_athlete = NULL, percent_rate = ? WHERE id = ?'
   ).run(type, percentRate, tripBudgetItemId);
   return db.prepare('SELECT * FROM trip_budget_items WHERE id = ?').get(tripBudgetItemId);
+}
+
+export function listDailyItems(tripBudgetItemId) {
+  return db
+    .prepare('SELECT * FROM trip_budget_daily_items WHERE trip_budget_item_id = ? ORDER BY date')
+    .all(tripBudgetItemId);
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Shared validation for add/update — a day's date and dollar amounts, keyed
+// off the fields actually present so updateDailyItem can send a partial
+// patch. Throws the same error codes addDailyItem/updateDailyItem surface.
+function validateDailyItemFields({ date, budget, cash }) {
+  if (date !== undefined && !DATE_RE.test(date)) {
+    const err = new Error('date must be in YYYY-MM-DD format');
+    err.code = 'INVALID_DATE';
+    throw err;
+  }
+  if (budget !== undefined && (!Number.isFinite(budget) || budget < 0)) {
+    const err = new Error('budget must be a non-negative number');
+    err.code = 'INVALID_AMOUNT';
+    throw err;
+  }
+  if (cash !== undefined && (!Number.isFinite(cash) || cash < 0)) {
+    const err = new Error('cash must be a non-negative number');
+    err.code = 'INVALID_AMOUNT';
+    throw err;
+  }
+}
+
+function requireFoodPlannerItem(tripBudgetItemId) {
+  const item = db.prepare('SELECT * FROM trip_budget_items WHERE id = ?').get(tripBudgetItemId);
+  if (!item) {
+    const err = new Error('Unknown trip_budget_item_id');
+    err.code = 'ITEM_NOT_FOUND';
+    throw err;
+  }
+  if (item.type !== 'food_planner') {
+    const err = new Error("This row isn't a day-by-day planner row");
+    err.code = 'FOOD_PLANNER_TYPE_REQUIRED';
+    throw err;
+  }
+  return item;
+}
+
+// Adds one day's entry to a 'food_planner' row. DUPLICATE_DATE mirrors the
+// UNIQUE(trip_budget_item_id, date) constraint in migration 020 — checked
+// explicitly rather than relying on the SQLite error so the route can 409
+// with a clear message the same way createCategory's DUPLICATE_CATEGORY does.
+export function addDailyItem(tripBudgetItemId, { date, budget, cash, meals_covered, notes }) {
+  requireFoodPlannerItem(tripBudgetItemId);
+  validateDailyItemFields({ date, budget, cash });
+
+  const existing = db
+    .prepare('SELECT 1 FROM trip_budget_daily_items WHERE trip_budget_item_id = ? AND date = ?')
+    .get(tripBudgetItemId, date);
+  if (existing) {
+    const err = new Error(`A day-by-day entry for ${date} already exists on this row`);
+    err.code = 'DUPLICATE_DATE';
+    throw err;
+  }
+
+  const info = db
+    .prepare(
+      `INSERT INTO trip_budget_daily_items (trip_budget_item_id, date, budget, cash, meals_covered, notes)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+    .run(tripBudgetItemId, date, budget ?? 0, cash ?? 0, meals_covered ?? null, notes ?? null);
+  return db.prepare('SELECT * FROM trip_budget_daily_items WHERE id = ?').get(info.lastInsertRowid);
+}
+
+// Partial update — only the fields present in `fields` are validated/changed.
+export function updateDailyItem(dailyItemId, fields) {
+  const row = db.prepare('SELECT * FROM trip_budget_daily_items WHERE id = ?').get(dailyItemId);
+  if (!row) {
+    const err = new Error('Unknown day-by-day entry');
+    err.code = 'DAILY_ITEM_NOT_FOUND';
+    throw err;
+  }
+  requireFoodPlannerItem(row.trip_budget_item_id);
+  validateDailyItemFields(fields);
+
+  const next = { ...row, ...fields };
+  if (next.date !== row.date) {
+    const dup = db
+      .prepare(
+        'SELECT 1 FROM trip_budget_daily_items WHERE trip_budget_item_id = ? AND date = ? AND id != ?'
+      )
+      .get(row.trip_budget_item_id, next.date, dailyItemId);
+    if (dup) {
+      const err = new Error(`A day-by-day entry for ${next.date} already exists on this row`);
+      err.code = 'DUPLICATE_DATE';
+      throw err;
+    }
+  }
+
+  db.prepare(
+    `UPDATE trip_budget_daily_items
+     SET date = ?, budget = ?, cash = ?, meals_covered = ?, notes = ?
+     WHERE id = ?`
+  ).run(next.date, next.budget, next.cash, next.meals_covered, next.notes, dailyItemId);
+  return db.prepare('SELECT * FROM trip_budget_daily_items WHERE id = ?').get(dailyItemId);
+}
+
+export function deleteDailyItem(dailyItemId) {
+  const row = db.prepare('SELECT * FROM trip_budget_daily_items WHERE id = ?').get(dailyItemId);
+  if (!row) {
+    const err = new Error('Unknown day-by-day entry');
+    err.code = 'DAILY_ITEM_NOT_FOUND';
+    throw err;
+  }
+  requireFoodPlannerItem(row.trip_budget_item_id);
+  db.prepare('DELETE FROM trip_budget_daily_items WHERE id = ?').run(dailyItemId);
 }
 
 // Pins (or, with value=null, clears) this row's # Students figure — see

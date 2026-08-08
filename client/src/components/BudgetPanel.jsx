@@ -14,6 +14,10 @@ import {
   setBudgetStudentCountOverride,
   setBudgetExclusion,
   clearBudgetExclusion,
+  fetchBudgetDailyItems,
+  addBudgetDailyItem,
+  updateBudgetDailyItem,
+  deleteBudgetDailyItem,
 } from '../api/budget.js';
 
 /** Admin-only per-trip line-item budget, replicating the committee's Excel
@@ -23,12 +27,26 @@ import {
  * own tab in AdminRoster, alongside the Roster tab — not a modal. */
 
 // The field each row type stores its value in — drafts/blur/input all need
-// to key off the same three-way branch.
+// to key off the same three-way branch. 'food_planner' has no directly
+// editable value (its total is the live sum of day-by-day entries), so it
+// falls through to item.total same as 'totals', but that value is never
+// rendered in an editable input for this type — see the Total/Rate cell.
 function valueField(item) {
   if (item.type === 'per_swimmer') return item.rate_per_athlete;
   if (item.type === 'service_charge') return item.percent_rate;
   return item.total;
 }
+
+function dailyRowToDraft(row) {
+  return {
+    budget: String(row.budget),
+    cash: String(row.cash),
+    meals_covered: row.meals_covered ?? '',
+    notes: row.notes ?? '',
+  };
+}
+
+const EMPTY_DAILY_DRAFT = { date: '', budget: '', cash: '', meals_covered: '', notes: '' };
 
 export default function BudgetPanel({ tripId }) {
   const [items, setItems] = useState([]);
@@ -44,6 +62,10 @@ export default function BudgetPanel({ tripId }) {
   const [addingExisting, setAddingExisting] = useState(false);
   const [showMatrix, setShowMatrix] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [expandedPlanners, setExpandedPlanners] = useState(new Set());
+  const [dailyItems, setDailyItems] = useState({});
+  const [dailyEditDrafts, setDailyEditDrafts] = useState({});
+  const [newDailyDrafts, setNewDailyDrafts] = useState({});
 
   const load = useCallback(async () => {
     setError(null);
@@ -141,6 +163,98 @@ export default function BudgetPanel({ tripId }) {
       await load();
     } catch (err) {
       setError(err.body?.error || "Could not change that row's type.");
+    }
+  };
+
+  const loadDailyItems = async (tripBudgetItemId) => {
+    try {
+      const rows = await fetchBudgetDailyItems(tripBudgetItemId);
+      setDailyItems((d) => ({ ...d, [tripBudgetItemId]: rows }));
+      setDailyEditDrafts((d) => ({
+        ...d,
+        ...Object.fromEntries(rows.map((row) => [row.id, dailyRowToDraft(row)])),
+      }));
+    } catch {
+      setError('Could not load that row’s day-by-day entries.');
+    }
+  };
+
+  // Toggles the day-by-day sub-table for a 'food_planner' row — lazily
+  // fetched on first expand, same "Manage X" toggle pattern as
+  // showMatrix/showCategoryManager below.
+  const handleTogglePlanner = async (item) => {
+    const id = item.trip_budget_item_id;
+    const alreadyExpanded = expandedPlanners.has(id);
+    setExpandedPlanners((prev) => {
+      const next = new Set(prev);
+      if (alreadyExpanded) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    if (!alreadyExpanded && !dailyItems[id]) {
+      await loadDailyItems(id);
+    }
+  };
+
+  const handleAddDailyItem = async (item) => {
+    const id = item.trip_budget_item_id;
+    const draft = newDailyDrafts[id] ?? EMPTY_DAILY_DRAFT;
+    if (!draft.date) return;
+    setError(null);
+    try {
+      await addBudgetDailyItem(id, {
+        date: draft.date,
+        budget: Number(draft.budget) || 0,
+        cash: Number(draft.cash) || 0,
+        meals_covered: draft.meals_covered,
+        notes: draft.notes,
+      });
+      setNewDailyDrafts((d) => ({ ...d, [id]: EMPTY_DAILY_DRAFT }));
+      await loadDailyItems(id);
+      await load();
+    } catch (err) {
+      setError(err.body?.error || 'Could not add that day.');
+    }
+  };
+
+  const handleDailyItemBlur = async (item, row) => {
+    const draft = dailyEditDrafts[row.id];
+    if (!draft) return;
+    const budget = Number(draft.budget);
+    const cash = Number(draft.cash);
+    const invalid = draft.budget === '' || Number.isNaN(budget) || budget < 0 || draft.cash === '' || Number.isNaN(cash) || cash < 0;
+    if (invalid) {
+      setDailyEditDrafts((d) => ({ ...d, [row.id]: dailyRowToDraft(row) }));
+      return;
+    }
+    const unchanged =
+      budget === row.budget &&
+      cash === row.cash &&
+      draft.meals_covered === (row.meals_covered ?? '') &&
+      draft.notes === (row.notes ?? '');
+    if (unchanged) return;
+    try {
+      await updateBudgetDailyItem(item.trip_budget_item_id, row.id, {
+        budget,
+        cash,
+        meals_covered: draft.meals_covered,
+        notes: draft.notes,
+      });
+      await loadDailyItems(item.trip_budget_item_id);
+      await load();
+    } catch (err) {
+      setError(err.body?.error || 'Could not save that day.');
+    }
+  };
+
+  const handleDeleteDailyItem = async (item, row) => {
+    setError(null);
+    try {
+      await deleteBudgetDailyItem(item.trip_budget_item_id, row.id);
+      await loadDailyItems(item.trip_budget_item_id);
+      await load();
+    } catch (err) {
+      setError(err.body?.error || 'Could not remove that day.');
     }
   };
 
@@ -298,6 +412,7 @@ export default function BudgetPanel({ tripId }) {
                       <option value="totals">Totals</option>
                       <option value="per_swimmer">Per swimmer/diver</option>
                       <option value="service_charge">Service charge (%)</option>
+                      <option value="food_planner">Day-by-day planner</option>
                     </select>
                   </td>
                   <td
@@ -309,23 +424,32 @@ export default function BudgetPanel({ tripId }) {
                           : 'Total'
                     }
                   >
-                    <input
-                      type="number"
-                      min="0"
-                      step={item.type === 'service_charge' ? '0.1' : '1'}
-                      value={drafts[item.category_id] ?? ''}
-                      placeholder={
-                        item.type === 'per_swimmer'
-                          ? '$/athlete'
-                          : item.type === 'service_charge'
-                            ? '% of total'
-                            : '$ total'
-                      }
-                      onChange={(e) =>
-                        setDrafts((d) => ({ ...d, [item.category_id]: e.target.value }))
-                      }
-                      onBlur={() => handleValueBlur(item)}
-                    />
+                    {item.type === 'food_planner' ? (
+                      <>
+                        <strong>{fmtMoney(item.total)}</strong>{' '}
+                        <button type="button" className="link-btn" onClick={() => handleTogglePlanner(item)}>
+                          {expandedPlanners.has(item.trip_budget_item_id) ? 'Hide days' : 'Manage days'}
+                        </button>
+                      </>
+                    ) : (
+                      <input
+                        type="number"
+                        min="0"
+                        step={item.type === 'service_charge' ? '0.1' : '1'}
+                        value={drafts[item.category_id] ?? ''}
+                        placeholder={
+                          item.type === 'per_swimmer'
+                            ? '$/athlete'
+                            : item.type === 'service_charge'
+                              ? '% of total'
+                              : '$ total'
+                        }
+                        onChange={(e) =>
+                          setDrafts((d) => ({ ...d, [item.category_id]: e.target.value }))
+                        }
+                        onBlur={() => handleValueBlur(item)}
+                      />
+                    )}
                   </td>
                   <td data-label="# Students">
                     <input
@@ -363,6 +487,193 @@ export default function BudgetPanel({ tripId }) {
                   </td>
                 </tr>
               ))}
+              {items
+                .filter((item) => item.type === 'food_planner' && expandedPlanners.has(item.trip_budget_item_id))
+                .map((item) => (
+                  <tr key={`${item.category_id}-daily`}>
+                    <td colSpan={8}>
+                      <div className="preview-table-wrap" style={{ margin: '0.4rem 0' }}>
+                        <table className="preview-table">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Budget</th>
+                              <th>Cash</th>
+                              <th>Meals Covered</th>
+                              <th>Additional Details</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(dailyItems[item.trip_budget_item_id] || []).map((row) => {
+                              const draft = dailyEditDrafts[row.id] ?? dailyRowToDraft(row);
+                              return (
+                                <tr key={row.id}>
+                                  <td>{row.date}</td>
+                                  <td>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      value={draft.budget}
+                                      onChange={(e) =>
+                                        setDailyEditDrafts((d) => ({
+                                          ...d,
+                                          [row.id]: { ...draft, budget: e.target.value },
+                                        }))
+                                      }
+                                      onBlur={() => handleDailyItemBlur(item, row)}
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      value={draft.cash}
+                                      onChange={(e) =>
+                                        setDailyEditDrafts((d) => ({
+                                          ...d,
+                                          [row.id]: { ...draft, cash: e.target.value },
+                                        }))
+                                      }
+                                      onBlur={() => handleDailyItemBlur(item, row)}
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      value={draft.meals_covered}
+                                      onChange={(e) =>
+                                        setDailyEditDrafts((d) => ({
+                                          ...d,
+                                          [row.id]: { ...draft, meals_covered: e.target.value },
+                                        }))
+                                      }
+                                      onBlur={() => handleDailyItemBlur(item, row)}
+                                    />
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="text"
+                                      value={draft.notes}
+                                      onChange={(e) =>
+                                        setDailyEditDrafts((d) => ({
+                                          ...d,
+                                          [row.id]: { ...draft, notes: e.target.value },
+                                        }))
+                                      }
+                                      onBlur={() => handleDailyItemBlur(item, row)}
+                                    />
+                                  </td>
+                                  <td>
+                                    <button
+                                      type="button"
+                                      className="link-btn link-btn--danger"
+                                      onClick={() => handleDeleteDailyItem(item, row)}
+                                    >
+                                      Remove
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                            <tr>
+                              <td>
+                                <input
+                                  type="date"
+                                  value={newDailyDrafts[item.trip_budget_item_id]?.date ?? ''}
+                                  onChange={(e) =>
+                                    setNewDailyDrafts((d) => ({
+                                      ...d,
+                                      [item.trip_budget_item_id]: {
+                                        ...(d[item.trip_budget_item_id] ?? EMPTY_DAILY_DRAFT),
+                                        date: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  placeholder="$ budget"
+                                  value={newDailyDrafts[item.trip_budget_item_id]?.budget ?? ''}
+                                  onChange={(e) =>
+                                    setNewDailyDrafts((d) => ({
+                                      ...d,
+                                      [item.trip_budget_item_id]: {
+                                        ...(d[item.trip_budget_item_id] ?? EMPTY_DAILY_DRAFT),
+                                        budget: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  placeholder="$ cash"
+                                  value={newDailyDrafts[item.trip_budget_item_id]?.cash ?? ''}
+                                  onChange={(e) =>
+                                    setNewDailyDrafts((d) => ({
+                                      ...d,
+                                      [item.trip_budget_item_id]: {
+                                        ...(d[item.trip_budget_item_id] ?? EMPTY_DAILY_DRAFT),
+                                        cash: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Lunch & Dinner"
+                                  value={newDailyDrafts[item.trip_budget_item_id]?.meals_covered ?? ''}
+                                  onChange={(e) =>
+                                    setNewDailyDrafts((d) => ({
+                                      ...d,
+                                      [item.trip_budget_item_id]: {
+                                        ...(d[item.trip_budget_item_id] ?? EMPTY_DAILY_DRAFT),
+                                        meals_covered: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  type="text"
+                                  placeholder="Details"
+                                  value={newDailyDrafts[item.trip_budget_item_id]?.notes ?? ''}
+                                  onChange={(e) =>
+                                    setNewDailyDrafts((d) => ({
+                                      ...d,
+                                      [item.trip_budget_item_id]: {
+                                        ...(d[item.trip_budget_item_id] ?? EMPTY_DAILY_DRAFT),
+                                        notes: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                />
+                              </td>
+                              <td>
+                                <button type="button" className="btn btn--ghost" onClick={() => handleAddDailyItem(item)}>
+                                  + Add day
+                                </button>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               <tr>
                 <td data-label="Category">
                   <strong>Total</strong>

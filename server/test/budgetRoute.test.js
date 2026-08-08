@@ -31,6 +31,7 @@ let adminCookie;
 
 beforeEach(() => {
   db.exec(`
+    DELETE FROM trip_budget_daily_items;
     DELETE FROM trip_budget_exclusions;
     DELETE FROM trip_budget_items;
     DELETE FROM sessions;
@@ -455,5 +456,119 @@ describe('POST /api/budget/exclusions', () => {
       .set('Cookie', adminCookie)
       .send({ trip_budget_item_id: 999999, participant_id: 999999 });
     expect(res.status).toBe(400);
+  });
+});
+
+// Switches the trip's Food row to 'food_planner' via the route layer and
+// returns its trip_budget_item id, for the daily-item route tests below.
+async function foodPlannerItemId(tripId) {
+  const food = category('Food');
+  const item = db
+    .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+    .get(tripId, food.id);
+  await request(app).put(`/api/budget/items/${item.id}/type`).set('Cookie', adminCookie).send({ type: 'food_planner' });
+  return item.id;
+}
+
+describe('food_planner day-by-day routes', () => {
+  it('401s on every daily route when not signed in', async () => {
+    const trip = createTrip({ year: '2118', name: 'Test', trip_date: '2118-01-01' });
+    const itemId = await foodPlannerItemId(trip.id);
+    expect((await request(app).get(`/api/budget/items/${itemId}/daily`)).status).toBe(401);
+    expect((await request(app).post(`/api/budget/items/${itemId}/daily`).send({ date: '2027-02-12' })).status).toBe(401);
+  });
+
+  it('adds a day, lists it, and reflects it in the computed total', async () => {
+    const trip = createTrip({ year: '2119', name: 'Test', trip_date: '2119-01-01' });
+    for (let i = 0; i < 2; i++) addStudent(trip.id);
+    const itemId = await foodPlannerItemId(trip.id);
+
+    const addRes = await request(app)
+      .post(`/api/budget/items/${itemId}/daily`)
+      .set('Cookie', adminCookie)
+      .send({ date: '2027-02-12', budget: 50, cash: 50, meals_covered: 'Lunch & Dinner' });
+    expect(addRes.status).toBe(201);
+    expect(addRes.body.budget).toBe(50);
+
+    const listRes = await request(app).get(`/api/budget/items/${itemId}/daily`).set('Cookie', adminCookie);
+    expect(listRes.status).toBe(200);
+    expect(listRes.body).toHaveLength(1);
+
+    const budget = await request(app).get(`/api/budget?trip_id=${trip.id}`).set('Cookie', adminCookie);
+    const food = category('Food');
+    const row = budget.body.find((i) => i.category_id === food.id);
+    expect(row.total_per_panther).toBe(50);
+    expect(row.total).toBe(100);
+  });
+
+  it('400s when the row is not a food_planner row', async () => {
+    const trip = createTrip({ year: '2120', name: 'Test', trip_date: '2120-01-01' });
+    const airfare = category('Airfare');
+    const item = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(trip.id, airfare.id);
+    const res = await request(app)
+      .post(`/api/budget/items/${item.id}/daily`)
+      .set('Cookie', adminCookie)
+      .send({ date: '2027-02-12', budget: 50, cash: 50 });
+    expect(res.status).toBe(400);
+  });
+
+  it('409s on a duplicate date', async () => {
+    const trip = createTrip({ year: '2121', name: 'Test', trip_date: '2121-01-01' });
+    const itemId = await foodPlannerItemId(trip.id);
+    await request(app)
+      .post(`/api/budget/items/${itemId}/daily`)
+      .set('Cookie', adminCookie)
+      .send({ date: '2027-02-12', budget: 50, cash: 50 });
+    const res = await request(app)
+      .post(`/api/budget/items/${itemId}/daily`)
+      .set('Cookie', adminCookie)
+      .send({ date: '2027-02-12', budget: 10, cash: 10 });
+    expect(res.status).toBe(409);
+  });
+
+  it('404s for an unknown trip_budget_item id', async () => {
+    const res = await request(app)
+      .post('/api/budget/items/999999/daily')
+      .set('Cookie', adminCookie)
+      .send({ date: '2027-02-12', budget: 50, cash: 50 });
+    expect(res.status).toBe(404);
+  });
+
+  it('PUT updates an existing day, DELETE removes it', async () => {
+    const trip = createTrip({ year: '2122', name: 'Test', trip_date: '2122-01-01' });
+    const itemId = await foodPlannerItemId(trip.id);
+    const addRes = await request(app)
+      .post(`/api/budget/items/${itemId}/daily`)
+      .set('Cookie', adminCookie)
+      .send({ date: '2027-02-12', budget: 50, cash: 50 });
+    const dailyId = addRes.body.id;
+
+    const putRes = await request(app)
+      .put(`/api/budget/items/${itemId}/daily/${dailyId}`)
+      .set('Cookie', adminCookie)
+      .send({ budget: 75 });
+    expect(putRes.status).toBe(200);
+    expect(putRes.body.budget).toBe(75);
+
+    const delRes = await request(app)
+      .delete(`/api/budget/items/${itemId}/daily/${dailyId}`)
+      .set('Cookie', adminCookie);
+    expect(delRes.status).toBe(204);
+
+    const listRes = await request(app).get(`/api/budget/items/${itemId}/daily`).set('Cookie', adminCookie);
+    expect(listRes.body).toHaveLength(0);
+  });
+
+  it('404s when updating or deleting an unknown daily entry', async () => {
+    const putRes = await request(app)
+      .put('/api/budget/items/1/daily/999999')
+      .set('Cookie', adminCookie)
+      .send({ budget: 10 });
+    expect(putRes.status).toBe(404);
+
+    const delRes = await request(app).delete('/api/budget/items/1/daily/999999').set('Cookie', adminCookie);
+    expect(delRes.status).toBe(404);
   });
 });
