@@ -259,14 +259,31 @@ export function insertParticipantsBulk(records, tripId) {
 
 export function getStats(tripId) {
   const rows = db.prepare('SELECT * FROM participants WHERE trip_id = ? AND active = 1').all(tripId);
+  const trip = db.prepare('SELECT estimated_cost, deposit_percent FROM trips WHERE id = ?').get(tripId);
 
   const byRole = { Swimmer: 0, Diver: 0, Adult: 0 };
   const byGradYear = {};
+  // Paid-in-full vs. still-owing counts, for the admin overview chart.
+  // "no_cost_set" covers archived/new trips with no estimated_cost yet,
+  // where there's nothing to compare payments against.
+  const paymentStatus = { paid_in_full: 0, partial_or_unpaid: 0, no_cost_set: 0 };
+  const { deposit_amount, final_payment_estimate } = computeDepositAndFinal(
+    trip?.estimated_cost,
+    trip?.deposit_percent
+  );
+  const totalCost = deposit_amount == null ? null : deposit_amount + final_payment_estimate;
 
   for (const row of rows) {
     byRole[row.role] = (byRole[row.role] || 0) + 1;
     if (row.grad_year) {
       byGradYear[row.grad_year] = (byGradYear[row.grad_year] || 0) + 1;
+    }
+    if (totalCost == null) {
+      paymentStatus.no_cost_set += 1;
+    } else if (row.deposit_received + row.final_payment_received >= totalCost) {
+      paymentStatus.paid_in_full += 1;
+    } else {
+      paymentStatus.partial_or_unpaid += 1;
     }
   }
 
@@ -275,6 +292,7 @@ export function getStats(tripId) {
     students_active: byRole.Swimmer + byRole.Diver,
     by_role: byRole,
     by_grad_year: byGradYear,
+    payment_status: paymentStatus,
   };
 }
 

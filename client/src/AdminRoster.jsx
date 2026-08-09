@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import SummaryBar from './components/SummaryBar.jsx';
+import OverviewPanel from './components/OverviewPanel.jsx';
 import RosterTable from './components/RosterTable.jsx';
 import ParticipantForm from './components/ParticipantForm.jsx';
 import ImportScreen from './components/ImportScreen.jsx';
@@ -264,7 +264,7 @@ export default function AdminRoster() {
         onTripsChanged={handleTripsChanged}
       />
 
-      <SummaryBar stats={stats} />
+      <OverviewPanel stats={stats} trip={selectedTrip} />
 
       {selectedTrip && (
         <div className="segmented" style={{ maxWidth: 420, marginBottom: '1rem' }}>

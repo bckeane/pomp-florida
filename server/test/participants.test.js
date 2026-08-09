@@ -31,6 +31,25 @@ describe('getStats', () => {
     expect(stats.total_active).toBe(0);
     expect(stats.students_active).toBe(0);
   });
+
+  it('buckets payment_status as no_cost_set when the trip has no estimated_cost', () => {
+    const trip = createTrip({ year: '2054', name: 'Test', trip_date: '2054-01-01' });
+    createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+
+    const stats = getStats(trip.id);
+    expect(stats.payment_status).toEqual({ paid_in_full: 0, partial_or_unpaid: 0, no_cost_set: 1 });
+  });
+
+  it('buckets payment_status by paid-in-full vs. still-owing once the trip has a cost', () => {
+    const trip = createTrip({ year: '2055', name: 'Test', trip_date: '2055-01-01' });
+    updateTrip(trip.id, { estimated_cost: 1000, deposit_percent: 60 });
+    const paid = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+    updateParticipant(paid.id, { deposit_received: 600, final_payment_received: 400 });
+    createParticipant({ first_name: 'B', last_name: 'B', role: 'Diver', trip_id: trip.id });
+
+    const stats = getStats(trip.id);
+    expect(stats.payment_status).toEqual({ paid_in_full: 1, partial_or_unpaid: 1, no_cost_set: 0 });
+  });
 });
 
 describe('payment tracking', () => {

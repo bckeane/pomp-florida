@@ -189,35 +189,124 @@ body {
   font-size: 0.9rem;
 }
 
-.summary-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-5);
+.overview {
   margin-bottom: var(--space-9);
 }
 
-.summary-stat {
+.overview__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--stat-accent, var(--primary));
+  border-radius: 8px;
+  padding: var(--space-6) var(--space-8);
+}
+
+.stat-card__value {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-card__label {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.overview__panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-5);
+}
+
+.overview-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: var(--space-3) var(--space-8);
-  min-width: 72px;
-  text-align: center;
+  padding: var(--space-8);
 }
 
-.summary-stat--muted {
-  opacity: 0.85;
+.overview-card__title {
+  margin: 0 0 var(--space-6);
+  font-size: 0.95rem;
 }
 
-.summary-value {
-  display: block;
-  font-size: 1.25rem;
+.bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.bar-chart__row {
+  display: grid;
+  grid-template-columns: 3rem 1fr 1.5rem;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.bar-chart__label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.bar-chart__track {
+  background: var(--bg);
+  border-radius: 4px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.bar-chart__fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 4px;
+}
+
+.bar-chart__count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.dates-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.dates-list__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  font-size: 0.9rem;
+}
+
+.dates-list__item--past {
+  opacity: 0.5;
+}
+
+.dates-list__date {
+  min-width: 6.5rem;
   font-weight: 600;
 }
 
-.summary-label {
-  display: block;
-  font-size: 0.75rem;
+.dates-list__item--next .dates-list__date {
+  color: var(--primary);
+}
+
+.dates-list__label {
   color: var(--text-muted);
 }
 
