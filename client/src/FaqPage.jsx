@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { fetchCurrentTrip } from './api/trips.js';
 import { fetchFaqQuestions, submitFaqQuestion } from './api/questions.js';
+import { useDocumentTitle } from './lib/useDocumentTitle.js';
 import pantherLogo from './img/pomp_icon.png';
 import './faq.css';
 
@@ -23,6 +24,8 @@ export default function FaqPage() {
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState(null);
+
+  useDocumentTitle('FAQ');
 
   useEffect(() => {
     fetchCurrentTrip()

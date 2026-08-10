@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { forgotPassword } from './api/auth.js';
+import { useDocumentTitle } from './lib/useDocumentTitle.js';
 import pantherLogo from './img/pomp_icon.png';
 import './register.css';
 
@@ -9,6 +10,8 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [sent, setSent] = useState(false);
+
+  useDocumentTitle('Forgot Password');
 
   const handleSubmit = async (e) => {
     e.preventDefault();

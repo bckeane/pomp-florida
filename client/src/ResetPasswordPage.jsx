@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { resetPassword } from './api/auth.js';
+import { useDocumentTitle } from './lib/useDocumentTitle.js';
 import pantherLogo from './img/pomp_icon.png';
 import './register.css';
 
@@ -14,6 +15,8 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+
+  useDocumentTitle('Reset Password');
 
   const handleSubmit = async (e) => {
     e.preventDefault();

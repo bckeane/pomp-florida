@@ -14,6 +14,7 @@ import {
 } from './api/participants.js';
 import { fetchCurrentTrip } from './api/trips.js';
 import { profileComplete } from './lib/profile.js';
+import { useDocumentTitle } from './lib/useDocumentTitle.js';
 import pantherLogo from './img/pomp_icon.png';
 import './register.css';
 
@@ -44,6 +45,8 @@ export default function RegisterPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [editingParticipant, setEditingParticipant] = useState(null);
+
+  useDocumentTitle('Register');
 
   useEffect(() => {
     fetchCurrentTrip()

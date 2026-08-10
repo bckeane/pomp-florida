@@ -20,6 +20,7 @@ import {
   exportUrl,
 } from './api/participants.js';
 import { fetchTrips } from './api/trips.js';
+import { useDocumentTitle } from './lib/useDocumentTitle.js';
 import pantherLogo from './img/pomp_icon.png';
 import './admin.css';
 
@@ -47,6 +48,8 @@ export default function AdminRoster() {
   const [activeTab, setActiveTab] = useState('roster');
 
   const isAdmin = account?.role === 'admin';
+
+  useDocumentTitle('Admin');
 
   useEffect(() => {
     me()

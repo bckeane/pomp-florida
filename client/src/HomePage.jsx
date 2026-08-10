@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { fetchCurrentTrip } from './api/trips.js';
 import { formatLongDate, formatShortDate, formatDateTile } from './lib/dates.js';
 import { useCountdown } from './lib/useCountdown.js';
+import { useDocumentTitle } from './lib/useDocumentTitle.js';
 import { renderMarkdownInline } from './lib/markdown.js';
 import Markdown from './components/Markdown.jsx';
 import pantherLogo from './img/pomp_icon.png';
@@ -75,6 +76,8 @@ function splitLines(text) {
 export default function HomePage() {
   const [trip, setTrip] = useState(null);
   const [status, setStatus] = useState('loading');
+
+  useDocumentTitle();
 
   useEffect(() => {
     fetchCurrentTrip()
