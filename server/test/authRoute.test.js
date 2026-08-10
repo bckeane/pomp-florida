@@ -35,6 +35,34 @@ beforeEach(() => {
   sendPasswordResetEmail.mockClear();
 });
 
+describe('POST /api/auth/login', () => {
+  // The limiter's counter is keyed by IP and lives on the shared authRouter
+  // module, so it persists across requests in this test — that's why it's
+  // one continuous scenario rather than separate tests.
+  it('allows a successful login without counting it, then blocks after 10 failed attempts', async () => {
+    const email = 'bruteforce@example.com';
+    createAccount(email, 'correctpassword1');
+
+    for (let i = 0; i < 9; i++) {
+      const res = await request(app).post('/api/auth/login').send({ email, password: 'wrongpassword' });
+      expect(res.status).toBe(401);
+    }
+
+    // Successful requests are excluded from the count (skipSuccessfulRequests),
+    // so this doesn't move the counter — the 9 failed attempts above still stand.
+    const ok = await request(app).post('/api/auth/login').send({ email, password: 'correctpassword1' });
+    expect(ok.status).toBe(200);
+
+    // 10th counted (failed) request — still within the limit.
+    const tenth = await request(app).post('/api/auth/login').send({ email, password: 'wrongpassword' });
+    expect(tenth.status).toBe(401);
+
+    // 11th counted request exceeds the limit of 10.
+    const blocked = await request(app).post('/api/auth/login').send({ email, password: 'wrongpassword' });
+    expect(blocked.status).toBe(429);
+  });
+});
+
 describe('POST /api/auth/forgot-password', () => {
   it('sends a reset email when the account exists', async () => {
     createAccount('forgot@example.com', 'password123');

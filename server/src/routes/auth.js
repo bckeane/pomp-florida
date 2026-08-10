@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import {
   createAccount,
@@ -35,6 +36,20 @@ const resetPasswordSchema = z.object({
 const profileSchema = z.object({
   parent_name: z.string().trim().min(1, 'name is required'),
   emergency_phone: z.string().trim().min(1, 'emergency contact number is required'),
+});
+
+// Brute-force protection: only failed attempts count against the limit, so a
+// legitimate user who mistypes their password once or twice never gets
+// locked out.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  handler: (req, res) => {
+    res.status(429).json({ errors: { _root: 'Too many login attempts. Please try again later.' } });
+  },
 });
 
 function setSessionCookie(res, token) {
@@ -82,7 +97,7 @@ router.post('/auth/signup', (req, res) => {
   res.status(201).json({ account });
 });
 
-router.post('/auth/login', (req, res) => {
+router.post('/auth/login', loginLimiter, (req, res) => {
   const parsed = credentialsSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ errors: fieldKeyedZodErrors(parsed.error) });
