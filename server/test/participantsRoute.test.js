@@ -217,6 +217,19 @@ describe('GET /api/participants/export', () => {
     expect(lines).toHaveLength(2);
     expect(lines[0]).toMatch(/first_name/);
   });
+
+  it('neutralizes formula-injection payloads in exported fields (CSV injection)', async () => {
+    await request(app)
+      .post('/api/participants')
+      .set('Cookie', adminCookie)
+      .send(swimmer({ first_name: '=HYPERLINK("http://evil.example/","x")', last_name: '+SUM(1,1)' }));
+    const res = await request(app).get('/api/participants/export').set('Cookie', adminCookie);
+    expect(res.status).toBe(200);
+    const dataLine = res.text.trim().split('\n')[1];
+    expect(dataLine).not.toMatch(/^=|,=|^\+|,\+/);
+    expect(dataLine).toContain("'=HYPERLINK");
+    expect(dataLine).toContain("'+SUM");
+  });
 });
 
 describe('POST /api/participants/import', () => {
