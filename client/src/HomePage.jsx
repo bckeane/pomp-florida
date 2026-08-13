@@ -282,9 +282,14 @@ export default function HomePage() {
           Register a swimmer
         </Link>
         <p className="hint">Not attending? No problem — local practices continue as normal.</p>
-        <Link className="footer-admin-link" to="/admin">
-          Team admin
-        </Link>
+        <div className="footer-links">
+          <Link className="footer-admin-link" to="/admin">
+            Team admin
+          </Link>
+          <Link className="footer-admin-link" to="/privacy">
+            Privacy Policy
+          </Link>
+        </div>
       </footer>
     </div>
   );

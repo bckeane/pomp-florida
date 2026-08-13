@@ -1,0 +1,28 @@
+.legal-page .legal-section {
+  max-width: 68ch;
+  text-align: left;
+  margin-inline: auto;
+}
+
+.legal-page .legal-section h2 {
+  margin-top: 2rem;
+}
+
+.legal-page .legal-section p {
+  line-height: 1.6;
+  margin: 0.75rem 0;
+}
+
+.legal-page .legal-section ul {
+  margin: 0.75rem 0;
+  padding-left: 1.25rem;
+  line-height: 1.6;
+}
+
+.legal-page .legal-section li {
+  margin: 0.4rem 0;
+}
+
+.legal-page .hero--legal {
+  padding-bottom: 1rem;
+}
