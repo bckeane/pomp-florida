@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { stripHtmlTags } from './sanitize.js';
 
 const ROLES = ['Swimmer', 'Diver', 'Adult'];
 const ADULT_GRAD_YEARS = ['Coach', 'Med'];
@@ -20,8 +21,8 @@ const isoDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be an ISO date (YYYY-MM-DD)');
 
 const baseShape = {
-  first_name: z.string().trim().min(1, 'first name is required'),
-  last_name: z.string().trim().min(1, 'last name is required'),
+  first_name: z.string().trim().min(1, 'first name is required').transform(stripHtmlTags),
+  last_name: z.string().trim().min(1, 'last name is required').transform(stripHtmlTags),
   grad_year: z.string().trim().nullish(),
   birth_date: z.union([isoDate, z.literal(''), z.null(), z.undefined()]),
   role: z.enum(ROLES, { errorMap: () => ({ message: `role must be one of ${ROLES.join(', ')}` }) }),

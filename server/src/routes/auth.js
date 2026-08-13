@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
+import { stripHtmlTags } from '../lib/sanitize.js';
 import {
   createAccount,
   findAccountByEmail,
@@ -34,7 +35,7 @@ const resetPasswordSchema = z.object({
 });
 
 const profileSchema = z.object({
-  parent_name: z.string().trim().min(1, 'name is required'),
+  parent_name: z.string().trim().min(1, 'name is required').transform(stripHtmlTags),
   emergency_phone: z.string().trim().min(1, 'emergency contact number is required'),
 });
 

@@ -296,8 +296,15 @@ router.post('/budget/exclusions', requireAdmin, (req, res) => {
 });
 
 router.delete('/budget/exclusions/:tripBudgetItemId/:participantId', requireAdmin, (req, res) => {
-  clearExclusion(Number(req.params.tripBudgetItemId), Number(req.params.participantId));
-  res.status(204).end();
+  try {
+    clearExclusion(Number(req.params.tripBudgetItemId), Number(req.params.participantId));
+    res.status(204).end();
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
+      return res.status(404).json({ error: 'Unknown trip_budget_item_id or participant_id' });
+    }
+    throw err;
+  }
 });
 
 export default router;

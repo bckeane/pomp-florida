@@ -37,7 +37,9 @@ function corsOrigin(origin, callback) {
   if (allowedOrigins.includes(origin)) {
     return callback(null, true);
   }
-  return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  const err = new Error(`Origin ${origin} not allowed by CORS`);
+  err.status = 403;
+  return callback(err);
 }
 
 // helmet also disables X-Powered-By; the explicit call below is redundant
@@ -81,7 +83,8 @@ app.get(/^(?!\/api).*/, (req, res) => {
 
 app.use((err, req, res, next) => {
   console.error(err.message);
-  res.status(500).json({ error: 'Internal server error' });
+  const status = err.status || 500;
+  res.status(status).json({ error: status === 500 ? 'Internal server error' : err.message });
 });
 
 const PORT = process.env.PORT || 48310;

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { stripHtmlTags } from '../lib/sanitize.js';
 import {
   answerFaqQuestion,
   createFaqQuestion,
@@ -22,12 +23,12 @@ const questionSchema = z.object({
   asker_name: z
     .union([z.string().trim().min(1, 'name cannot be blank'), z.literal('')])
     .optional()
-    .transform((value) => (value === '' ? null : value)),
-  question: z.string().trim().min(5, 'question must be at least 5 characters').max(500),
+    .transform((value) => (value ? stripHtmlTags(value) : null)),
+  question: z.string().trim().min(5, 'question must be at least 5 characters').max(500).transform(stripHtmlTags),
 });
 
 const answerSchema = z.object({
-  answer: z.string().trim().min(1, 'answer is required').max(5000),
+  answer: z.string().trim().min(1, 'answer is required').max(5000).transform(stripHtmlTags),
 });
 
 function resolveTripIdOrRespond(req, res) {
@@ -65,6 +66,10 @@ router.get('/admin/questions', requireAdmin, (req, res) => {
 router.patch('/admin/questions/:id', requireAdmin, (req, res) => {
   const existing = getFaqQuestionById(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Question not found' });
+
+  const tripId = resolveTripIdOrRespond(req, res);
+  if (tripId === null) return;
+  if (existing.trip_id !== tripId) return res.status(404).json({ error: 'Question not found' });
 
   const parsed = answerSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ errors: fieldKeyedZodErrors(parsed.error) });

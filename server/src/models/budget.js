@@ -559,6 +559,15 @@ export function setExclusion(tripBudgetItemId, participantId) {
 }
 
 export function clearExclusion(tripBudgetItemId, participantId) {
+  const item = db.prepare('SELECT trip_id FROM trip_budget_items WHERE id = ?').get(tripBudgetItemId);
+  const participant = db.prepare('SELECT trip_id FROM participants WHERE id = ?').get(participantId);
+
+  if (!item || !participant) {
+    const err = new Error('Unknown trip_budget_item_id or participant_id');
+    err.code = 'SQLITE_CONSTRAINT_FOREIGNKEY';
+    throw err;
+  }
+
   db.prepare(
     `DELETE FROM trip_budget_exclusions WHERE trip_budget_item_id = ? AND participant_id = ?`
   ).run(tripBudgetItemId, participantId);
