@@ -20,6 +20,7 @@ let adminCookie;
 
 beforeEach(() => {
   db.exec(`
+    DELETE FROM trip_daily_schedule;
     DELETE FROM trip_budget_exclusions;
     DELETE FROM trip_budget_items;
     DELETE FROM sessions;
@@ -160,6 +161,105 @@ describe('PUT /api/trips/:id', () => {
       .send({ year: '2100', name: 'Test Trip', trip_date: '2100-02-01', training_location: 'Not Actually Set' });
     expect(res.status).toBe(201);
     expect(res.body.training_location).not.toBe('Not Actually Set');
+  });
+});
+
+describe('GET /api/trips/current/schedule', () => {
+  it('is public — no auth required — and 404s with no current trip', async () => {
+    const res = await request(app).get('/api/trips/current/schedule');
+    expect(res.status).toBe(404);
+  });
+
+  it("returns the active trip's schedule days", async () => {
+    const created = await request(app)
+      .post('/api/trips')
+      .set('Cookie', adminCookie)
+      .send({ year: '2101', name: 'Test Trip', trip_date: '2101-02-01' });
+    await request(app).post(`/api/trips/${created.body.id}/activate`).set('Cookie', adminCookie);
+    await request(app)
+      .post(`/api/trips/${created.body.id}/schedule`)
+      .set('Cookie', adminCookie)
+      .send({ date: '2101-02-01', morning_window: '6am-9am window' });
+
+    const res = await request(app).get('/api/trips/current/schedule');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].morning_window).toBe('6am-9am window');
+  });
+});
+
+describe('Trip schedule admin CRUD', () => {
+  it('401s when not signed in', async () => {
+    const res = await request(app).get('/api/trips/1/schedule');
+    expect(res.status).toBe(401);
+  });
+
+  it('adds, lists, updates, and deletes a schedule day', async () => {
+    const created = await request(app)
+      .post('/api/trips')
+      .set('Cookie', adminCookie)
+      .send({ year: '2102', name: 'Test Trip', trip_date: '2102-02-01' });
+    const tripId = created.body.id;
+
+    const added = await request(app)
+      .post(`/api/trips/${tripId}/schedule`)
+      .set('Cookie', adminCookie)
+      .send({ date: '2102-02-01', afternoon_window: '3-5pm' });
+    expect(added.status).toBe(201);
+
+    const list = await request(app).get(`/api/trips/${tripId}/schedule`).set('Cookie', adminCookie);
+    expect(list.status).toBe(200);
+    expect(list.body).toHaveLength(1);
+
+    const updated = await request(app)
+      .put(`/api/trips/${tripId}/schedule/${added.body.id}`)
+      .set('Cookie', adminCookie)
+      .send({ morning_window: '7-9am' });
+    expect(updated.status).toBe(200);
+    expect(updated.body.morning_window).toBe('7-9am');
+    expect(updated.body.afternoon_window).toBe('3-5pm');
+
+    const deleted = await request(app)
+      .delete(`/api/trips/${tripId}/schedule/${added.body.id}`)
+      .set('Cookie', adminCookie);
+    expect(deleted.status).toBe(204);
+
+    const listAfter = await request(app).get(`/api/trips/${tripId}/schedule`).set('Cookie', adminCookie);
+    expect(listAfter.body).toHaveLength(0);
+  });
+
+  it('409s on a duplicate date', async () => {
+    const created = await request(app)
+      .post('/api/trips')
+      .set('Cookie', adminCookie)
+      .send({ year: '2103', name: 'Test Trip', trip_date: '2103-02-01' });
+    await request(app)
+      .post(`/api/trips/${created.body.id}/schedule`)
+      .set('Cookie', adminCookie)
+      .send({ date: '2103-02-01' });
+
+    const res = await request(app)
+      .post(`/api/trips/${created.body.id}/schedule`)
+      .set('Cookie', adminCookie)
+      .send({ date: '2103-02-01' });
+    expect(res.status).toBe(409);
+  });
+
+  it('auto-create fills in the trip date range', async () => {
+    const created = await request(app)
+      .post('/api/trips')
+      .set('Cookie', adminCookie)
+      .send({ year: '2104', name: 'Test Trip', trip_date: '2104-02-01' });
+    await request(app)
+      .put(`/api/trips/${created.body.id}`)
+      .set('Cookie', adminCookie)
+      .send({ return_date: '2104-02-03' });
+
+    const res = await request(app)
+      .post(`/api/trips/${created.body.id}/schedule/auto-create`)
+      .set('Cookie', adminCookie);
+    expect(res.status).toBe(200);
+    expect(res.body.map((d) => d.date)).toEqual(['2104-02-01', '2104-02-02', '2104-02-03']);
   });
 });
 

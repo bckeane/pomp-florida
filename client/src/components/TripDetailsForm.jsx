@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { updateTrip } from '../api/trips.js';
 import Markdown from './Markdown.jsx';
+import TripScheduleManager from './TripScheduleManager.jsx';
 import { renderMarkdownInline } from '../lib/markdown.js';
 import { fmtMoney, splitEstimatedCost } from '../lib/money.js';
 
@@ -28,6 +29,9 @@ const FIELDS = [
   'coordinators',
   'contact_email',
   'miss_school_note',
+  'departure_logistics',
+  'return_logistics',
+  'packing_list',
 ];
 
 /** A large text field with a live markdown preview, for the free-form copy
@@ -155,6 +159,18 @@ export default function TripDetailsForm({ trip, onSaved }) {
                 Miss-school note
                 <input value={form.miss_school_note} onChange={set('miss_school_note')} />
               </label>
+              <MarkdownField
+                label="Departure logistics"
+                rows={2}
+                value={form.departure_logistics}
+                onChange={set('departure_logistics')}
+              />
+              <MarkdownField
+                label="Return logistics"
+                rows={2}
+                value={form.return_logistics}
+                onChange={set('return_logistics')}
+              />
             </div>
           </div>
 
@@ -170,6 +186,11 @@ export default function TripDetailsForm({ trip, onSaved }) {
                 <input value={form.training_location_url} onChange={set('training_location_url')} />
               </label>
             </div>
+            <p className="hint">
+              Daily pool-time schedule is saved immediately, day by day — not part of this form's
+              Save button.
+            </p>
+            <TripScheduleManager key={trip.id} tripId={trip.id} />
           </div>
 
           <div className="form-section">
@@ -200,6 +221,19 @@ export default function TripDetailsForm({ trip, onSaved }) {
                 rows={4}
                 value={form.whats_included}
                 onChange={set('whats_included')}
+                linePreview
+              />
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h3>What to pack</h3>
+            <div className="form-grid">
+              <MarkdownField
+                label="One per line"
+                rows={4}
+                value={form.packing_list}
+                onChange={set('packing_list')}
                 linePreview
               />
             </div>

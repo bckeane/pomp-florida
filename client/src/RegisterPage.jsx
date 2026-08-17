@@ -5,6 +5,7 @@ import AuthGate from './components/AuthGate.jsx';
 import ParentProfileGate from './components/ParentProfileGate.jsx';
 import AccountHome from './components/AccountHome.jsx';
 import PaymentPrompt from './components/PaymentPrompt.jsx';
+import TripEssentials from './components/TripEssentials.jsx';
 import { me, logout } from './api/auth.js';
 import {
   createMyParticipant,
@@ -165,24 +166,27 @@ export default function RegisterPage() {
           {!profileComplete(account) || editingProfile ? (
             <ParentProfileGate account={account} onSaved={handleProfileSaved} />
           ) : submitted ? (
-            <div className="form-card register-success">
-              <p>{lastAdded ? `${lastAdded.first_name} is on the roster.` : "You're on the roster."}</p>
-              {lastAdded && <PaymentPrompt participant={lastAdded} />}
-              <div className="modal-actions account-home-actions">
-                <button type="button" className="link-btn" onClick={backToAccountHome}>
-                  Back to my roster
-                </button>
-                <button
-                  className="btn btn--primary"
-                  onClick={() => {
-                    setPrefill(null);
-                    setSubmitted(false);
-                  }}
-                >
-                  Add another person
-                </button>
+            <>
+              <div className="form-card register-success">
+                <p>{lastAdded ? `${lastAdded.first_name} is on the roster.` : "You're on the roster."}</p>
+                {lastAdded && <PaymentPrompt participant={lastAdded} />}
+                <div className="modal-actions account-home-actions">
+                  <button type="button" className="link-btn" onClick={backToAccountHome}>
+                    Back to my roster
+                  </button>
+                  <button
+                    className="btn btn--primary"
+                    onClick={() => {
+                      setPrefill(null);
+                      setSubmitted(false);
+                    }}
+                  >
+                    Add another person
+                  </button>
+                </div>
               </div>
-            </div>
+              <TripEssentials trip={trip} />
+            </>
           ) : editingParticipant ? (
             <>
               <ParticipantForm
@@ -245,14 +249,17 @@ export default function RegisterPage() {
               </>
             )
           ) : (
-            <AccountHome
-              account={account}
-              trip={trip}
-              participants={myParticipants}
-              onAddAnother={() => setShowAddForm(true)}
-              onEditProfile={() => setEditingProfile(true)}
-              onEditParticipant={setEditingParticipant}
-            />
+            <>
+              <AccountHome
+                account={account}
+                trip={trip}
+                participants={myParticipants}
+                onAddAnother={() => setShowAddForm(true)}
+                onEditProfile={() => setEditingProfile(true)}
+                onEditParticipant={setEditingParticipant}
+              />
+              <TripEssentials trip={trip} />
+            </>
           )}
         </>
       )}

@@ -4,26 +4,22 @@
 
 ### Remaining test-coverage gaps
 
-**What:** Model-level direct tests for `sessions.js` and `settings.js` (both only exercised indirectly today, via every route test that logs in or reads/writes the current-trip setting) — and client-side component tests via React Testing Library, which this repo has never had (see `client/TESTING.md`-equivalent decision in the Budget Tab feature: RTL setup was explicitly out of scope there too).
+**What:** Client-side component tests via React Testing Library, which this repo has never had (see `client/TESTING.md`-equivalent decision in the Budget Tab feature: RTL setup was explicitly out of scope there too).
 
-**Why:** 2026-08-05: route-level coverage was added for `trips.js`, `participants.js` (the biggest gap — full admin CRUD + CSV import/export, previously untested), `adminAccounts.js`, and `stats.js` (54 new server tests, 108 total). `sessions.js`/`settings.js` are small and low-risk enough that dedicated tests are a nice-to-have, not urgent. Client component tests are a bigger, separate investment (test-double the DOM, RTL setup) — deliberately not bundled into this pass.
+**Why:** 2026-08-05: route-level coverage was added for `trips.js`, `participants.js` (the biggest gap — full admin CRUD + CSV import/export, previously untested), `adminAccounts.js`, and `stats.js` (54 new server tests, 108 total). Model-level direct tests for `sessions.js` and `settings.js` were added 2026-08-16 (`server/test/sessions.test.js`, `server/test/settings.test.js` — 17 new tests). Client component tests remain: a bigger, separate investment (test-double the DOM, RTL setup) — deliberately not bundled into either pass.
 
-**Effort:** M (client RTL setup) / S (sessions/settings model tests)
+**Effort:** M (client RTL setup)
 **Priority:** P3
 
 ## Budget
 
-### Multi-year budget trend view
+### Multi-year budget trend view — shipped 2026-08-16
 
-**What:** A view showing how each budget category's Total Per Panther moved across all trip years (2025 → 2026 → ...), instead of just current-vs-prior-year diff.
+A view showing how each budget category's Total Per Panther moved across all trip years, instead of just current-vs-prior-year diff. Built once a 3rd trip year (2027) existed alongside 2025/2026, each with real non-zero budget data — the precondition this item had been waiting on.
 
-**Why:** Approach B of the Budget Tab design (reference-table categories with a stable `category_id`) makes this cheap to build once 3+ years of data exist — same schema, no new tables. Useful for the committee setting next year's per-family cost estimate off a real trend instead of a single prior-year diff.
+**What shipped:** `getBudgetTrend()` in `server/src/models/budget.js` (reuses the same per-trip computation as `getBudgetForTrip`, run once per trip year instead of current+prior only), `GET /api/budget/trend` (admin-only), `fetchBudgetTrend()` in `client/src/api/budget.js`, and a "Show multi-year trend" toggle on the Budget tab (`client/src/components/BudgetPanel.jsx`) rendering categories × years with a Total/Panther footer row. Server tests in `server/test/budget.test.js` and `server/test/budgetRoute.test.js`.
 
-**Context:** Came up during the `/office-hours` design session as one reason to prefer the reference-table category approach over string-matched categories. Not requested for the initial version — only 2 years of data (2025, 2026) will exist at launch, so a trend view isn't meaningful yet. Revisit once a 3rd trip year exists.
-
-**Effort:** M
-**Priority:** P3
-**Depends on:** Budget Tab feature landing; at least 3 trip years of data
+**Known gap, not a bug:** the 2025 trip year has budget totals entered but zero active participants recorded (an archived trip with no live roster), so every category's 2025 cell renders "—" — the same divide-by-zero guard `getBudgetForTrip` already used. Confirmed in a live browser check against real data (2026-08-16).
 
 ## Payments
 
@@ -64,18 +60,19 @@ Two ways a parent's payment gets recorded:
 
 ## Parent-Facing Trip Info
 
-### Post-registration trip summary graphic
+### Post-registration trip summary — shipped 2026-08-16 (dynamic in-app component)
 
-**What:** Show parents a visual trip-essentials summary — dates, accommodation, training venue, daily pool-time schedule, what to pack, departure/return logistics — after they register. Reference: `Swim_&_Dive_Team_Florida_Trip_2026.png` in the repo root, a one-page graphic covering exactly this for the 2026 trip.
+Parents now see a live "Trip Essentials" card — dates, training venue, accommodation, daily pool-time schedule, what to pack, departure/return logistics — on the register-success screen and account-home, rendered from real trip data instead of a yearly-regenerated image. Went with the dynamic option from the two the TODO had flagged (vs. a static image), so it can never drift out of sync with what an admin edits in Trip details.
 
-**Why:** Once hotel/pool/airline logistics are confirmed for the current trip, parents need this surfaced somewhere they'll actually see it right after signing up, not buried in trip-detail text fields they'd have to go looking for.
+**Notable wrinkle found during this work:** the local dev DB already had a `trip_daily_schedule` table and `departure_logistics`/`return_logistics`/`packing_list` columns on `trips`, fully populated with real 2026 data matching the reference PNG — but no migration file defined them (recorded as applied under a filename that didn't exist in the repo or git history) and no code referenced them. Someone had clearly prototyped this exact feature directly against the DB in an earlier session and the migration file was lost before being committed. Formalized it as `021_trip_logistics_and_packing.sql`, matching the existing schema exactly, and kept the real seed data rather than wiping it.
 
-**Context:** The reference image was generated externally (NotebookLM, per its watermark) for the 2026 trip — a static image, not produced by this app. Most of its content already has a home in the trip model (`server/src/models/trips.js` `DETAIL_FIELDS`: `training_location`, `lodging`, `trip_date`, `return_date`, etc.), but the day-by-day morning/afternoon pool-time grid isn't modeled anywhere currently — would need a new field or table. The current active trip (2027) doesn't have hotel/pool/airline details finalized yet, so there's nothing real to show until those come in.
+**What shipped:**
+- `server/src/db/migrations/021_trip_logistics_and_packing.sql` — the `trip_daily_schedule` table (`date`, `morning_window`, `afternoon_window`, `notes` — free text, not structured times, since the real schedule is worded inconsistently day to day) plus the three new `trips` columns.
+- `departure_logistics`/`return_logistics`/`packing_list` added to `DETAIL_FIELDS` in `server/src/models/trips.js` — carry forward to new trip years automatically, same as `lodging`/`training_location`/etc.
+- Schedule CRUD in `trips.js` (`listDailySchedule`, `addScheduleDay`, `updateScheduleDay`, `deleteScheduleDay`, `autoCreateSchedule`) and routes in `server/src/routes/trips.js`: `GET /api/trips/current/schedule` (public), admin CRUD under `/api/trips/:id/schedule`.
+- Admin UI: `client/src/components/TripScheduleManager.jsx` (day-by-day table, immediate save per row, "+ Auto-create days for trip dates") embedded in `TripDetailsForm.jsx`'s Training section; new "Departure logistics"/"Return logistics"/"What to pack" fields elsewhere in that form.
+- Parent-facing `client/src/components/TripEssentials.jsx`, wired into `RegisterPage.jsx`'s register-success screen and account-home. Renders nothing if the current trip has none of this content yet (true today for the 2027 trip — it inherited `training_location`/`lodging` from 2026 but not the newer logistics/packing/schedule fields, since those didn't exist as `DETAIL_FIELDS` when 2027 was created).
+- `datesInRange` extracted from `budget.js` into `server/src/lib/dates.js` so both the food-planner and this schedule's "auto-create days" share one implementation.
+- Server tests: `server/test/tripSchedule.test.js` (model), additions to `server/test/tripsRoute.test.js` (routes) and `server/test/trips.test.js` (DETAIL_FIELDS carry-forward) — 20 new tests, 287 total.
 
-**Open question for implementation:** regenerate a static graphic each year via an external tool and link/embed the image (simple, but someone has to remember to do it every year and it can drift out of sync with the trip-detail fields), vs. build it as a real in-app component rendered live from trip data (more work, needs the schedule data modeled, but always accurate and no yearly manual step).
-
-**Where to show it:** Most natural spot is the register-page success screen (right after signup) and/or account-home, alongside the trip details already shown on the public home page.
-
-**Effort:** M (dynamic in-app component, needs new schedule data) / S (static image, regenerated and linked yearly)
-**Priority:** TBD
-**Depends on:** Hotel/pool/airline logistics being finalized for the current trip year.
+**Verified live** (2026-08-16) against real data: the pre-existing 2026 trip's logistics/packing/schedule render correctly in the new admin UI, and the parent-facing card renders correctly (and degrades gracefully) against the current 2027 trip's partial data.

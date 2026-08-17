@@ -6,11 +6,11 @@ vi.mock('../src/models/budget.js', async (importOriginal) => {
   return { ...actual, seedBudgetForNewTrip: vi.fn(actual.seedBudgetForNewTrip) };
 });
 
-const { createTrip } = await import('../src/models/trips.js');
+const { createTrip, updateTrip } = await import('../src/models/trips.js');
 const { seedBudgetForNewTrip } = await import('../src/models/budget.js');
 
 beforeEach(() => {
-  db.exec('DELETE FROM trip_budget_items; DELETE FROM trips;');
+  db.exec('DELETE FROM trip_daily_schedule; DELETE FROM trip_budget_items; DELETE FROM trips;');
   vi.mocked(seedBudgetForNewTrip).mockClear();
 });
 
@@ -33,5 +33,19 @@ describe('createTrip', () => {
 
     const orphan = db.prepare('SELECT * FROM trips WHERE year = ?').get('2098');
     expect(orphan).toBeUndefined();
+  });
+
+  it('carries departure_logistics, return_logistics, and packing_list forward from the previous trip', () => {
+    const prior = createTrip({ year: '2101', name: 'Prior', trip_date: '2101-01-01' });
+    updateTrip(prior.id, {
+      departure_logistics: 'Arrive at PHS by 4:00 AM.',
+      return_logistics: 'Carpool pickup at 3:45 PM.',
+      packing_list: 'Sunscreen\nSwim gear',
+    });
+
+    const next = createTrip({ year: '2102', name: 'Next', trip_date: '2102-01-01' });
+    expect(next.departure_logistics).toBe('Arrive at PHS by 4:00 AM.');
+    expect(next.return_logistics).toBe('Carpool pickup at 3:45 PM.');
+    expect(next.packing_list).toBe('Sunscreen\nSwim gear');
   });
 });

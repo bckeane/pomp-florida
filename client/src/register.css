@@ -478,3 +478,52 @@
   color: var(--danger);
   font-size: 0.82rem;
 }
+
+/* Trip Essentials — parent-facing summary (see TripEssentials.jsx), shown
+   after the register-success screen and on account-home. */
+.register-page .trip-essentials {
+  text-align: left;
+}
+
+.register-page .trip-essentials-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: var(--space-7) 0;
+}
+
+.register-page .trip-essentials-fact dt {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.register-page .trip-essentials-fact dd {
+  margin: 0.1rem 0 0;
+  font-weight: 500;
+}
+
+.register-page .trip-essentials-subhead {
+  margin: var(--space-8) 0 var(--space-4);
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.register-page .trip-essentials-pack-label {
+  margin: var(--space-6) 0 var(--space-2);
+  font-weight: 600;
+}
+
+.register-page .trip-essentials-pack-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.register-page .trip-essentials-pack-list li {
+  margin-bottom: 0.2rem;
+}

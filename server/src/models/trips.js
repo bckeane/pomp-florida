@@ -1,6 +1,7 @@
 import { db } from '../db/connection.js';
 import { getCurrentTripId, setCurrentTripId } from './settings.js';
 import { seedBudgetForNewTrip } from './budget.js';
+import { datesInRange } from '../lib/dates.js';
 
 // Deposit defaults to 60% of the estimated cost (adjustable per trip via
 // deposit_percent, e.g. a slider in the admin UI), final payment the
@@ -76,6 +77,9 @@ const DETAIL_FIELDS = [
   'coordinators',
   'contact_email',
   'miss_school_note',
+  'departure_logistics',
+  'return_logistics',
+  'packing_list',
 ];
 const UPDATABLE_FIELDS = ['name', 'trip_date', ...DETAIL_FIELDS];
 
@@ -127,4 +131,115 @@ export function activateTrip(id) {
   if (!trip) return null;
   setCurrentTripId(id);
   return trip;
+}
+
+// Day-by-day pool-time schedule (morning/afternoon windows) backing the
+// parent-facing trip essentials summary — see Swim_&_Dive_Team_Florida_
+// Trip_2026.png in the repo root for the reference layout this models.
+// Free-text windows ("6am-9am window", "3-5pm", "None"), not structured
+// times — the committee's real schedule is worded inconsistently day to day
+// and forcing a time-range input would lose that.
+export function listDailySchedule(tripId) {
+  return db.prepare('SELECT * FROM trip_daily_schedule WHERE trip_id = ? ORDER BY date').all(tripId);
+}
+
+const SCHEDULE_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function validateScheduleFields({ date }) {
+  if (date !== undefined && !SCHEDULE_DATE_RE.test(date)) {
+    const err = new Error('date must be in YYYY-MM-DD format');
+    err.code = 'INVALID_DATE';
+    throw err;
+  }
+}
+
+export function addScheduleDay(tripId, { date, morning_window, afternoon_window, notes }) {
+  if (!getTripById(tripId)) {
+    const err = new Error('Unknown trip_id');
+    err.code = 'TRIP_NOT_FOUND';
+    throw err;
+  }
+  validateScheduleFields({ date });
+
+  const existing = db
+    .prepare('SELECT 1 FROM trip_daily_schedule WHERE trip_id = ? AND date = ?')
+    .get(tripId, date);
+  if (existing) {
+    const err = new Error(`A schedule entry for ${date} already exists on this trip`);
+    err.code = 'DUPLICATE_DATE';
+    throw err;
+  }
+
+  const info = db
+    .prepare(
+      `INSERT INTO trip_daily_schedule (trip_id, date, morning_window, afternoon_window, notes)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .run(tripId, date, morning_window ?? null, afternoon_window ?? null, notes ?? null);
+  return db.prepare('SELECT * FROM trip_daily_schedule WHERE id = ?').get(info.lastInsertRowid);
+}
+
+// Partial update — only the fields present in `fields` are validated/changed.
+export function updateScheduleDay(id, fields) {
+  const row = db.prepare('SELECT * FROM trip_daily_schedule WHERE id = ?').get(id);
+  if (!row) {
+    const err = new Error('Unknown schedule entry');
+    err.code = 'SCHEDULE_NOT_FOUND';
+    throw err;
+  }
+  validateScheduleFields(fields);
+
+  const next = { ...row, ...fields };
+  if (next.date !== row.date) {
+    const dup = db
+      .prepare('SELECT 1 FROM trip_daily_schedule WHERE trip_id = ? AND date = ? AND id != ?')
+      .get(row.trip_id, next.date, id);
+    if (dup) {
+      const err = new Error(`A schedule entry for ${next.date} already exists on this trip`);
+      err.code = 'DUPLICATE_DATE';
+      throw err;
+    }
+  }
+
+  db.prepare(
+    `UPDATE trip_daily_schedule SET date = ?, morning_window = ?, afternoon_window = ?, notes = ? WHERE id = ?`
+  ).run(next.date, next.morning_window, next.afternoon_window, next.notes, id);
+  return db.prepare('SELECT * FROM trip_daily_schedule WHERE id = ?').get(id);
+}
+
+export function deleteScheduleDay(id) {
+  const row = db.prepare('SELECT * FROM trip_daily_schedule WHERE id = ?').get(id);
+  if (!row) {
+    const err = new Error('Unknown schedule entry');
+    err.code = 'SCHEDULE_NOT_FOUND';
+    throw err;
+  }
+  db.prepare('DELETE FROM trip_daily_schedule WHERE id = ?').run(id);
+}
+
+// Bulk-populates one blank entry per day of the trip's date range — same
+// "Manage days" one-click pattern as budget.js's autoCreateDailyItems.
+export function autoCreateSchedule(tripId) {
+  const trip = getTripById(tripId);
+  if (!trip) {
+    const err = new Error('Unknown trip_id');
+    err.code = 'TRIP_NOT_FOUND';
+    throw err;
+  }
+  if (!trip.trip_date || !trip.return_date) {
+    const err = new Error('This trip is missing a departure or return date — set both before auto-creating days');
+    err.code = 'TRIP_DATES_MISSING';
+    throw err;
+  }
+
+  const existingDates = new Set(listDailySchedule(tripId).map((row) => row.date));
+  const insert = db.prepare('INSERT INTO trip_daily_schedule (trip_id, date) VALUES (?, ?)');
+  const insertMissing = db.transaction((dates) => {
+    for (const date of dates) {
+      if (!existingDates.has(date)) insert.run(tripId, date);
+    }
+  });
+  insertMissing(datesInRange(trip.trip_date, trip.return_date));
+
+  return listDailySchedule(tripId);
 }
