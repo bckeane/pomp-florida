@@ -40,17 +40,8 @@ Two ways a parent's payment gets recorded:
 - Recovery, if the webhook is ever misconfigured — see "Setup dependencies" below for exactly what that looks like when it happens.
 
 **If a participant drops the trip after paying (refunds):**
-1. Issue the refund manually in the Stripe Dashboard (Payments → find the charge → Refund). pompFlorida has no in-app refund flow, and the webhook doesn't listen for refund events.
-2. Manually reduce (or zero out) the corresponding `deposit_received`/`final_payment_received` value on the roster to match what actually happened in Stripe. **This step is easy to forget** — if skipped, the roster will show a balance as paid when it isn't, silently drifting from the real Stripe ledger. There's no code guard against this; it depends on the admin remembering. (A `charge.refunded` webhook handler would close this gap — not built yet; worth its own TODO if refunds turn out to be common.)
-
-### `charge.refunded` webhook handler
-
-**What:** Extend `POST /api/stripe/webhook` to also listen for `charge.refunded` and automatically reduce (or zero out) the corresponding `deposit_received`/`final_payment_received` value on the roster, instead of relying on an admin to do it by hand.
-
-**Why:** Refunds today require a fully manual roster fix (see runbook above) with no code guard — if an admin forgets step 2 after issuing a refund in the Stripe Dashboard, the roster silently shows a balance as paid when it isn't, drifting from the real Stripe ledger.
-
-**Effort:** S
-**Priority:** TBD — worth building once refunds turn out to be common; not urgent while they're rare.
+1. Refund the family directly — check, cash, or Venmo — **not** through Stripe. This is a deliberate, permanent decision (confirmed 2026-08-17): refunds never touch Stripe and are never issued through the app. The original Stripe charge is intentionally left alone, unrefunded on Stripe's side.
+2. Manually reduce (or zero out) the corresponding `deposit_received`/`final_payment_received` value on the roster to match the refund actually given. **This step is easy to forget** — if skipped, the roster will show a balance as paid when it isn't. There's no code guard against this; it depends on the admin remembering.
 
 **Setup dependencies — both env vars, in both environments:**
 - `STRIPE_SECRET_KEY` — without it, both payment routes return a clear "Stripe is not configured on this server" error instead of attempting to reach Stripe.
@@ -64,6 +55,12 @@ Two ways a parent's payment gets recorded:
 - Nothing stops generating two live sessions for the same installment (admin clicking "Get link" twice, or a parent clicking "Pay deposit" twice). Low-risk at this app's volume — the unused one simply expires. Not worth building dedup logic for.
 - The booster club absorbs the ~2.9% + $0.30 Stripe fee — parents are charged exactly the balance shown in pompFlorida, no added fee line item.
 - Every payment path always charges the **remaining balance owed** (price minus whatever's already recorded as received), not a fixed installment price — so a parent who already paid something by check isn't double-charged, and "pay in full" after a partial payment only charges what's left.
+
+### `charge.refunded` webhook handler — decided against, kept for context
+
+**What it would have been:** Extend `POST /api/stripe/webhook` to also listen for `charge.refunded` and automatically reduce (or zero out) the corresponding `deposit_received`/`final_payment_received` value on the roster, instead of relying on an admin to do it by hand.
+
+**Why not:** Confirmed 2026-08-17 — refunds are a permanent manual-only process (see runbook above) that never issues a Stripe refund in the first place, so `charge.refunded` will never fire for this app's flow. There's nothing for a webhook handler to listen for. This entry is kept (not deleted) as a record of why the idea was rejected, in case the refund process ever changes.
 
 ## Parent-Facing Trip Info
 
