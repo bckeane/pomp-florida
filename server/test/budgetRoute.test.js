@@ -66,6 +66,30 @@ describe('GET /api/budget', () => {
   });
 });
 
+describe('GET /api/budget/trend', () => {
+  it('401s when not signed in', async () => {
+    const res = await request(app).get('/api/budget/trend');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns every trip year with a category/values shape for an admin', async () => {
+    const trip = createTrip({ year: '2130', name: 'Test', trip_date: '2130-01-01' });
+    const airfare = category('Airfare');
+    await request(app)
+      .put('/api/budget/items')
+      .set('Cookie', adminCookie)
+      .send({ trip_id: trip.id, category_id: airfare.id, total: 100 });
+
+    const res = await request(app).get('/api/budget/trend').set('Cookie', adminCookie);
+    expect(res.status).toBe(200);
+    expect(res.body.trips.map((t) => t.year)).toContain('2130');
+    const row = res.body.categories.find((c) => c.category_id === airfare.id);
+    expect(row).toBeTruthy();
+    expect(Array.isArray(row.values)).toBe(true);
+    expect(Array.isArray(res.body.grand_total_per_panther)).toBe(true);
+  });
+});
+
 describe('PUT /api/budget/items', () => {
   it('400s on a negative total', async () => {
     const trip = createTrip({ year: '2072', name: 'Test', trip_date: '2072-01-01' });

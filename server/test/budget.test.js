@@ -8,6 +8,7 @@ import {
   retireCategory,
   unretireCategory,
   getBudgetForTrip,
+  getBudgetTrend,
   attachCategoryToTrip,
   detachCategoryFromTrip,
   updateLineItemValue,
@@ -846,5 +847,53 @@ describe('autoCreateDailyItems', () => {
     const item = attachCategoryToTrip(trip.id, food.id);
 
     expect(() => autoCreateDailyItems(item.id)).toThrowError(/day-by-day planner/);
+  });
+});
+
+describe('getBudgetTrend', () => {
+  it("returns every trip year's total_per_panther per category, sorted by year", () => {
+    const y1 = createTrip({ year: '2130', name: 'Y1', trip_date: '2130-01-01' });
+    const y2 = createTrip({ year: '2131', name: 'Y2', trip_date: '2131-01-01' });
+    addStudent(y1.id);
+    addStudent(y1.id);
+    for (let i = 0; i < 4; i++) addStudent(y2.id);
+
+    const airfare = category('Airfare');
+    setTotal(y1.id, airfare.id, 200);
+    setTotal(y2.id, airfare.id, 800);
+
+    const trend = getBudgetTrend();
+    expect(trend.trips.map((t) => t.year)).toEqual(['2130', '2131']);
+
+    const row = trend.categories.find((c) => c.category_id === airfare.id);
+    expect(row.values).toEqual([100, 200]);
+  });
+
+  it('shows null for a year a category was never attached to, without shifting other years', () => {
+    const y1 = createTrip({ year: '2132', name: 'Y1', trip_date: '2132-01-01' });
+    const y2 = createTrip({ year: '2133', name: 'Y2', trip_date: '2133-01-01' });
+    addStudent(y2.id);
+
+    const fresh = createCategory('Trend-Only Test Category');
+    setTotal(y2.id, fresh.id, 100);
+
+    const trend = getBudgetTrend();
+    const row = trend.categories.find((c) => c.category_id === fresh.id);
+    expect(row.values).toEqual([null, 100]);
+  });
+
+  it("grand_total_per_panther sums that year's per-category total_per_panther", () => {
+    const trip = createTrip({ year: '2134', name: 'Test', trip_date: '2134-01-01' });
+    addStudent(trip.id);
+    addStudent(trip.id);
+
+    const airfare = category('Airfare');
+    const hotel = category('Hotel');
+    setTotal(trip.id, airfare.id, 200);
+    setTotal(trip.id, hotel.id, 100);
+
+    const trend = getBudgetTrend();
+    const index = trend.trips.findIndex((t) => t.trip_id === trip.id);
+    expect(trend.grand_total_per_panther[index]).toBe(150);
   });
 });

@@ -1,5 +1,6 @@
 import { db } from '../db/connection.js';
 import { getStats } from './participants.js';
+import { datesInRange } from '../lib/dates.js';
 
 export function listActiveCategories() {
   return db.prepare('SELECT * FROM budget_categories WHERE retired = 0 ORDER BY sort_order').all();
@@ -259,6 +260,57 @@ export function getBudgetForTrip(tripId) {
   });
 }
 
+// How each budget category's Total/Panther moved across every trip year,
+// for the committee setting next year's per-family estimate off a real trend
+// instead of a single prior-year diff (getBudgetForTrip's `diff` field).
+// Reuses the same per-trip computation as getBudgetForTrip, just run once
+// per trip across all of them instead of current+prior only. Categories are
+// listed even if retired or missing from some years (a null cell, rendered
+// as "—" by the client) — a category's mid-history gap shouldn't collapse
+// the column alignment for years before/after it.
+export function getBudgetTrend() {
+  const trips = db.prepare('SELECT id, year FROM trips ORDER BY year, id').all();
+
+  const perTrip = trips.map((trip) => {
+    const items = lineItemsForTrip(trip.id);
+    const exclusions = exclusionsByItem(items.map((i) => i.id));
+    const dailyTotals = dailyTotalsByItem(items.map((i) => i.id));
+    const studentsActive = getStats(trip.id).students_active;
+    const studentsForItem = (item) => resolveStudents(item, studentsActive, exclusions[item.id]);
+    const amounts = computeAmountsForItems(items, studentsForItem, dailyTotals);
+    const byCategory = Object.fromEntries(
+      items.map((item) => [item.category_id, amounts[item.id].total_per_panther])
+    );
+    return { trip, items, byCategory };
+  });
+
+  const categoriesById = new Map();
+  for (const { items } of perTrip) {
+    for (const item of items) {
+      if (!categoriesById.has(item.category_id)) {
+        categoriesById.set(item.category_id, {
+          category_id: item.category_id,
+          category: item.category,
+          sort_order: item.sort_order,
+        });
+      }
+    }
+  }
+  const categories = [...categoriesById.values()].sort((a, b) => a.sort_order - b.sort_order);
+
+  return {
+    trips: trips.map((t) => ({ trip_id: t.id, year: t.year })),
+    categories: categories.map((c) => ({
+      category_id: c.category_id,
+      category: c.category,
+      values: perTrip.map(({ byCategory }) => byCategory[c.category_id] ?? null),
+    })),
+    grand_total_per_panther: perTrip.map(({ byCategory }) =>
+      Object.values(byCategory).reduce((sum, v) => sum + (v ?? 0), 0)
+    ),
+  };
+}
+
 // The type a NEW row for this category should start as, carried forward
 // from that category's most recent prior-year item (Premise 5) — 'totals'
 // if no prior item exists. Used by attachCategoryToTrip (an existing trip
@@ -512,24 +564,6 @@ export function deleteDailyItem(dailyItemId) {
   }
   requireFoodPlannerItem(row.trip_budget_item_id);
   db.prepare('DELETE FROM trip_budget_daily_items WHERE id = ?').run(dailyItemId);
-}
-
-// Inclusive list of 'YYYY-MM-DD' strings from startDate to endDate. Built
-// entirely in UTC (never a local Date, never .getDate()/.setDate()) so a
-// day boundary never shifts under DST — a local-time walk would skip or
-// repeat a date on the day clocks change.
-function datesInRange(startDate, endDate) {
-  const [sy, sm, sd] = startDate.split('-').map(Number);
-  const [ey, em, ed] = endDate.split('-').map(Number);
-  const end = Date.UTC(ey, em - 1, ed);
-  const dates = [];
-  for (let cursor = Date.UTC(sy, sm - 1, sd); cursor <= end; cursor += 86400000) {
-    const d = new Date(cursor);
-    dates.push(
-      `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
-    );
-  }
-  return dates;
 }
 
 // Bulk-populates a 'food_planner' row with one $0 entry per day of the

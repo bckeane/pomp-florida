@@ -4,6 +4,7 @@ import { fmtMoney } from '../lib/money.js';
 import {
   fetchBudget,
   fetchBudgetCategories,
+  fetchBudgetTrend,
   createBudgetCategory,
   retireBudgetCategory,
   unretireBudgetCategory,
@@ -63,6 +64,9 @@ export default function BudgetPanel({ tripId }) {
   const [addingExisting, setAddingExisting] = useState(false);
   const [showMatrix, setShowMatrix] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showTrend, setShowTrend] = useState(false);
+  const [trend, setTrend] = useState(null);
+  const [trendLoading, setTrendLoading] = useState(false);
   const [expandedPlanners, setExpandedPlanners] = useState(new Set());
   const [dailyItems, setDailyItems] = useState({});
   const [dailyEditDrafts, setDailyEditDrafts] = useState({});
@@ -373,6 +377,26 @@ export default function BudgetPanel({ tripId }) {
       await load();
     } catch {
       setError('Could not update that exclusion.');
+    }
+  };
+
+  // Lazily fetches the multi-year trend the first time it's expanded, same
+  // "Manage X" toggle pattern as showMatrix/showCategoryManager above — it
+  // spans every trip year at once so there's no reason to reload it on
+  // every load() call for the currently-viewed trip.
+  const handleToggleTrend = async () => {
+    const next = !showTrend;
+    setShowTrend(next);
+    if (next && !trend) {
+      setTrendLoading(true);
+      setError(null);
+      try {
+        setTrend(await fetchBudgetTrend());
+      } catch {
+        setError('Could not load the multi-year trend.');
+      } finally {
+        setTrendLoading(false);
+      }
     }
   };
 
@@ -790,6 +814,51 @@ export default function BudgetPanel({ tripId }) {
           >
             {showCategoryManager ? 'Hide' : 'Manage'} categories
           </button>
+          {' · '}
+          <button type="button" className="link-btn" onClick={handleToggleTrend}>
+            {showTrend ? 'Hide' : 'Show'} multi-year trend
+          </button>
+
+          {showTrend && (
+            <div className="preview-table-wrap" style={{ marginTop: '0.6rem' }}>
+              {trendLoading ? (
+                <p className="hint">Loading…</p>
+              ) : (
+                trend && (
+                  <table className="preview-table">
+                    <thead>
+                      <tr>
+                        <th>Category</th>
+                        {trend.trips.map((t) => (
+                          <th key={t.trip_id}>{t.year}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trend.categories.map((c) => (
+                        <tr key={c.category_id}>
+                          <td>{c.category}</td>
+                          {c.values.map((value, i) => (
+                            <td key={trend.trips[i].trip_id}>{fmtMoney(value)}</td>
+                          ))}
+                        </tr>
+                      ))}
+                      <tr>
+                        <td>
+                          <strong>Total/Panther</strong>
+                        </td>
+                        {trend.grand_total_per_panther.map((value, i) => (
+                          <td key={trend.trips[i].trip_id}>
+                            <strong>{fmtMoney(value)}</strong>
+                          </td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+                )
+              )}
+            </div>
+          )}
 
           {showCategoryManager && (
             <div className="preview-table-wrap" style={{ marginTop: '0.6rem' }}>

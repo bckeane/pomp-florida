@@ -8,6 +8,7 @@ import {
   retireCategory,
   unretireCategory,
   getBudgetForTrip,
+  getBudgetTrend,
   attachCategoryToTrip,
   detachCategoryFromTrip,
   updateLineItemValue,
@@ -52,6 +53,11 @@ router.get('/budget', requireAdmin, (req, res) => {
   const tripId = resolveTripId(req, res);
   if (tripId === null) return;
   res.json(getBudgetForTrip(tripId));
+});
+
+// Every trip year at once, not just current-vs-prior — see getBudgetTrend.
+router.get('/budget/trend', requireAdmin, (req, res) => {
+  res.json(getBudgetTrend());
 });
 
 router.get('/budget/categories', requireAdmin, (req, res) => {

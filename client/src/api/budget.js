@@ -27,6 +27,12 @@ export function fetchBudgetCategories() {
   return request('/budget/categories');
 }
 
+/** Every budget category's Total/Panther across every trip year, for the
+ * multi-year trend view — not just current-vs-prior (fetchBudget's `diff`). */
+export function fetchBudgetTrend() {
+  return request('/budget/trend');
+}
+
 export function createBudgetCategory(name) {
   return request('/budget/categories', { method: 'POST', body: JSON.stringify({ name }) });
 }
