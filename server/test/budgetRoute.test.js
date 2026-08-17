@@ -3,7 +3,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { db } from '../src/db/connection.js';
-import { createTrip } from '../src/models/trips.js';
+import { createTrip, updateTrip } from '../src/models/trips.js';
 import { createParticipant } from '../src/models/participants.js';
 import { createAccount, setAccountRole } from '../src/models/accounts.js';
 import { createSession } from '../src/models/sessions.js';
@@ -570,5 +570,52 @@ describe('food_planner day-by-day routes', () => {
 
     const delRes = await request(app).delete('/api/budget/items/1/daily/999999').set('Cookie', adminCookie);
     expect(delRes.status).toBe(404);
+  });
+});
+
+describe('POST /api/budget/items/:id/daily/auto-create', () => {
+  it('401s when not signed in', async () => {
+    const trip = createTrip({ year: '2123', name: 'Test', trip_date: '2027-02-10' });
+    const itemId = await foodPlannerItemId(trip.id);
+    const res = await request(app).post(`/api/budget/items/${itemId}/daily/auto-create`);
+    expect(res.status).toBe(401);
+  });
+
+  it('creates a day for every date in the trip range', async () => {
+    const trip = createTrip({ year: '2124', name: 'Test', trip_date: '2027-02-10' });
+    updateTrip(trip.id, { return_date: '2027-02-12' });
+    const itemId = await foodPlannerItemId(trip.id);
+
+    const res = await request(app).post(`/api/budget/items/${itemId}/daily/auto-create`).set('Cookie', adminCookie);
+    expect(res.status).toBe(200);
+    expect(res.body.map((d) => d.date)).toEqual(['2027-02-10', '2027-02-11', '2027-02-12']);
+    expect(res.body.every((d) => d.budget === 0)).toBe(true);
+  });
+
+  it('400s when the trip is missing a return date', async () => {
+    const trip = createTrip({ year: '2125', name: 'Test', trip_date: '2027-02-10' });
+    const itemId = await foodPlannerItemId(trip.id);
+    const res = await request(app).post(`/api/budget/items/${itemId}/daily/auto-create`).set('Cookie', adminCookie);
+    expect(res.status).toBe(400);
+  });
+
+  it('400s when the row is not a food_planner row', async () => {
+    const trip = createTrip({ year: '2126', name: 'Test', trip_date: '2027-02-10' });
+    updateTrip(trip.id, { return_date: '2027-02-12' });
+    const airfare = category('Airfare');
+    const item = db
+      .prepare('SELECT * FROM trip_budget_items WHERE trip_id = ? AND category_id = ?')
+      .get(trip.id, airfare.id);
+    const res = await request(app)
+      .post(`/api/budget/items/${item.id}/daily/auto-create`)
+      .set('Cookie', adminCookie);
+    expect(res.status).toBe(400);
+  });
+
+  it('404s for an unknown trip_budget_item id', async () => {
+    const res = await request(app)
+      .post('/api/budget/items/999999/daily/auto-create')
+      .set('Cookie', adminCookie);
+    expect(res.status).toBe(404);
   });
 });

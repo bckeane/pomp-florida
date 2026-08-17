@@ -25,16 +25,6 @@
 **Priority:** P3
 **Depends on:** Budget Tab feature landing; at least 3 trip years of data
 
-### Budget row types: per-swimmer/diver vs. totals-based
-
-**What:** Each budget row needs a type: **swimmer/diver-based** (a fixed cost per swimmer/diver, e.g. a per-athlete meet fee) vs. **totals-based** (a lump sum quoted by a 3rd party — e.g. hotel block, bus charter — that needs to be divided across the number of swimmers/divers to get the per-athlete cost).
-
-**Why:** Not every budget line is naturally a per-athlete rate. Some costs arrive as a single quoted total that only becomes a per-Panther figure once divided by headcount, and the Budget Tab's "Total Per Panther" column needs to know which math applies to each row.
-
-**Effort:** TBD
-**Priority:** TBD
-**Depends on:** Budget Tab feature
-
 ## Payments
 
 ### Admin runbook: Stripe reconciliation and refunds
@@ -74,19 +64,6 @@ Two ways a parent's payment gets recorded:
 - Nothing stops generating two live sessions for the same installment (admin clicking "Get link" twice, or a parent clicking "Pay deposit" twice). Low-risk at this app's volume — the unused one simply expires. Not worth building dedup logic for.
 - The booster club absorbs the ~2.9% + $0.30 Stripe fee — parents are charged exactly the balance shown in pompFlorida, no added fee line item.
 - Every payment path always charges the **remaining balance owed** (price minus whatever's already recorded as received), not a fixed installment price — so a parent who already paid something by check isn't double-charged, and "pay in full" after a partial payment only charges what's left.
-
-## Admin
-
-### Registered-accounts tab: emails + parent contact info
-
-**What:** A new tab on the admin page (alongside Roster/Budget/Questions/Trip details) listing every registered account — email, parent/guardian name, and emergency contact phone — independent of the per-trip participant roster.
-
-**Why:** Coordinators need a full contact list for everyone who's signed up, not just the per-participant info currently only visible by opening each roster row.
-
-**Context:** The `accounts` table (`server/src/models/accounts.js`) already has `email`, `parent_name`, `emergency_phone` columns, set via `updateAccountProfile` (`ParentProfileGate.jsx` on the register page). Nothing currently lists all parent accounts — `listAdminAccounts()` exists but filters to `role = 'admin'` only, for the separate "manage admins" feature. Would need a new model query, a new `requireAdmin` route, and a new tab following the existing `activeTab` segmented-control pattern in `AdminRoster.jsx`.
-
-**Effort:** S
-**Priority:** TBD
 
 ## Parent-Facing Trip Info
 

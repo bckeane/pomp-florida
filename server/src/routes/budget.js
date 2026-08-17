@@ -19,6 +19,7 @@ import {
   addDailyItem,
   updateDailyItem,
   deleteDailyItem,
+  autoCreateDailyItems,
 } from '../models/budget.js';
 
 const router = Router();
@@ -197,7 +198,12 @@ const dailyItemSchema = z.object({
 });
 
 function dailyItemErrorStatus(err) {
-  if (err.code === 'INVALID_DATE' || err.code === 'INVALID_AMOUNT' || err.code === 'FOOD_PLANNER_TYPE_REQUIRED') {
+  if (
+    err.code === 'INVALID_DATE' ||
+    err.code === 'INVALID_AMOUNT' ||
+    err.code === 'FOOD_PLANNER_TYPE_REQUIRED' ||
+    err.code === 'TRIP_DATES_MISSING'
+  ) {
     return 400;
   }
   if (err.code === 'ITEM_NOT_FOUND' || err.code === 'DAILY_ITEM_NOT_FOUND') return 404;
@@ -214,6 +220,22 @@ router.post('/budget/items/:id/daily', requireAdmin, (req, res) => {
 
   try {
     res.status(201).json(addDailyItem(id, parsed.data));
+  } catch (err) {
+    const status = dailyItemErrorStatus(err);
+    if (status) return res.status(status).json({ error: err.message });
+    throw err;
+  }
+});
+
+// Bulk-populates a $0 entry for every day of the trip's date range (see
+// autoCreateDailyItems) — the "Manage days" table's one-click alternative to
+// POST /daily above. Idempotent: already-populated dates are left alone.
+router.post('/budget/items/:id/daily/auto-create', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(404).json({ error: 'Line item not found' });
+
+  try {
+    res.json(autoCreateDailyItems(id));
   } catch (err) {
     const status = dailyItemErrorStatus(err);
     if (status) return res.status(status).json({ error: err.message });

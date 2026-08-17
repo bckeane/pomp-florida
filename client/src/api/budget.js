@@ -106,6 +106,12 @@ export function deleteBudgetDailyItem(tripBudgetItemId, dailyId) {
   return request(`/budget/items/${tripBudgetItemId}/daily/${dailyId}`, { method: 'DELETE' });
 }
 
+/** Bulk-populates a $0 entry for every day of the trip's date range —
+ * skips dates that already have an entry, so it's safe to call again. */
+export function autoCreateBudgetDailyItems(tripBudgetItemId) {
+  return request(`/budget/items/${tripBudgetItemId}/daily/auto-create`, { method: 'POST' });
+}
+
 export function setBudgetExclusion(tripBudgetItemId, participantId) {
   return request('/budget/exclusions', {
     method: 'POST',

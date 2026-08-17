@@ -514,6 +514,54 @@ export function deleteDailyItem(dailyItemId) {
   db.prepare('DELETE FROM trip_budget_daily_items WHERE id = ?').run(dailyItemId);
 }
 
+// Inclusive list of 'YYYY-MM-DD' strings from startDate to endDate. Built
+// entirely in UTC (never a local Date, never .getDate()/.setDate()) so a
+// day boundary never shifts under DST — a local-time walk would skip or
+// repeat a date on the day clocks change.
+function datesInRange(startDate, endDate) {
+  const [sy, sm, sd] = startDate.split('-').map(Number);
+  const [ey, em, ed] = endDate.split('-').map(Number);
+  const end = Date.UTC(ey, em - 1, ed);
+  const dates = [];
+  for (let cursor = Date.UTC(sy, sm - 1, sd); cursor <= end; cursor += 86400000) {
+    const d = new Date(cursor);
+    dates.push(
+      `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+    );
+  }
+  return dates;
+}
+
+// Bulk-populates a 'food_planner' row with one $0 entry per day of the
+// trip's date range (trip_date..return_date, inclusive) — the "Manage days"
+// table's one-click alternative to adding each day by hand. Skips dates that
+// already have an entry, so it's safe to call again after manually adding
+// some days first, or after the trip's dates change. Returns the row's full
+// updated day list, same shape as listDailyItems, so the route can respond
+// with something the client can render directly.
+export function autoCreateDailyItems(tripBudgetItemId) {
+  const item = requireFoodPlannerItem(tripBudgetItemId);
+  const trip = db.prepare('SELECT trip_date, return_date FROM trips WHERE id = ?').get(item.trip_id);
+  if (!trip?.trip_date || !trip?.return_date) {
+    const err = new Error('This trip is missing a departure or return date — set both before auto-creating days');
+    err.code = 'TRIP_DATES_MISSING';
+    throw err;
+  }
+
+  const existingDates = new Set(listDailyItems(tripBudgetItemId).map((row) => row.date));
+  const insert = db.prepare(
+    'INSERT INTO trip_budget_daily_items (trip_budget_item_id, date, budget, cash) VALUES (?, ?, 0, 0)'
+  );
+  const insertMissing = db.transaction((dates) => {
+    for (const date of dates) {
+      if (!existingDates.has(date)) insert.run(tripBudgetItemId, date);
+    }
+  });
+  insertMissing(datesInRange(trip.trip_date, trip.return_date));
+
+  return listDailyItems(tripBudgetItemId);
+}
+
 // Pins (or, with value=null, clears) this row's # Students figure — see
 // resolveStudents/migration 019. Independent of type/exclusions, so unlike
 // switchLineItemType this never resets any other field. Returns null if the

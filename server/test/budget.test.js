@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../src/db/connection.js';
-import { createTrip } from '../src/models/trips.js';
+import { createTrip, updateTrip } from '../src/models/trips.js';
 import { createParticipant } from '../src/models/participants.js';
 import {
   listActiveCategories,
@@ -20,6 +20,7 @@ import {
   addDailyItem,
   updateDailyItem,
   deleteDailyItem,
+  autoCreateDailyItems,
 } from '../src/models/budget.js';
 
 function addStudent(tripId) {
@@ -798,5 +799,52 @@ describe('food_planner rows', () => {
     switchLineItemType(item.id, 'totals');
     expect(() => updateDailyItem(day.id, { budget: 60 })).toThrowError(/day-by-day planner/);
     expect(() => deleteDailyItem(day.id)).toThrowError(/day-by-day planner/);
+  });
+});
+
+describe('autoCreateDailyItems', () => {
+  it('creates one $0 entry per day of the trip range, inclusive of both ends', () => {
+    const trip = createTrip({ year: '2118', name: 'Test', trip_date: '2027-02-10' });
+    updateTrip(trip.id, { return_date: '2027-02-13' });
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+    switchLineItemType(item.id, 'food_planner');
+
+    const days = autoCreateDailyItems(item.id);
+    expect(days.map((d) => d.date)).toEqual(['2027-02-10', '2027-02-11', '2027-02-12', '2027-02-13']);
+    expect(days.every((d) => d.budget === 0 && d.cash === 0)).toBe(true);
+  });
+
+  it('is idempotent — skips dates that already have an entry instead of duplicating them', () => {
+    const trip = createTrip({ year: '2119', name: 'Test', trip_date: '2027-02-10' });
+    updateTrip(trip.id, { return_date: '2027-02-12' });
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+    switchLineItemType(item.id, 'food_planner');
+    addDailyItem(item.id, { date: '2027-02-11', budget: 40, cash: 10 });
+
+    const days = autoCreateDailyItems(item.id);
+    expect(days).toHaveLength(3);
+    const middle = days.find((d) => d.date === '2027-02-11');
+    expect(middle.budget).toBe(40);
+    expect(middle.cash).toBe(10);
+  });
+
+  it('rejects a row whose trip is missing a departure or return date', () => {
+    const trip = createTrip({ year: '2120', name: 'Test', trip_date: '2027-02-10' });
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+    switchLineItemType(item.id, 'food_planner');
+
+    expect(() => autoCreateDailyItems(item.id)).toThrowError(/departure or return date/);
+  });
+
+  it('rejects a row that is not food_planner', () => {
+    const trip = createTrip({ year: '2121', name: 'Test', trip_date: '2027-02-10' });
+    updateTrip(trip.id, { return_date: '2027-02-12' });
+    const food = category('Food');
+    const item = attachCategoryToTrip(trip.id, food.id);
+
+    expect(() => autoCreateDailyItems(item.id)).toThrowError(/day-by-day planner/);
   });
 });

@@ -18,6 +18,7 @@ import {
   addBudgetDailyItem,
   updateBudgetDailyItem,
   deleteBudgetDailyItem,
+  autoCreateBudgetDailyItems,
 } from '../api/budget.js';
 
 /** Admin-only per-trip line-item budget, replicating the committee's Excel
@@ -66,6 +67,7 @@ export default function BudgetPanel({ tripId }) {
   const [dailyItems, setDailyItems] = useState({});
   const [dailyEditDrafts, setDailyEditDrafts] = useState({});
   const [newDailyDrafts, setNewDailyDrafts] = useState({});
+  const [autoCreatingDays, setAutoCreatingDays] = useState(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -244,6 +246,21 @@ export default function BudgetPanel({ tripId }) {
       await load();
     } catch (err) {
       setError(err.body?.error || 'Could not save that day.');
+    }
+  };
+
+  const handleAutoCreateDailyItems = async (item) => {
+    const id = item.trip_budget_item_id;
+    setAutoCreatingDays(id);
+    setError(null);
+    try {
+      await autoCreateBudgetDailyItems(id);
+      await loadDailyItems(id);
+      await load();
+    } catch (err) {
+      setError(err.body?.error || 'Could not auto-create days for this trip.');
+    } finally {
+      setAutoCreatingDays(null);
     }
   };
 
@@ -493,6 +510,17 @@ export default function BudgetPanel({ tripId }) {
                   <tr key={`${item.category_id}-daily`}>
                     <td colSpan={8}>
                       <div className="preview-table-wrap" style={{ margin: '0.4rem 0' }}>
+                        <button
+                          type="button"
+                          className="btn btn--ghost"
+                          style={{ marginBottom: '0.4rem' }}
+                          disabled={autoCreatingDays === item.trip_budget_item_id}
+                          onClick={() => handleAutoCreateDailyItems(item)}
+                        >
+                          {autoCreatingDays === item.trip_budget_item_id
+                            ? 'Adding days…'
+                            : '+ Auto-create days for trip dates'}
+                        </button>
                         <table className="preview-table">
                           <thead>
                             <tr>
