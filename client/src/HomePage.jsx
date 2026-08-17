@@ -267,15 +267,20 @@ export default function HomePage() {
                 dangerouslySetInnerHTML={{ __html: renderMarkdownInline(name) }}
               />
             ))}
-            <p className="hint">
-              Questions? Visit the FAQ to see answers and submit a new one.
-            </p>
-            <Link className="btn btn--ghost" to="/faq">
-              Go to FAQ
-            </Link>
           </section>
         </>
       )}
+
+      <div className="lane-divider" aria-hidden="true" />
+      <section className="section section--faq">
+        <h2 className="section-title">Questions</h2>
+        <p className="hint">
+          Visit the FAQ to see answers and submit a new one.
+        </p>
+        <Link className="btn btn--ghost" to="/faq">
+          Go to FAQ
+        </Link>
+      </section>
 
       <footer className="home-footer">
         <Link className="btn btn--primary btn--lg" to="/register">

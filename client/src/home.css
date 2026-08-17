@@ -239,10 +239,6 @@
   border-left: 4px solid var(--home-red);
 }
 
-.section--contact {
-  text-align: center;
-}
-
 .glance-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
