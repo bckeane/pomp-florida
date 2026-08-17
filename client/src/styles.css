@@ -193,11 +193,14 @@ body {
 
 /* A rule + extra top padding, not just a margin, so the stats read as a
    distinct section from the header/account-bar/trip-switcher chrome above
-   them instead of just another item in the same stack. */
+   them instead of just another item in the same stack. --border itself is
+   too close in tone to --bg to read as a rule across open background (it
+   only reads as a card edge because it sits between --surface and --bg) —
+   --text-muted has enough contrast against --bg to actually be visible. */
 .overview {
   margin-bottom: var(--space-9);
   padding-top: var(--space-9);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--text-muted);
 }
 
 .overview__stats {
