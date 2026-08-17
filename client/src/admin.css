@@ -199,6 +199,27 @@
   margin-top: var(--space-6);
 }
 
+/* The shared .segmented/.segmented-btn classes (styles.css) give every
+   button an equal flex:1 share — fine for a 2-3 option toggle (role picker,
+   sign up/login) but with six admin tabs of very different label lengths
+   ("Roster" vs "Trip details") that forced narrow ones to wrap or clip. This
+   modifier, scoped to the admin tab bar only, sizes each button to its own
+   label instead of splitting a fixed width evenly. */
+.app .segmented--tabs {
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-bottom: var(--space-8);
+}
+
+.app .segmented--tabs .segmented-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: var(--space-2) var(--space-6);
+}
+
 .announcement-panel {
   padding: var(--space-8);
 }

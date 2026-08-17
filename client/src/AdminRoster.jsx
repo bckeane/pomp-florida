@@ -272,7 +272,7 @@ export default function AdminRoster() {
       <OverviewPanel stats={stats} trip={selectedTrip} />
 
       {selectedTrip && (
-        <div className="segmented" style={{ maxWidth: 420, marginBottom: '1rem' }}>
+        <div className="segmented segmented--tabs">
           <button
             type="button"
             className={`segmented-btn ${activeTab === 'roster' ? 'segmented-btn--active' : ''}`}
