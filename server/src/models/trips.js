@@ -18,13 +18,15 @@ export function computeDepositAndFinal(estimatedCost, depositPercent) {
 }
 
 // The low/high range shown to families is estimated_cost ± the admin-set
-// spread percent (defaults to 0 — no spread — when unset).
+// spread percent (defaults to 0 — no spread — when unset). Rounded to the
+// nearest $50 — and rounded outward (low down, high up) rather than to
+// nearest, so the published range never reads narrower than the real spread.
 function computeCostRange(estimatedCost, spreadPercent) {
   if (estimatedCost == null) return { cost_low: null, cost_high: null };
   const spread = spreadPercent ?? 0;
   return {
-    cost_low: Math.round(estimatedCost * (1 - spread / 100)),
-    cost_high: Math.round(estimatedCost * (1 + spread / 100)),
+    cost_low: Math.floor((estimatedCost * (1 - spread / 100)) / 50) * 50,
+    cost_high: Math.ceil((estimatedCost * (1 + spread / 100)) / 50) * 50,
   };
 }
 
