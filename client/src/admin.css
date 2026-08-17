@@ -198,3 +198,67 @@
   justify-content: flex-end;
   margin-top: var(--space-6);
 }
+
+.announcement-panel {
+  padding: var(--space-8);
+}
+
+/* Same full-width override as .questions-panel above — .form-card's 480px
+   cap is for narrow standalone forms, not this tab. */
+.app .announcement-panel {
+  max-width: none;
+}
+
+.announcement-panel__header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-8);
+  align-items: start;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-8);
+}
+
+.announcement-panel__header h2 {
+  margin-bottom: var(--space-1);
+}
+
+.announcement-panel__actions {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.announcement-panel__missing {
+  margin-bottom: var(--space-8);
+}
+
+/* Styled like a printed letter — a bounded reading column instead of
+   stretching to the panel's full width — so the preview reads the way the
+   pasted/emailed version will. */
+.announcement-letter {
+  max-width: 640px;
+  padding: var(--space-10);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.announcement-letter h3 {
+  margin: var(--space-9) 0 var(--space-3);
+  font-size: 1rem;
+}
+
+.announcement-letter h3:first-child {
+  margin-top: 0;
+}
+
+.announcement-letter p {
+  margin: 0 0 var(--space-6);
+  line-height: 1.5;
+}
+
+.announcement-letter ul {
+  margin: 0 0 var(--space-6);
+  padding-left: 1.25rem;
+  line-height: 1.6;
+}

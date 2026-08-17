@@ -6,6 +6,7 @@ import ParticipantForm from './components/ParticipantForm.jsx';
 import ImportScreen from './components/ImportScreen.jsx';
 import TripSwitcher from './components/TripSwitcher.jsx';
 import TripDetailsForm from './components/TripDetailsForm.jsx';
+import AnnouncementPanel from './components/AnnouncementPanel.jsx';
 import BudgetPanel from './components/BudgetPanel.jsx';
 import AuthGate from './components/AuthGate.jsx';
 import AccountsPanel from './components/AccountsPanel.jsx';
@@ -202,6 +203,7 @@ export default function AdminRoster() {
     budget: 'Budget',
     questions: 'Questions',
     'trip-details': 'Trip details',
+    announcement: 'Announcement',
     accounts: 'Accounts',
   }[activeTab] || 'Roster';
 
@@ -301,6 +303,13 @@ export default function AdminRoster() {
           </button>
           <button
             type="button"
+            className={`segmented-btn ${activeTab === 'announcement' ? 'segmented-btn--active' : ''}`}
+            onClick={() => setActiveTab('announcement')}
+          >
+            Announcement
+          </button>
+          <button
+            type="button"
             className={`segmented-btn ${activeTab === 'accounts' ? 'segmented-btn--active' : ''}`}
             onClick={() => setActiveTab('accounts')}
           >
@@ -317,6 +326,8 @@ export default function AdminRoster() {
         <QuestionsPanel tripId={selectedTrip.id} tripName={selectedTrip.name} />
       ) : activeTab === 'trip-details' && selectedTrip ? (
         <TripDetailsForm trip={selectedTrip} onSaved={handleTripDetailsSaved} />
+      ) : activeTab === 'announcement' && selectedTrip ? (
+        <AnnouncementPanel trip={selectedTrip} />
       ) : activeTab === 'accounts' ? (
         <AccountsPanel currentAccountId={account.id} />
       ) : loading && !participants.length ? (
