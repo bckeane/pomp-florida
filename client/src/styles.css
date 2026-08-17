@@ -191,8 +191,13 @@ body {
   font-size: 0.9rem;
 }
 
+/* A rule + extra top padding, not just a margin, so the stats read as a
+   distinct section from the header/account-bar/trip-switcher chrome above
+   them instead of just another item in the same stack. */
 .overview {
   margin-bottom: var(--space-9);
+  padding-top: var(--space-9);
+  border-top: 1px solid var(--border);
 }
 
 .overview__stats {
