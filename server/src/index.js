@@ -6,12 +6,14 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { runMigrations } from './db/migrate.js';
+import { requestLogger } from './middleware/requestLog.js';
 import participantsRouter from './routes/participants.js';
 import statsRouter from './routes/stats.js';
 import tripsRouter from './routes/trips.js';
 import authRouter from './routes/auth.js';
 import myParticipantsRouter from './routes/myParticipants.js';
 import adminAccountsRouter from './routes/adminAccounts.js';
+import adminTrafficRouter from './routes/adminTraffic.js';
 import budgetRouter from './routes/budget.js';
 import questionsRouter from './routes/questions.js';
 import stripeWebhookRouter from './routes/stripeWebhook.js';
@@ -51,6 +53,7 @@ app.disable('x-powered-by');
 // browser to accept/send the session cookie set by /api/auth/*.
 app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(cookieParser());
+app.use(requestLogger);
 
 // Mounted before express.json(): Stripe webhook signature verification
 // needs the raw request body, and its own route-scoped express.raw() (see
@@ -66,6 +69,7 @@ app.use('/api', tripsRouter);
 app.use('/api', authRouter);
 app.use('/api', myParticipantsRouter);
 app.use('/api', adminAccountsRouter);
+app.use('/api', adminTrafficRouter);
 app.use('/api', budgetRouter);
 app.use('/api', questionsRouter);
 

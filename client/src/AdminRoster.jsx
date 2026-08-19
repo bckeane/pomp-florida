@@ -10,6 +10,7 @@ import AnnouncementPanel from './components/AnnouncementPanel.jsx';
 import BudgetPanel from './components/BudgetPanel.jsx';
 import AuthGate from './components/AuthGate.jsx';
 import AccountsPanel from './components/AccountsPanel.jsx';
+import TrafficPanel from './components/TrafficPanel.jsx';
 import QuestionsPanel from './components/QuestionsPanel.jsx';
 import { me, logout } from './api/auth.js';
 import {
@@ -205,6 +206,7 @@ export default function AdminRoster() {
     'trip-details': 'Trip details',
     announcement: 'Announcement',
     accounts: 'Accounts',
+    traffic: 'Traffic',
   }[activeTab] || 'Roster';
 
   return (
@@ -315,6 +317,13 @@ export default function AdminRoster() {
           >
             Accounts
           </button>
+          <button
+            type="button"
+            className={`segmented-btn ${activeTab === 'traffic' ? 'segmented-btn--active' : ''}`}
+            onClick={() => setActiveTab('traffic')}
+          >
+            Traffic
+          </button>
         </div>
       )}
 
@@ -330,6 +339,8 @@ export default function AdminRoster() {
         <AnnouncementPanel trip={selectedTrip} />
       ) : activeTab === 'accounts' ? (
         <AccountsPanel currentAccountId={account.id} />
+      ) : activeTab === 'traffic' ? (
+        <TrafficPanel />
       ) : loading && !participants.length ? (
         <p className="hint">Loading roster…</p>
       ) : (
