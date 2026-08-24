@@ -87,14 +87,6 @@ export default function RecordsPage() {
         </div>
       </header>
 
-      <Link className="btn records-search-cta" to="/records/search">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        Search for a swimmer
-      </Link>
-
       {status === 'loading' && <p className="hint">Loading records…</p>}
 
       {status === 'error' && (
@@ -117,10 +109,25 @@ export default function RecordsPage() {
           );
         })()}
 
+      <div className="records-actions">
+        <Link className="btn records-search-cta" to="/records/search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          Search for a swimmer
+        </Link>
+        <Link className="btn records-search-cta" to="/records/top25-export">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+            <path d="M12 3v12" strokeLinecap="round" />
+            <path d="M7 10l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M4 19h16" strokeLinecap="round" />
+          </svg>
+          Export Top 25
+        </Link>
+      </div>
+
       <footer className="home-footer">
-        <p className="hint">
-          Missing the exports you need? <Link to="/records/top25-export">Export Top 25</Link>
-        </p>
         <div className="footer-links">
           <Link className="footer-admin-link" to="/">
             Home
