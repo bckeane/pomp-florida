@@ -281,6 +281,11 @@
   color: var(--home-ink);
 }
 
+.records-export-choices input[type='checkbox'],
+.records-export-choices input[type='radio'] {
+  accent-color: var(--home-red);
+}
+
 .records-search-summary {
   text-align: center;
   margin: var(--space-8) 0;
