@@ -46,7 +46,21 @@ function corsOrigin(origin, callback) {
 
 // helmet also disables X-Powered-By; the explicit call below is redundant
 // but documents the intent directly.
-app.use(helmet());
+// connect-src override: the swim-records feature fetches api.ctkeane.com
+// directly from the browser by design (docs/designs/swim-records-integration.md,
+// Premise 2) — helmet's default CSP has no connect-src, which falls back to
+// default-src 'self' and silently blocks that fetch client-side. Every other
+// directive keeps helmet's default.
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        'connect-src': ["'self'", 'https://api.ctkeane.com'],
+      },
+    },
+  })
+);
 app.disable('x-powered-by');
 
 // credentials:true + reflected origin (rather than '*') is required for the
