@@ -27,7 +27,14 @@
 }
 
 .records-page .hero-logo {
-  margin-bottom: 0;
+  /* home.css's .hero-logo sets `margin: 0 auto var(--space-8)` for its
+     original stacked-column layout — auto left/right margins there center
+     the logo in a block layout, but in this side-by-side flex row they
+     become flex auto-margins instead, absorbing ~350px of free space on
+     each side of the logo and shoving the text block far off to the
+     right. Reset both to 0 so `gap` on .hero is the only thing controlling
+     spacing between the logo and the text block. */
+  margin: 0;
   flex-shrink: 0;
 }
 
