@@ -52,6 +52,19 @@
 **Priority:** P3
 **Depends on:** the swim records port shipping first; revisit only if real usage suggests the stacked layout is a problem.
 
+### Event-name link touch targets in Record Board / Top-20 tables
+
+**What:** The event-name links (e.g. "200 Medley Relay") in the Record Board's Boys/Girls tables and in Swimmer Search results render at ~17px tall — well under the 44px touch-target floor `DESIGN.md` documents for interactive elements elsewhere in the app (buttons, footer links).
+
+**Why:** Surfaced by `/design-review` (2026-08-24) auditing the shipped swim-records feature. Not fixed in that pass — every existing 44px-target precedent in the app (`.btn`, `.footer-admin-link`) is a standalone button or link with its own padding; a table row link is a new category the design system hasn't addressed yet, and the fix (row padding, a larger tap zone via `::before`/padding on the `<td>`, or making the whole row clickable) changes the visual density of the flagship data-table pattern. That's a real design tradeoff, not a mechanical CSS fix, so it needs its own small decision rather than a drive-by change during a fix loop.
+
+**Pros:** Brings the newest UI pattern in line with the rest of the app's stated accessibility bar; likely matters most on mobile, where these tables stack full-width.
+**Cons:** Real design tradeoff — more padding per row means taller tables, more scrolling, on a page that's already dense (up to 12 events per gender).
+
+**Effort:** S (once a direction is picked — e.g. padding on `.records-table td:first-child`, or wrapping each row link to fill the cell)
+**Priority:** P3
+**Depends on:** nothing — can be picked up any time; no data or API dependency.
+
 ## Budget
 
 ### Multi-year budget trend view — shipped 2026-08-16
