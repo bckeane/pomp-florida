@@ -137,6 +137,11 @@ export default function AdminRoster() {
     await load();
   };
 
+  const handleHardDelete = async (participant) => {
+    await deleteParticipant(participant.id, { hard: true });
+    await load();
+  };
+
   const handleUpdatePayment = async (participant, field, value) => {
     await updateParticipant(participant.id, { [field]: value });
     await load();
@@ -350,6 +355,7 @@ export default function AdminRoster() {
           onFiltersChange={setFilters}
           onEdit={setEditing}
           onDelete={handleToggleActive}
+          onHardDelete={handleHardDelete}
           onUpdatePayment={handleUpdatePayment}
           gradYears={gradYears}
         />

@@ -49,6 +49,7 @@ export default function RosterTable({
   onFiltersChange,
   onEdit,
   onDelete,
+  onHardDelete,
   onUpdatePayment,
   gradYears,
 }) {
@@ -79,6 +80,13 @@ export default function RosterTable({
     setTimeout(() => {
       setPaymentLinks((s) => (s[key]?.copied ? { ...s, [key]: { ...s[key], copied: false } } : s));
     }, 2000);
+  };
+
+  const handleHardDelete = (p) => {
+    const confirmed = window.confirm(
+      `Permanently delete ${p.full_name}? This removes the record entirely (including payment history) and can't be undone — use this only for test/duplicate entries, not real participants.`
+    );
+    if (confirmed) onHardDelete(p);
   };
 
   const handlePaymentBlur = async (p, field) => {
@@ -309,6 +317,16 @@ export default function RosterTable({
                   >
                     {p.active ? <TrashIcon /> : <RestoreIcon />}
                   </button>
+                  {!p.active && (
+                    <button
+                      className="link-btn icon-btn link-btn--danger"
+                      onClick={() => handleHardDelete(p)}
+                      aria-label={`Permanently delete ${p.first_name} ${p.last_name}`}
+                      title="Delete permanently"
+                    >
+                      <TrashIcon />
+                    </button>
+                  )}
                   <div className="payment-actions" aria-live="polite">
                     {renderPaymentAction(p, 'deposit')}
                     {renderPaymentAction(p, 'final')}
