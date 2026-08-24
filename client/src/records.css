@@ -1,0 +1,271 @@
+/* Swim records pages (Record Board, Top-20 detail, Search, Export) — reuse
+   home.css's .hero/.eyebrow/.hero-title/.section/.section-title/.home-footer
+   patterns (imported alongside this file, see each page component) rather
+   than duplicating them. This file only adds what's genuinely new: the
+   wider container (these pages show data tables, not the single-column
+   .home-page prose layout), and the table/search/export UI itself. */
+
+.records-page.home-page {
+  max-width: 1100px;
+}
+
+.records-boards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-9);
+  margin-top: var(--space-9);
+}
+
+.records-board {
+  background: var(--home-surface);
+  border: 1px solid var(--home-line);
+  border-radius: 10px;
+  padding: var(--space-8);
+}
+
+.records-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.records-table th {
+  text-align: left;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--home-red);
+  padding: 0 var(--space-6) var(--space-4) 0;
+  border-bottom: 1px solid var(--home-line);
+}
+
+.records-table th:last-child,
+.records-table td:last-child {
+  padding-right: 0;
+}
+
+.records-table td {
+  padding: var(--space-4) var(--space-6) var(--space-4) 0;
+  border-bottom: 1px solid var(--home-line);
+  vertical-align: top;
+}
+
+.records-table tr:last-child td {
+  border-bottom: none;
+}
+
+.records-table .records-col-time,
+.records-table .records-col-place,
+.records-table .records-col-year {
+  font-family: 'Roboto Mono', monospace;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.records-table th.records-col-time,
+.records-table th.records-col-place,
+.records-table th.records-col-year {
+  text-align: right;
+}
+
+.records-event-link {
+  color: var(--home-red);
+  text-decoration: underline;
+  text-decoration-color: var(--home-line);
+  text-underline-offset: 0.15em;
+}
+
+.records-event-link:hover {
+  text-decoration-color: currentColor;
+}
+
+.records-swimmers span + span {
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .records-boards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.records-empty {
+  text-align: center;
+  padding: var(--space-9) 0;
+  color: var(--home-ink);
+  opacity: 0.7;
+}
+
+.records-back-link {
+  display: inline-block;
+  margin-top: var(--space-9);
+}
+
+.records-search-form {
+  display: flex;
+  gap: var(--space-4);
+  max-width: 480px;
+  margin: var(--space-9) auto 0;
+}
+
+.records-search-form input {
+  flex: 1;
+  min-height: 44px;
+  padding: var(--space-4) var(--space-6);
+  border: 1px solid var(--home-line);
+  border-radius: 6px;
+  font-size: 1rem;
+  background: var(--home-surface);
+  color: var(--home-ink);
+}
+
+.records-search-form button {
+  min-height: 44px;
+  padding: 0 var(--space-8);
+  border-radius: 6px;
+  border: 1px solid var(--home-red-bright);
+  background: var(--home-red-bright);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.records-search-form button:hover {
+  background: var(--home-red);
+  border-color: var(--home-red);
+}
+
+.records-search-link {
+  display: block;
+  text-align: center;
+  margin-top: var(--space-9);
+  font-size: 0.9rem;
+}
+
+.records-notice {
+  margin: var(--space-8) 0;
+  padding: var(--space-5) var(--space-8);
+  border-radius: 6px;
+  background: rgba(180, 83, 9, 0.12);
+  color: var(--warning);
+  font-size: 0.9rem;
+}
+
+.records-search-results {
+  overflow-x: auto;
+  margin-top: var(--space-9);
+}
+
+.records-export-form {
+  background: var(--home-surface);
+  border: 1px solid var(--home-line);
+  border-radius: 10px;
+  padding: var(--space-9);
+  max-width: 480px;
+  margin: var(--space-9) auto 0;
+}
+
+.records-export-field {
+  margin-bottom: var(--space-8);
+}
+
+.records-export-field label {
+  display: block;
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--home-red);
+  margin-bottom: var(--space-4);
+}
+
+.records-export-choices {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.records-export-choices label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--home-ink);
+}
+
+.records-search-summary {
+  text-align: center;
+  margin: var(--space-8) 0;
+  font-size: 0.9rem;
+}
+
+.records-clear-filters {
+  margin-left: var(--space-4);
+  border: 1px solid var(--home-line);
+  background: var(--home-surface);
+  color: var(--home-ink);
+  border-radius: 6px;
+  padding: 0.2rem var(--space-5);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.records-table th.records-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.records-filter-row th {
+  padding-top: 0;
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--home-line);
+}
+
+.records-filter-row select,
+.records-filter-row input {
+  width: 100%;
+  min-height: 32px;
+  padding: 0.2rem var(--space-4);
+  border: 1px solid var(--home-line);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background: var(--home-surface);
+  color: var(--home-ink);
+}
+
+.records-highlight {
+  color: var(--home-red);
+  font-weight: 700;
+}
+
+.records-export-submit {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 6px;
+  border: 1px solid var(--home-red-bright);
+  background: var(--home-red-bright);
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.records-export-submit:hover:not(:disabled) {
+  background: var(--home-red);
+  border-color: var(--home-red);
+}
+
+.records-export-submit:disabled {
+  background: var(--home-line);
+  border-color: var(--home-line);
+  color: var(--home-ink);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
