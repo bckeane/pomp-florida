@@ -125,6 +125,19 @@ export default function RecordsPage() {
           </svg>
           Export Top 25
         </Link>
+        <a
+          className="btn records-search-cta"
+          href="https://www.swimcloud.com/team/1876/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M15 3h6v6" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M10 14 21 3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          View on SwimCloud
+        </a>
       </div>
 
       <footer className="home-footer">
