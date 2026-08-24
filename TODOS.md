@@ -11,6 +11,47 @@
 **Effort:** M (client RTL setup)
 **Priority:** P3
 
+## Swim Records
+
+### Roster cross-link on Swimmer Search
+
+**What:** Badge a Swimmer Search result when the name matches someone on pompFlorida's current trip roster (grad year, active status).
+
+**Why:** Surfaced by the cross-model review during the swim-records-integration design session (`docs/designs/swim-records-integration.md`, Approach C) as the strongest "coolest version" idea — it cross-links two datasets (swim records and the trip roster) that pompFlorida already has separately but has never connected. Turns a static records lookup into something that reflects the live team, not just history.
+
+**Pros:** Genuinely new value, not just a UI port; reuses data already in this repo (no new data source).
+**Cons:** Name-matching is fuzzy (common names, nicknames, middle names) — needs its own small design pass to define the matching strategy and avoid false-positive/negative badges before it's safe to ship.
+
+**Effort:** S-M (mostly the name-matching design, the badge UI itself is small)
+**Priority:** P3
+**Depends on:** the swim records port itself (this repo's `/records/search` route) shipping first.
+
+### Decide `swim.ctkeane.com`'s fate once pompFlorida has full parity
+
+**What:** Once pompFlorida's `/records` routes are live with full feature parity, decide what happens to the original `swim.ctkeane.com` site — leave it live indefinitely, add a banner pointing to the new pompFlorida location, or sunset/redirect it.
+
+**Why:** The whole point of the swim-records-integration feature was fixing "two sites, same team, look unrelated." Without this decision, that exact duplication continues after the port ships — pompFlorida just also has the data now. Flagged as an explicit Open Question in `docs/designs/swim-records-integration.md`, deliberately not decided during the design session since it's a call about a separately-hosted, separately-owned domain outside this repo's deploy.
+
+**Pros:** Closes the loop on the original problem statement.
+**Cons:** Doesn't block anything in this repo; easy to forget once pompFlorida's version feels "done."
+
+**Effort:** S (the decision itself); effort of execution depends on the choice (banner < redirect < sunset)
+**Priority:** P3
+**Depends on:** the swim records port shipping and being verified live in prod first.
+
+### Mobile gender-toggle layout for Record Board
+
+**What:** Swap the stacked-tables mobile layout (Boys then Girls, full-width, in document order) for a toggle/tab switching between Boys and Girls on narrow viewports.
+
+**Why:** Surfaced during `/plan-design-review` (Pass 6, Responsive & Accessibility) for `docs/designs/swim-records-integration.md`. The stacked layout was approved as the shipping default — simplest, no new interaction pattern — but a toggle would mean less scrolling on mobile. Not built now since there's no evidence yet that the stacked layout is actually a problem for real users.
+
+**Pros:** Shorter scroll, more app-like on mobile.
+**Cons:** Real scope (new interaction state, more testing) for an unconfirmed need — speculative until real mobile usage says otherwise.
+
+**Effort:** S (a toggle component + state, reusing the existing table markup)
+**Priority:** P3
+**Depends on:** the swim records port shipping first; revisit only if real usage suggests the stacked layout is a problem.
+
 ## Budget
 
 ### Multi-year budget trend view — shipped 2026-08-16
