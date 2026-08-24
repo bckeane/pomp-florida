@@ -4,6 +4,7 @@ import { fetchAllRecords, fetchTop20 } from './api/records.js';
 import { uniqueEvents } from './lib/eventList.js';
 import { searchTop20Rows } from './lib/swimmerSearch.js';
 import { aggregateSettled } from './lib/recordsAggregate.js';
+import { top20Link } from './lib/top20Link.js';
 import { useDocumentTitle } from './lib/useDocumentTitle.js';
 import pantherLogo from './img/pomp_icon.png';
 import './home.css';
@@ -269,7 +270,7 @@ export default function SwimmerSearchPage() {
                 {sortedResults.map((r, idx) => (
                   <tr key={idx}>
                     <td>
-                      <Link className="records-event-link" to={`/records/top20/${r.eventId}`}>
+                      <Link className="records-event-link" to={top20Link(r.eventId, r.gender, r.eventName)}>
                         {r.eventName}
                       </Link>
                     </td>

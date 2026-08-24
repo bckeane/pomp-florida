@@ -15,11 +15,11 @@
   padding: 1.1rem var(--space-9) 1.25rem;
 }
 
-.records-page .hero-logo {
-  width: 40px;
-  height: 40px;
-  margin-bottom: var(--space-4);
-}
+/* Logo intentionally NOT shrunk — the pomp_icon.png asset has a white
+   outline/claw-mark detail that gets visibly muddy below ~70px (checked at
+   40px and 60px, both looked rough). It's already used at 76px on
+   HomePage's hero in production with no issue, so records pages keep that
+   same size and get their hero compactness from padding/title instead. */
 
 .records-page .hero-title {
   font-size: clamp(1.3rem, 3.2vw, 1.8rem);
@@ -158,7 +158,12 @@
   border-color: var(--home-red);
 }
 
-.records-search-cta {
+/* Doubled class selector (.btn.records-search-cta) rather than relying on
+   CSS source order to beat styles.css's base .btn — `.btn` is only added
+   to this <Link> so home.css's `.home-page a:not(.btn)` (which would
+   otherwise force red text) exempts it; all the actual visual styling
+   here needs to out-specificity .btn's own white/bordered default too. */
+.btn.records-search-cta {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -176,7 +181,7 @@
   text-decoration: none;
 }
 
-.records-search-cta:hover {
+.btn.records-search-cta:hover {
   background: var(--home-red);
   border-color: var(--home-red);
 }

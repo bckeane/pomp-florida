@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { useRecords } from './hooks/useRecords.js';
 import { fetchAllRecords } from './api/records.js';
+import { top20Link } from './lib/top20Link.js';
 import { useDocumentTitle } from './lib/useDocumentTitle.js';
 import pantherLogo from './img/pomp_icon.png';
 import './home.css';
@@ -28,7 +29,10 @@ function RecordRow({ record }) {
   return (
     <tr>
       <td>
-        <Link className="records-event-link" to={`/records/top20/${record.Event_Id}`}>
+        <Link
+          className="records-event-link"
+          to={top20Link(record.Event_Id, record.TeamGender, record.Event_Name)}
+        >
           {record.Event_Name}
         </Link>
       </td>
@@ -81,7 +85,7 @@ export default function RecordsPage() {
         <p className="hero-intro">All-Time Best Times</p>
       </header>
 
-      <Link className="records-search-cta" to="/records/search">
+      <Link className="btn records-search-cta" to="/records/search">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
