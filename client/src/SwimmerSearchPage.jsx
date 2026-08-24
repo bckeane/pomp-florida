@@ -141,8 +141,10 @@ export default function SwimmerSearchPage() {
     <div className="home-page records-page">
       <header className="hero">
         <img className="hero-logo" src={pantherLogo} alt="Pomperaug Panthers" />
-        <p className="eyebrow">Pomperaug Panthers Swim &amp; Dive</p>
-        <h1 className="hero-title">Swimmer Search</h1>
+        <div className="hero-text">
+          <p className="eyebrow">Pomperaug Panthers Swim &amp; Dive</p>
+          <h1 className="hero-title">Swimmer Search</h1>
+        </div>
       </header>
 
       <form className="records-search-form" onSubmit={handleSubmit}>

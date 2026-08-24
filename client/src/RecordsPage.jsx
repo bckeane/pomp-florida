@@ -80,9 +80,11 @@ export default function RecordsPage() {
     <div className="home-page records-page">
       <header className="hero">
         <img className="hero-logo" src={pantherLogo} alt="Pomperaug Panthers" />
-        <p className="eyebrow">Pomperaug Panthers Swim &amp; Dive</p>
-        <h1 className="hero-title">Team Records</h1>
-        <p className="hero-intro">All-Time Best Times</p>
+        <div className="hero-text">
+          <p className="eyebrow">Pomperaug Panthers Swim &amp; Dive</p>
+          <h1 className="hero-title">Team Records</h1>
+          <p className="hero-intro">All-Time Best Times</p>
+        </div>
       </header>
 
       <Link className="btn records-search-cta" to="/records/search">

@@ -53,9 +53,11 @@ export default function Top20Page() {
     <div className="home-page records-page">
       <header className="hero">
         <img className="hero-logo" src={pantherLogo} alt="Pomperaug Panthers" />
-        <p className="eyebrow">Pomperaug Panthers Swim &amp; Dive</p>
-        <h1 className="hero-title">Top 20 Best Times</h1>
-        {eventName && <p className="hero-intro">{eventName}</p>}
+        <div className="hero-text">
+          <p className="eyebrow">Pomperaug Panthers Swim &amp; Dive</p>
+          <h1 className="hero-title">Top 20 Best Times</h1>
+          {eventName && <p className="hero-intro">{eventName}</p>}
+        </div>
       </header>
 
       {isGirls ? (

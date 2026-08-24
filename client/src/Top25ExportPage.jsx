@@ -180,9 +180,11 @@ export default function Top25ExportPage() {
     <div className="home-page records-page">
       <header className="hero">
         <img className="hero-logo" src={pantherLogo} alt="Pomperaug Panthers" />
-        <p className="eyebrow">Pomperaug Panthers Swim &amp; Dive</p>
-        <h1 className="hero-title">Export Top 25</h1>
-        <p className="hero-intro">Export swimming records to Excel or PDF by gender</p>
+        <div className="hero-text">
+          <p className="eyebrow">Pomperaug Panthers Swim &amp; Dive</p>
+          <h1 className="hero-title">Export Top 25</h1>
+          <p className="hero-intro">Export swimming records to Excel or PDF by gender</p>
+        </div>
       </header>
 
       {status === 'loading' && <p className="hint">Loading top 25 data…</p>}

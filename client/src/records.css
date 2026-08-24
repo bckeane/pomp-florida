@@ -9,25 +9,50 @@
   max-width: 1100px;
 }
 
-/* Smaller hero than the homepage's — these pages are about the data, the
-   hero is just a brand/orientation strip above it, not the main event. */
+/* Side-by-side hero — logo beside the text instead of stacked above it, so
+   the whole hero is short and the data tables start almost immediately.
+   Logo intentionally NOT shrunk below ~70px — the pomp_icon.png asset's
+   white outline detail gets visibly muddy at smaller sizes (checked at 40px
+   and 60px, both looked rough) — but a side-by-side layout doesn't need a
+   big logo to "read," so keeping it at HomePage's own size still nets a
+   much shorter hero overall. */
 .records-page .hero {
-  padding: 1.1rem var(--space-9) 1.25rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  text-align: left;
+  gap: var(--space-8);
+  padding: var(--space-6) var(--space-9);
 }
 
-/* Logo intentionally NOT shrunk — the pomp_icon.png asset has a white
-   outline/claw-mark detail that gets visibly muddy below ~70px (checked at
-   40px and 60px, both looked rough). It's already used at 76px on
-   HomePage's hero in production with no issue, so records pages keep that
-   same size and get their hero compactness from padding/title instead. */
+.records-page .hero-logo {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.records-page .hero-text {
+  min-width: 0;
+}
 
 .records-page .hero-title {
-  font-size: clamp(1.3rem, 3.2vw, 1.8rem);
+  font-size: clamp(1.2rem, 2.6vw, 1.6rem);
+}
+
+.records-page .eyebrow {
+  margin-bottom: var(--space-2);
 }
 
 .records-page .hero-intro {
-  margin-top: var(--space-3);
-  font-size: 0.9rem;
+  margin: var(--space-2) 0 0;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 520px) {
+  .records-page .hero {
+    flex-direction: column;
+    text-align: center;
+  }
 }
 
 .records-boards {
