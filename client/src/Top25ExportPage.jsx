@@ -248,6 +248,72 @@ export default function Top25ExportPage() {
               Export to {exportFormat === 'excel' ? 'Excel' : 'PDF'}
             </button>
           </div>
+
+          {(exportBoys || exportGirls) && (
+            <div className="records-preview">
+              <h2 className="section-title records-preview-heading">Print Preview</h2>
+
+              <div className="records-preview-title">
+                <img src={pantherLogo} alt="Pomperaug Panthers" />
+                <h3>Pomperaug Swim and Dive</h3>
+                <h3>Top Times</h3>
+                <p>{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              </div>
+
+              {[
+                ...(exportBoys ? boysData.map((ed) => ({ label: 'Boys', eventData: ed })) : []),
+                ...(exportGirls ? girlsData.map((ed) => ({ label: 'Girls', eventData: ed })) : []),
+              ].map(({ label, eventData }, i) => {
+                const isRelay = eventData.data.some((row) => row.isRelay);
+                const currentYear = new Date().getFullYear();
+                return (
+                  <div key={i} className="records-preview-event">
+                    <p className="records-preview-event-title">
+                      {label} — {eventData.eventName}
+                    </p>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Place</th>
+                          <th>Time</th>
+                          {isRelay ? (
+                            <>
+                              <th>Swimmer 1</th>
+                              <th>Swimmer 2</th>
+                              <th>Swimmer 3</th>
+                              <th>Swimmer 4</th>
+                            </>
+                          ) : (
+                            <th>Swimmer(s)</th>
+                          )}
+                          <th>Year</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {eventData.data.map((row, j) => (
+                          <tr key={j} className={row.Year === currentYear ? 'records-preview-current-year' : ''}>
+                            <td>{row.Place}</td>
+                            <td>{row.Time}</td>
+                            {isRelay ? (
+                              <>
+                                <td>{row.Swimmers[0] || ''}</td>
+                                <td>{row.Swimmers[1] || ''}</td>
+                                <td>{row.Swimmers[2] || ''}</td>
+                                <td>{row.Swimmers[3] || ''}</td>
+                              </>
+                            ) : (
+                              <td>{row.Swimmers.join(', ')}</td>
+                            )}
+                            <td>{row.Year}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
 

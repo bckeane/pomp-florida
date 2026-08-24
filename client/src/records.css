@@ -9,6 +9,27 @@
   max-width: 1100px;
 }
 
+/* Smaller hero than the homepage's — these pages are about the data, the
+   hero is just a brand/orientation strip above it, not the main event. */
+.records-page .hero {
+  padding: 1.1rem var(--space-9) 1.25rem;
+}
+
+.records-page .hero-logo {
+  width: 40px;
+  height: 40px;
+  margin-bottom: var(--space-4);
+}
+
+.records-page .hero-title {
+  font-size: clamp(1.3rem, 3.2vw, 1.8rem);
+}
+
+.records-page .hero-intro {
+  margin-top: var(--space-3);
+  font-size: 0.9rem;
+}
+
 .records-boards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -133,6 +154,29 @@
 }
 
 .records-search-form button:hover {
+  background: var(--home-red);
+  border-color: var(--home-red);
+}
+
+.records-search-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  width: fit-content;
+  margin: var(--space-8) auto 0;
+  min-height: 44px;
+  padding: 0 var(--space-8);
+  border-radius: 6px;
+  border: 1px solid var(--home-red-bright);
+  background: var(--home-red-bright);
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.records-search-cta:hover {
   background: var(--home-red);
   border-color: var(--home-red);
 }
@@ -268,4 +312,83 @@
   color: var(--home-ink);
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.records-preview {
+  margin-top: var(--space-9);
+}
+
+.records-preview-heading {
+  text-align: center;
+  margin: 0 0 var(--space-8);
+  padding-left: 0;
+  border-left: none;
+}
+
+.records-preview-title {
+  text-align: center;
+  max-width: 420px;
+  margin: 0 auto var(--space-9);
+  padding: var(--space-9);
+  background: var(--home-surface);
+  border: 1px solid var(--home-line);
+  border-radius: 10px;
+}
+
+.records-preview-title img {
+  width: 56px;
+  display: block;
+  margin: 0 auto var(--space-6);
+}
+
+.records-preview-title h3 {
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.records-preview-title p {
+  margin: var(--space-4) 0 0;
+  font-size: 0.85rem;
+  color: var(--home-ink);
+  opacity: 0.7;
+}
+
+.records-preview-event {
+  max-width: 700px;
+  margin: 0 auto var(--space-8);
+  background: var(--home-surface);
+  border: 1px solid var(--home-line);
+  border-radius: 10px;
+  padding: var(--space-8);
+  overflow-x: auto;
+}
+
+.records-preview-event-title {
+  font-weight: 600;
+  margin: 0 0 var(--space-6);
+}
+
+.records-preview-event table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.records-preview-event th {
+  text-align: left;
+  padding: var(--space-3) var(--space-5) var(--space-3) 0;
+  background: var(--home-red);
+  color: white;
+  font-weight: 600;
+}
+
+.records-preview-event td {
+  padding: var(--space-3) var(--space-5) var(--space-3) 0;
+  border-bottom: 1px solid var(--home-line);
+}
+
+.records-preview-event tr.records-preview-current-year td {
+  background: rgba(255, 244, 199, 0.6);
 }
