@@ -91,7 +91,7 @@ export default function Top20Page() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.map((row, i) => (
+                    {data.slice(0, 20).map((row, i) => (
                       <Top20Row key={i} row={row} />
                     ))}
                   </tbody>
