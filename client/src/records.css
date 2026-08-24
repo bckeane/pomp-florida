@@ -117,17 +117,18 @@
   white-space: nowrap;
 }
 
-/* Record Board only (not Top-20/Search, which keep the left/right-aligned
-   convention above) — every column centered, per request. */
-.records-board .records-table th,
-.records-board .records-table td {
-  text-align: center;
-}
-
 .records-table th.records-col-time,
 .records-table th.records-col-place,
 .records-table th.records-col-year {
   text-align: right;
+}
+
+/* Record Board only (not Top-20/Search, which keep the left/right-aligned
+   convention above) — every column centered, per request. Placed after the
+   col-time/col-year overrides above so it wins at equal selector specificity. */
+.records-board .records-table th,
+.records-board .records-table td {
+  text-align: center;
 }
 
 .records-event-link {
