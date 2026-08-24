@@ -219,43 +219,43 @@ Browser (any visitor, no auth)
 Synthesized from this review's findings. Each task derives from a specific
 finding above. Run with Claude Code or Codex; checkbox as you ship.
 
-- [ ] **T1 (P1, human: ~1h / CC: ~20min)** — client/api+hooks — Build `records.js` fetch wrapper + `useRecords` hook + pure `recordsReducer` + session cache
+- [x] **T1 (P1, human: ~1h / CC: ~20min)** — client/api+hooks — Build `records.js` fetch wrapper + `useRecords` hook + pure `recordsReducer` + session cache
   - Surfaced by: Architecture Issue 1 (caching) + Code Quality Issue 1 (shared hook, pure reducer for testability)
   - Files: `client/src/api/records.js`, `client/src/hooks/useRecords.js`
   - Verify: unit tests (mocked fetch) for cache hit/miss/failure and reducer transitions
-- [ ] **T2 (P1, human: ~15min / CC: ~5min)** — client/api — `records.js` must be a bare `fetch(url)`, no `credentials: 'include'`, not reusing the `request()` pattern from `base.js`
+- [x] **T2 (P1, human: ~15min / CC: ~5min)** — client/api — `records.js` must be a bare `fetch(url)`, no `credentials: 'include'`, not reusing the `request()` pattern from `base.js`
   - Surfaced by: design doc Next Steps §2 + round-2 spec review (session-cookie leak risk to a third-party domain)
   - Files: `client/src/api/records.js`
   - Verify: code review — grep for `credentials` in the new file, should find none
-- [ ] **T3 (P2, human: ~20min / CC: ~10min)** — client/pages — Parallelize Search and Export per-event fetch loops with `Promise.allSettled`
+- [x] **T3 (P2, human: ~20min / CC: ~10min)** — client/pages — Parallelize Search and Export per-event fetch loops with `Promise.allSettled`
   - Surfaced by: Performance Issue 1 (source app awaits sequentially in a `for` loop, ~10-30x latency)
   - Files: `client/src/SwimmerSearchPage.jsx`, `client/src/Top25ExportPage.jsx`
   - Verify: unit test on the aggregation function; manual timing check against the source app
-- [ ] **T4 (P1, human: ~20min / CC: ~10min)** — client/pages — Partial-failure notice on Search/Export; escalate to full error banner at 100% failure
+- [x] **T4 (P1, human: ~20min / CC: ~10min)** — client/pages — Partial-failure notice on Search/Export; escalate to full error banner at 100% failure
   - Surfaced by: Code Quality Issue 2 + Failure Modes review (silent partial-failure swallow confirmed at 2 call sites in the source)
   - Files: `client/src/SwimmerSearchPage.jsx`, `client/src/Top25ExportPage.jsx`
   - Verify: unit test on the aggregation function's notice/banner threshold logic
-- [ ] **T5 (P2, human: ~20min / CC: ~5min)** — client/shared — One shared error boundary wrapping all 4 records pages
+- [x] **T5 (P2, human: ~20min / CC: ~5min)** — client/shared — One shared error boundary wrapping all 4 records pages
   - Surfaced by: Outside Voice finding 3 (malformed API response shape would crash render with no boundary)
   - Files: `client/src/components/RecordsErrorBoundary.jsx`
   - Verify: manual — force a malformed response and confirm graceful fallback, not a crash
-- [ ] **T6 (P2, human: ~2h / CC: ~40min)** — client/pages — Port and restyle the 4 pages with pompFlorida's design tokens; swap `react-router-dom` imports to `react-router`
+- [x] **T6 (P2, human: ~2h / CC: ~40min)** — client/pages — Port and restyle the 4 pages with pompFlorida's design tokens; swap `react-router-dom` imports to `react-router`
   - Surfaced by: design doc Next Steps §3 (source uses `react-router-dom` v7; pompFlorida only depends on plain `react-router` v8)
   - Files: `client/src/RecordsPage.jsx`, `client/src/Top20Page.jsx`, `client/src/SwimmerSearchPage.jsx`, `client/src/Top25ExportPage.jsx`
   - Verify: manual browser QA — visual match to pompFlorida's design language, no Bulma classes remain
-- [ ] **T7 (P2, human: ~30min / CC: ~10min)** — client/routing — Add 4 routes to `App.jsx` with lazy-loaded + `Suspense`-wrapped Export; land the HomePage footer link in a separate, later commit
+- [x] **T7a (routes)** / [ ] **T7b (footer link)** — client/routing — Add 4 routes to `App.jsx` with lazy-loaded + `Suspense`-wrapped Export (done); land the HomePage footer link in a separate, later commit (deliberately not done — see T8)
   - Surfaced by: design doc Next Steps §4 (footer-link gating mechanism is a commit boundary, not a feature flag)
-  - Files: `client/src/App.jsx`, `client/src/HomePage.jsx`
-  - Verify: manual — confirm routes work via direct URL before the footer link commit lands
+  - Files: `client/src/App.jsx` (done), `client/src/HomePage.jsx` (pending)
+  - Verify: manual — confirmed all 4 routes work via direct URL against live `api.ctkeane.com` data (2026-08-24); footer link commit lands only after T8
 - [ ] **T8 (P1, human: ~30min / CC: ~10min)** — ops/release — Release checklist: verify CORS allowlist live on both endpoints; manual QA including the side-by-side port-fidelity check
   - Surfaced by: design doc Next Steps §5 + Success Criteria + Outside Voice finding 4 (port-fidelity, not just "does it render")
   - Files: none (ops/manual step)
   - Verify: curl probes against `/swim/records` and `/swim/top20/:id` with pompFlorida's real Origin header; side-by-side comparison against `swim.ctkeane.com`'s live output
-- [ ] **T9 (P3, human: ~10min / CC: ~5min)** — client/deps — Add `xlsx`/`jspdf`/`jspdf-autotable`; verify dynamic import keeps them out of the other 3 pages' bundle
+- [x] **T9 (P3, human: ~10min / CC: ~5min)** — client/deps — Add `xlsx`/`jspdf`/`jspdf-autotable`; verify dynamic import keeps them out of the other 3 pages' bundle
   - Surfaced by: design doc Next Steps §1 (bundle-weight mitigation for a low-frequency, coach-only feature)
   - Files: `client/package.json`
   - Verify: build output — check bundle analysis or network tab confirms the chunk only loads on `/records/top25-export`
-- [ ] **T10 (P1, human: ~5min / CC: ~5min)** — client/pages — Import the real `pomp_icon.png` logo asset on all 4 pages, not the mockup's placeholder logo
+- [x] **T10 (P1, human: ~5min / CC: ~5min)** — client/pages — Import the real `pomp_icon.png` logo asset on all 4 pages, not the mockup's placeholder logo
   - Surfaced by: Design Review Pass 7 (unresolved decision — easy to miss without an explicit task)
   - Files: `client/src/RecordsPage.jsx`, `client/src/Top20Page.jsx`, `client/src/SwimmerSearchPage.jsx`, `client/src/Top25ExportPage.jsx`
   - Verify: visual check — same logo file as `HomePage.jsx` imports, not a redrawn/generated version
