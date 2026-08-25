@@ -243,12 +243,13 @@ finding above. Run with Claude Code or Codex; checkbox as you ship.
   - Surfaced by: design doc Next Steps §3 (source uses `react-router-dom` v7; pompFlorida only depends on plain `react-router` v8)
   - Files: `client/src/RecordsPage.jsx`, `client/src/Top20Page.jsx`, `client/src/SwimmerSearchPage.jsx`, `client/src/Top25ExportPage.jsx`
   - Verify: manual browser QA — visual match to pompFlorida's design language, no Bulma classes remain
-- [x] **T7a (routes)** / [ ] **T7b (footer link)** — client/routing — Add 4 routes to `App.jsx` with lazy-loaded + `Suspense`-wrapped Export (done); land the HomePage footer link in a separate, later commit (deliberately not done — see T8)
+- [x] **T7a (routes)** / [x] **T7b (footer link)** — client/routing — Add 4 routes to `App.jsx` with lazy-loaded + `Suspense`-wrapped Export (done); HomePage footer link added 2026-08-25 once T8 cleared
   - Surfaced by: design doc Next Steps §4 (footer-link gating mechanism is a commit boundary, not a feature flag)
-  - Files: `client/src/App.jsx` (done), `client/src/HomePage.jsx` (pending)
-  - Verify: manual — confirmed all 4 routes work via direct URL against live `api.ctkeane.com` data (2026-08-24); footer link commit lands only after T8
-- [ ] **T8 (P1, human: ~30min / CC: ~10min)** — ops/release — Release checklist: verify CORS allowlist live on both endpoints; manual QA including the side-by-side port-fidelity check
+  - Files: `client/src/App.jsx`, `client/src/HomePage.jsx`
+  - Verify: manual — confirmed all 4 routes work via direct URL against live `api.ctkeane.com` data (2026-08-24); footer link landed 2026-08-25 after T8 verified live
+- [x] **T8 (P1, human: ~30min / CC: ~10min)** — ops/release — Release checklist: verify CORS allowlist live on both endpoints; manual QA including the side-by-side port-fidelity check
   - Surfaced by: design doc Next Steps §5 + Success Criteria + Outside Voice finding 4 (port-fidelity, not just "does it render")
+  - **Closed 2026-08-25:** `https://www.pomperaugswim.org` (the real production origin — a custom domain in front of the `pompflorida-api.onrender.com` Render service, confirmed by identical build hash) added to `api.ctkeane.com`'s CORS allowlist. Verified live via `curl -H "Origin: https://www.pomperaugswim.org"` against both `/swim/records` and `/swim/top20/1` — both return `200` with `access-control-allow-origin` echoed back. Also caught and fixed a separate, unrelated production-only bug during this verification: this app's own `helmet()` CSP had no `connect-src`, silently blocking the browser-side fetch to `api.ctkeane.com` regardless of the CORS outcome (invisible in local dev, which serves via Vite with no CSP header) — fixed in `server/src/index.js`. Confirmed end-to-end in a live browser against `https://www.pomperaugswim.org/records`: real data renders, zero console errors.
   - Files: none (ops/manual step)
   - Verify: curl probes against `/swim/records` and `/swim/top20/:id` with pompFlorida's real Origin header; side-by-side comparison against `swim.ctkeane.com`'s live output
 - [x] **T9 (P3, human: ~10min / CC: ~5min)** — client/deps — Add `xlsx`/`jspdf`/`jspdf-autotable`; verify dynamic import keeps them out of the other 3 pages' bundle

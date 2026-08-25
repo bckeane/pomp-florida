@@ -288,6 +288,9 @@ export default function HomePage() {
         </Link>
         <p className="hint">Not attending? No problem — local practices continue as normal.</p>
         <div className="footer-links">
+          <Link className="footer-admin-link" to="/records">
+            Team Records
+          </Link>
           <Link className="footer-admin-link" to="/admin">
             Team admin
           </Link>
