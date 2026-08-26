@@ -109,6 +109,15 @@
   border-bottom: none;
 }
 
+/* Top-20 only (20 rows vs. the Record Board's 12 short-lived ones) — banding
+   makes it much easier to track a row across the four columns. Uses
+   --home-bg (the page background, one step darker than --home-surface's
+   white card) so the stripe reads correctly in both light and dark mode
+   without a color defined here. */
+.records-table--zebra tbody tr:nth-child(even) td {
+  background: var(--home-bg);
+}
+
 .records-table .records-col-time,
 .records-table .records-col-place,
 .records-table .records-col-year {

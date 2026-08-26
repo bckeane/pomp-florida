@@ -28,8 +28,9 @@ export function fetchAllRecords(signal) {
   return fetchRecords('/records', signal);
 }
 
-export function fetchTop20(eventId, signal) {
-  return fetchRecords(`/top20/${eventId}`, signal);
+export function fetchTop20(eventId, gender, signal) {
+  const g = (gender || 'boys').toLowerCase();
+  return fetchRecords(`/top20/${g}/${eventId}`, signal);
 }
 
 /** Test-only escape hatch — the cache is intentionally module-scoped and

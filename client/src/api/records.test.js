@@ -25,13 +25,31 @@ describe('fetchAllRecords / fetchTop20', () => {
     expect(options).not.toHaveProperty('headers');
   });
 
-  it('builds the top20 URL from the event id', async () => {
+  it('builds the top20 URL from the gender and event id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(mockJsonResponse([]));
+    global.fetch = fetchMock;
+
+    await fetchTop20(42, 'girls');
+
+    expect(fetchMock).toHaveBeenCalledWith('https://api.ctkeane.com/swim/top20/girls/42', { signal: undefined });
+  });
+
+  it('defaults to boys when no gender is given', async () => {
     const fetchMock = vi.fn().mockResolvedValue(mockJsonResponse([]));
     global.fetch = fetchMock;
 
     await fetchTop20(42);
 
-    expect(fetchMock).toHaveBeenCalledWith('https://api.ctkeane.com/swim/top20/42', { signal: undefined });
+    expect(fetchMock).toHaveBeenCalledWith('https://api.ctkeane.com/swim/top20/boys/42', { signal: undefined });
+  });
+
+  it('lowercases gender regardless of source casing', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(mockJsonResponse([]));
+    global.fetch = fetchMock;
+
+    await fetchTop20(42, 'GIRLS');
+
+    expect(fetchMock).toHaveBeenCalledWith('https://api.ctkeane.com/swim/top20/girls/42', { signal: undefined });
   });
 
   it('caches a successful response — a second call for the same path does not re-fetch', async () => {
