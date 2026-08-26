@@ -59,7 +59,42 @@ function rowToParticipant(row) {
   };
 }
 
-export function listParticipants({ role, grad_year, active, q, sort, trip_id } = {}) {
+// One accessor per sortable roster column. "balance" mirrors the client's
+// totalBalance() helper (lib/money.js) — null only when the trip has no
+// estimated_cost set at all, never a false $0 owed.
+const SORT_ACCESSORS = {
+  last_name: (p) => p.last_name,
+  role: (p) => p.role,
+  grad_year: (p) => p.grad_year,
+  grade: (p) => p.grade,
+  age: (p) => p.age_at_trip,
+  status: (p) => (p.active ? 1 : 0),
+  deposit_received: (p) => p.deposit_received,
+  final_payment_received: (p) => p.final_payment_received,
+  balance: (p) =>
+    p.deposit_balance == null && p.final_payment_balance == null
+      ? null
+      : (p.deposit_balance ?? 0) + (p.final_payment_balance ?? 0),
+};
+
+// Nulls always sort last regardless of direction; ties (including nulls vs.
+// nulls) fall back to last name so re-sorting the same column stays stable.
+function compareParticipants(a, b, sortKey, dir) {
+  const getValue = SORT_ACCESSORS[sortKey] || SORT_ACCESSORS.last_name;
+  const av = getValue(a);
+  const bv = getValue(b);
+
+  let cmp;
+  if (av === null || av === undefined) cmp = bv === null || bv === undefined ? 0 : 1;
+  else if (bv === null || bv === undefined) cmp = -1;
+  else if (typeof av === 'string') cmp = av.localeCompare(bv);
+  else cmp = av < bv ? -1 : av > bv ? 1 : 0;
+
+  if (cmp !== 0) return dir === 'desc' ? -cmp : cmp;
+  return a.last_name.localeCompare(b.last_name);
+}
+
+export function listParticipants({ role, grad_year, active, q, sort, dir, deposit_paid, trip_id } = {}) {
   const clauses = ['participants.trip_id = ?'];
   const params = [trip_id];
 
@@ -86,20 +121,18 @@ export function listParticipants({ role, grad_year, active, q, sort, trip_id } =
 
   let participants = rows.map(rowToParticipant);
 
-  const sortKey = { last_name: 'last_name', grad_year: 'grad_year', age: 'age_at_trip' }[sort];
-  if (sortKey) {
-    participants.sort((a, b) => {
-      const av = a[sortKey];
-      const bv = b[sortKey];
-      if (av === null || av === undefined) return 1;
-      if (bv === null || bv === undefined) return -1;
-      if (av < bv) return -1;
-      if (av > bv) return 1;
-      return a.last_name.localeCompare(b.last_name);
-    });
-  } else {
-    participants.sort((a, b) => a.last_name.localeCompare(b.last_name));
+  // "Paid" means the deposit balance is confirmed $0 or less; a trip with no
+  // estimated_cost set (deposit_balance null) can't be confirmed paid, so it
+  // falls into "unpaid" rather than either bucket silently dropping it.
+  if (deposit_paid === 'paid') {
+    participants = participants.filter((p) => p.deposit_balance != null && p.deposit_balance <= 0);
+  } else if (deposit_paid === 'unpaid') {
+    participants = participants.filter((p) => p.deposit_balance == null || p.deposit_balance > 0);
   }
+
+  const sortKey = SORT_ACCESSORS[sort] ? sort : 'last_name';
+  const sortDir = dir === 'desc' ? 'desc' : 'asc';
+  participants.sort((a, b) => compareParticipants(a, b, sortKey, sortDir));
 
   return participants;
 }

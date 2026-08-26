@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import OverviewPanel from './components/OverviewPanel.jsx';
 import RosterTable from './components/RosterTable.jsx';
@@ -28,10 +28,10 @@ import './admin.css';
 
 const defaultFilters = {
   q: '',
-  role: '',
-  grad_year: '',
   sort: 'last_name',
+  dir: 'asc',
   showInactive: false,
+  depositPaid: '',
 };
 
 export default function AdminRoster() {
@@ -83,9 +83,9 @@ export default function AdminRoster() {
         fetchParticipants({
           trip_id: selectedTripId,
           q: filters.q,
-          role: filters.role,
-          grad_year: filters.grad_year,
           sort: filters.sort,
+          dir: filters.dir,
+          deposit_paid: filters.depositPaid,
           active: filters.showInactive ? undefined : '1',
         }),
         fetchStats(selectedTripId),
@@ -103,14 +103,6 @@ export default function AdminRoster() {
     if (!isAdmin) return;
     load();
   }, [isAdmin, load]);
-
-  const gradYears = useMemo(() => {
-    const years = new Set();
-    participants.forEach((p) => {
-      if (p.grad_year && !Number.isNaN(Number(p.grad_year))) years.add(p.grad_year);
-    });
-    return Array.from(years).sort();
-  }, [participants]);
 
   const handleSave = async (data) => {
     if (editing && editing !== 'new') {
@@ -357,7 +349,6 @@ export default function AdminRoster() {
           onDelete={handleToggleActive}
           onHardDelete={handleHardDelete}
           onUpdatePayment={handleUpdatePayment}
-          gradYears={gradYears}
         />
       )}
 

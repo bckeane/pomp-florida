@@ -52,8 +52,8 @@ router.get('/participants', requireAdmin, (req, res) => {
   if (trip === undefined) return res.status(400).json({ error: 'Unknown trip_id' });
   if (trip === null) return res.status(400).json({ error: 'No current trip is set' });
 
-  const { role, grad_year, active, q, sort } = req.query;
-  const participants = listParticipants({ role, grad_year, active, q, sort, trip_id: trip.id });
+  const { role, grad_year, active, q, sort, dir, deposit_paid } = req.query;
+  const participants = listParticipants({ role, grad_year, active, q, sort, dir, deposit_paid, trip_id: trip.id });
   res.json(participants);
 });
 

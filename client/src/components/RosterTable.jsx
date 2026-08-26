@@ -1,12 +1,25 @@
 import { useState } from 'react';
-import { ROLES } from '../constants.js';
 import { fmtMoney, totalBalance } from '../lib/money.js';
 import { fetchPaymentLink } from '../api/participants.js';
 
-const SORT_OPTIONS = [
-  { value: 'last_name', label: 'Last name' },
-  { value: 'grad_year', label: 'Grad year' },
-  { value: 'age', label: 'Age' },
+// Mirrors the server's SORT_ACCESSORS keys (models/participants.js) — the
+// list comes back pre-sorted, this just drives which header shows the arrow.
+const COLUMNS = [
+  { key: 'last_name', label: 'Last, First', className: 'col-name' },
+  { key: 'role', label: 'Role' },
+  { key: 'grad_year', label: 'Grad year' },
+  { key: 'grade', label: 'Grade' },
+  { key: 'age', label: 'Age' },
+  { key: 'status', label: 'Status' },
+  { key: 'deposit_received', label: 'Deposit paid' },
+  { key: 'final_payment_received', label: 'Final pmt paid' },
+  { key: 'balance', label: 'Balance owed' },
+];
+
+const DEPOSIT_PAID_OPTIONS = [
+  { value: '', label: 'All' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'unpaid', label: 'Unpaid' },
 ];
 
 function EditIcon() {
@@ -51,13 +64,20 @@ export default function RosterTable({
   onDelete,
   onHardDelete,
   onUpdatePayment,
-  gradYears,
 }) {
-  const { q, role, grad_year, sort, showInactive } = filters;
+  const { q, sort, dir, showInactive, depositPaid } = filters;
   const [drafts, setDrafts] = useState({});
   const [paymentLinks, setPaymentLinks] = useState({});
 
   const setFilter = (patch) => onFiltersChange({ ...filters, ...patch });
+
+  const handleSort = (key) => {
+    if (sort === key) {
+      setFilter({ dir: dir === 'desc' ? 'asc' : 'desc' });
+    } else {
+      setFilter({ sort: key, dir: 'asc' });
+    }
+  };
 
   const draftKey = (id, field) => `${id}:${field}`;
 
@@ -187,52 +207,17 @@ export default function RosterTable({
           onChange={(e) => setFilter({ q: e.target.value })}
         />
 
-        <div className="chip-group">
-          <button
-            className={`chip ${role === '' ? 'chip--active' : ''}`}
-            onClick={() => setFilter({ role: '' })}
-          >
-            All roles
-          </button>
-          {ROLES.map((r) => (
+        <div className="chip-group" role="group" aria-label="Deposit paid filter">
+          {DEPOSIT_PAID_OPTIONS.map((opt) => (
             <button
-              key={r}
-              className={`chip ${role === r ? 'chip--active' : ''}`}
-              onClick={() => setFilter({ role: role === r ? '' : r })}
+              key={opt.value}
+              className={`chip ${depositPaid === opt.value ? 'chip--active' : ''}`}
+              onClick={() => setFilter({ depositPaid: opt.value })}
             >
-              {r}
+              {opt.value === '' ? 'All deposits' : `Deposit: ${opt.label}`}
             </button>
           ))}
         </div>
-
-        <div className="chip-group">
-          <button
-            className={`chip ${grad_year === '' ? 'chip--active' : ''}`}
-            onClick={() => setFilter({ grad_year: '' })}
-          >
-            All classes
-          </button>
-          {gradYears.map((g) => (
-            <button
-              key={g}
-              className={`chip ${grad_year === g ? 'chip--active' : ''}`}
-              onClick={() => setFilter({ grad_year: grad_year === g ? '' : g })}
-            >
-              {g}
-            </button>
-          ))}
-        </div>
-
-        <label className="sort-select">
-          Sort by
-          <select value={sort} onChange={(e) => setFilter({ sort: e.target.value })}>
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
 
         <label className="toggle">
           <input
@@ -248,15 +233,24 @@ export default function RosterTable({
       <table className="roster-table">
         <thead>
           <tr>
-            <th className="col-name">Last, First</th>
-            <th>Role</th>
-            <th>Grad year</th>
-            <th>Grade</th>
-            <th>Age</th>
-            <th>Status</th>
-            <th>Deposit paid</th>
-            <th>Final pmt paid</th>
-            <th>Balance owed</th>
+            {COLUMNS.map((col) => {
+              const active = sort === col.key;
+              return (
+                <th key={col.key} className={col.className}>
+                  <button
+                    type="button"
+                    className={`sortable-header ${active ? 'sortable-header--active' : ''}`}
+                    onClick={() => handleSort(col.key)}
+                    aria-sort={active ? (dir === 'desc' ? 'descending' : 'ascending') : 'none'}
+                  >
+                    {col.label}
+                    <span className="sort-indicator" aria-hidden="true">
+                      {active ? (dir === 'desc' ? '▼' : '▲') : ''}
+                    </span>
+                  </button>
+                </th>
+              );
+            })}
             <th className="col-actions"></th>
           </tr>
         </thead>

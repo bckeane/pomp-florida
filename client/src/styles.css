@@ -383,7 +383,6 @@ body {
   color: white;
 }
 
-.sort-select,
 .toggle {
   display: flex;
   align-items: center;
@@ -392,12 +391,29 @@ body {
   color: var(--text-muted);
 }
 
-.sort-select select {
-  padding: 0.3rem var(--space-2);
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface);
+.sortable-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.sortable-header:hover,
+.sortable-header--active {
   color: var(--text);
+}
+
+.sort-indicator {
+  font-size: 0.65rem;
+  width: 0.7em;
+  display: inline-block;
 }
 
 /* Lets the table scroll horizontally instead of squeezing every column
