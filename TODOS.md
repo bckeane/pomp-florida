@@ -130,3 +130,99 @@ Parents now see a live "Trip Essentials" card — dates, training venue, accommo
 - Server tests: `server/test/tripSchedule.test.js` (model), additions to `server/test/tripsRoute.test.js` (routes) and `server/test/trips.test.js` (DETAIL_FIELDS carry-forward) — 20 new tests, 287 total.
 
 **Verified live** (2026-08-16) against real data: the pre-existing 2026 trip's logistics/packing/schedule render correctly in the new admin UI, and the parent-facing card renders correctly (and degrades gracefully) against the current 2027 trip's partial data.
+
+## Code Cleanup (post-2026-trip)
+
+Findings from a full-codebase dead-code/duplication audit (2026-08-28, two parallel agents covering `client/src/**` and `server/src/**`, ~90 files, every claim grep-verified). Deliberately held until after the 2026 trip wraps — several of these touch payment and roster code paths that are actively in use for live registrations/payments right now, and refactoring shared logic mid-season is the wrong time to introduce a regression. Once the 2026 trip is fully closed out (no more active registrations/payments expected), work through these roughly in priority order.
+
+### Extract shared client API `request()` helper
+
+**What:** `client/src/api/adminAccounts.js:3-19`, `adminTraffic.js`, `auth.js`, `budget.js`, `participants.js`, `questions.js`, and `trips.js` each carry a byte-identical 19-line credentialed-fetch-plus-error-shaping function. Extract to one `client/src/api/request.js` and import it in all seven.
+
+**Why:** Confirmed byte-identical via md5 diff across all seven files — pure copy-paste, zero divergence today, but any future fix (e.g. a new header, a retry policy) would need to land in seven places by hand. Purely mechanical, lowest-risk item on this list.
+
+**Effort:** S
+**Priority:** P2
+
+### Consolidate server-side trip resolution logic
+
+**What:** "Resolve trip from `?trip_id=` or fall back to current trip" is implemented three different ways: `resolveTrip()` in `server/src/routes/participants.js:42-48`, `resolveTripId()` in `server/src/routes/budget.js:35-50`, and fully inlined in `server/src/routes/stats.js:9-18`. Pick one shape (budget.js's, which folds the 400-response into the helper so callers need only one `if (tripId === null) return;` check) and reuse it in all three routes.
+
+**Why:** `budget.js:34`'s own code comment already flags this — *"Same trip_id-or-current-trip resolution as GET /api/stats"* — the duplication was noticed and left in place rather than shared. Touches the trip-scoping logic behind roster, budget, and stats reads, so worth doing carefully with the full test suite green, not mid-season.
+
+**Effort:** S-M
+**Priority:** P2
+**Depends on:** 2026 trip complete (touches live roster/budget/stats query paths).
+
+### Consolidate server-side validation-error shaping
+
+**What:** The "turn zod issues into a `{field: message}` object" function is independently defined in `adminAccounts.js:28`, `budget.js:28`, `auth.js:72`, `questions.js:15`, inlined without even being a local function 4 more times in `trips.js`, plus a parallel non-zod version duplicated between `participants.js:249` and `myParticipants.js:32`. Move to one shared helper in `server/src/lib/validation.js`.
+
+**Why:** Same shape rewritten 10 times across route files with no shared home for it despite `lib/validation.js` already existing as the natural place for it.
+
+**Effort:** S-M
+**Priority:** P2
+
+### Unify payment-link installment validation
+
+**What:** `participants.js:26-29,132-146` (`INSTALLMENT_BALANCE_FIELDS` map) and `myParticipants.js:22-30,122-134` (`installmentAmount()` function) both resolve "which balance field does this installment mean, and is it already paid off" — same three-step validation, different shapes, and they've already drifted: `myParticipants.js` supports a `'full'` (pay-in-full) installment type that `participants.js`'s admin-generated-link path doesn't. Unify into one function both routes call.
+
+**Why:** This is the one duplication finding that's a real correctness risk, not just style — two independent implementations of "what does a parent/admin owe for this installment" can silently diverge further every time one path is touched and the other isn't.
+
+**Effort:** M
+**Priority:** P1 (highest of this list — it's payment-calculation logic)
+**Depends on:** 2026 trip complete (this is the live Stripe payment-link path — don't touch it while real families are still paying).
+
+### Decompose `BudgetPanel.jsx`
+
+**What:** `client/src/components/BudgetPanel.jsx` is 947 lines — one component owns data-fetching, line-item CRUD, category create/retire/unretire/attach/detach, the per-student exclusion matrix, the multi-year trend view, and the full day-by-day food-planner sub-feature (~30 handlers, ~15 pieces of local state). Split into per-concern subcomponents: line-items table, category manager, exclusion matrix, trend view, daily planner.
+
+**Why:** The single biggest maintainability risk surfaced by the audit — every unrelated Budget feature now shares one file and one set of state, so a change to any one sub-feature risks touching the others by accident.
+
+**Effort:** L
+**Priority:** P2
+**Depends on:** 2026 trip complete (Budget tab is actively used for live trip financials right now).
+
+### Small mechanical duplication sweep
+
+**What:** A batch of smaller, independent, low-risk extractions — safe to do together in one pass:
+- `splitLines()` reimplemented identically 4x (`HomePage.jsx`, `AnnouncementPanel.jsx`, `TripDetailsForm.jsx`, `TripEssentials.jsx`) → one shared helper.
+- `StatCard` component defined byte-identically twice (`OverviewPanel.jsx`, `TrafficPanel.jsx`) → one shared component.
+- "60% default deposit split" hardcoded in 6 places (`lib/money.js`, `TripDetailsForm.jsx`, `AnnouncementPanel.jsx` x4) → one constant in `constants.js`.
+- `ROLES`/`ADULT_GRAD_YEARS` independently redefined in `server/src/lib/validation.js` and `client/src/constants.js`, plus a third hardcoded copy of the role list in `lib/importPreview.js:53` → can't fully unify cross-tier without a shared package, but at minimum fix `importPreview.js` to import the existing client `ROLES` constant instead of a fourth hardcoded copy.
+- ISO date regex `/^\d{4}-\d{2}-\d{2}$/` defined 6 separate times server-side → one shared regex constant.
+- Swimmer-name extraction (`Swimmer_Name`/`Name2`/`Name3`/`Name4` filtering) duplicated 4 ways across `RecordsPage.jsx`, `Top20Page.jsx`, `Top25ExportPage.jsx`, `lib/swimmerSearch.js` → one shared helper.
+- `formatCostRange()` defined twice with **different rounding behavior** (`HomePage.jsx` vs `AnnouncementPanel.jsx`, the latter correctly using `fmtMoney()`) — real output drift for non-integer costs, fix by making `HomePage.jsx` use the same `fmtMoney()`-based version.
+- Two local date formatters (`OverviewPanel.jsx`'s `fmtDate`, `TrafficPanel.jsx`'s `fmtShortDate`) reinvent `lib/dates.js`'s existing `parseLocalDate`/`formatShortDate` → delete the local copies, import the shared ones.
+
+**Why:** Each individually small, but bundled they're a meaningful chunk of duplicated surface area, and several (the cost-range rounding, the role-list drift) are actual behavior differences waiting to bite, not just style.
+
+**Effort:** M (many small changes, low complexity each)
+**Priority:** P2
+
+### Remove verified dead code
+
+**What:**
+- `COLUMNS` export in `server/src/models/participants.js:5-19` — unused anywhere, server or client.
+- `getStats` imported into `server/src/routes/participants.js` but never called there (the real caller is `routes/stats.js`, which has its own import).
+- `rowToQuestion(row) { return row; }` no-op passthrough in `server/src/models/questions.js:4-6`, mapped over every row for no effect.
+- `fetchAdminAccounts()` in `client/src/api/adminAccounts.js:21-23` — zero callers (the real consumer, `AccountsPanel.jsx`, uses `fetchAllAccounts()` instead).
+
+**Why:** Grep-verified zero references each. Free removal, no behavior change.
+
+**Effort:** S
+**Priority:** P3
+
+### Misc complexity cleanup
+
+**What:**
+- Extract the break-glass-account guard (repeated 3x) and self-lockout guard (repeated 2x) in `server/src/routes/adminAccounts.js` into two small guard functions.
+- `server/src/routes/participants.js` repeats the same trip-null-check boilerplate 4x despite already having `resolveTrip()` — fold into the helper (same fix as the trip-resolution consolidation item above).
+- `RegisterPage.jsx` models one screen as 7+ independent booleans/nullables (`submitted`, `showAddForm`, `editingProfile`, `editingParticipant`, `prefill`, `lastAdded`, ...), manually reset together in `handleLogout` and picked apart via a long nested ternary — collapse to a single `screen` enum.
+- `AdminRoster.jsx:274-324` hand-writes 7 near-identical tab buttons instead of mapping over a `TABS` array, the pattern already used elsewhere in this codebase (`ParticipantForm.jsx`'s `ROLES.map`, `TrafficPanel.jsx`'s `WINDOW_OPTIONS.map`).
+- `ParticipantForm.jsx:213-260` renders three near-identical action-button JSX blocks for its `admin`/`public`/`popover` variants (only the field markup above is correctly shared) — consolidate the button markup the same way.
+
+**Why:** Lowest urgency of this list — these are readability/maintainability wins, not duplication or correctness risks. Good filler work, not worth prioritizing over the items above.
+
+**Effort:** M (several independent small refactors)
+**Priority:** P3
