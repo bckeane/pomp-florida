@@ -1,20 +1,28 @@
 import { useState } from 'react';
 import { fmtMoney, totalBalance } from '../lib/money.js';
+import { formatShortDate } from '../lib/dates.js';
 import { fetchPaymentLink } from '../api/participants.js';
 
 // Mirrors the server's SORT_ACCESSORS keys (models/participants.js) — the
 // list comes back pre-sorted, this just drives which header shows the arrow.
 const COLUMNS = [
   { key: 'last_name', label: 'Last, First', className: 'col-name' },
+  { key: 'created_at', label: 'Registered' },
   { key: 'role', label: 'Role' },
   { key: 'grad_year', label: 'Grad year' },
   { key: 'grade', label: 'Grade' },
   { key: 'age', label: 'Age' },
-  { key: 'status', label: 'Status' },
   { key: 'deposit_received', label: 'Deposit paid' },
   { key: 'final_payment_received', label: 'Final pmt paid' },
   { key: 'balance', label: 'Balance owed' },
 ];
+
+// Keys must match constants.js ROLES exactly.
+const ROLE_ICONS = {
+  Swimmer: '🏊',
+  Diver: '🤿',
+  Adult: '🧑',
+};
 
 const DEPOSIT_PAID_OPTIONS = [
   { value: '', label: 'All' },
@@ -258,11 +266,15 @@ export default function RosterTable({
           {participants.map((p) => (
             <tr key={p.id} className={p.active ? '' : 'row--inactive'}>
               <td data-label="Name" className="col-name">{p.full_name}</td>
-              <td data-label="Role">{p.role}</td>
+              <td data-label="Registered">{formatShortDate(p.created_at?.slice(0, 10)) ?? '—'}</td>
+              <td data-label="Role">
+                <span title={p.role} aria-label={p.role}>
+                  {ROLE_ICONS[p.role] ?? p.role}
+                </span>
+              </td>
               <td data-label="Grad year">{p.grad_year || '—'}</td>
               <td data-label="Grade">{p.grade ?? '—'}</td>
               <td data-label="Age">{p.age_at_trip ?? '—'}</td>
-              <td data-label="Status">{p.active ? 'Active' : 'Inactive'}</td>
               <td data-label="Deposit paid">
                 <input
                   type="number"

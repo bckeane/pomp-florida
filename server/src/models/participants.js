@@ -68,13 +68,13 @@ const SORT_ACCESSORS = {
   grad_year: (p) => p.grad_year,
   grade: (p) => p.grade,
   age: (p) => p.age_at_trip,
-  status: (p) => (p.active ? 1 : 0),
   deposit_received: (p) => p.deposit_received,
   final_payment_received: (p) => p.final_payment_received,
   balance: (p) =>
     p.deposit_balance == null && p.final_payment_balance == null
       ? null
       : (p.deposit_balance ?? 0) + (p.final_payment_balance ?? 0),
+  created_at: (p) => p.created_at,
 };
 
 // Nulls always sort last regardless of direction; ties (including nulls vs.
