@@ -104,6 +104,29 @@ describe('payment tracking', () => {
     expect(p.deposit_balance).toBeNull();
     expect(p.final_payment_balance).toBeNull();
   });
+
+  it('Adults are never billed — balance is $0, never null, whether or not the trip has an estimated_cost', () => {
+    const tripWithCost = createTrip({ year: '2059', name: 'Test', trip_date: '2059-01-01' });
+    updateTrip(tripWithCost.id, { estimated_cost: 1250 });
+    const adultWithCost = createParticipant({
+      first_name: 'A',
+      last_name: 'A',
+      role: 'Adult',
+      trip_id: tripWithCost.id,
+    });
+    expect(adultWithCost.deposit_balance).toBe(0);
+    expect(adultWithCost.final_payment_balance).toBe(0);
+
+    const tripNoCost = createTrip({ year: '2060', name: 'Test', trip_date: '2060-01-01' });
+    const adultNoCost = createParticipant({
+      first_name: 'B',
+      last_name: 'B',
+      role: 'Adult',
+      trip_id: tripNoCost.id,
+    });
+    expect(adultNoCost.deposit_balance).toBe(0);
+    expect(adultNoCost.final_payment_balance).toBe(0);
+  });
 });
 
 describe('has_allergy_medication (tri-state)', () => {

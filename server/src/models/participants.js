@@ -45,6 +45,10 @@ function rowToParticipant(row) {
   const { _trip_date, _trip_year, _estimated_cost, _deposit_percent, ...participant } = row;
   const withAgeGrade = withDerived(participant, _trip_date, _trip_year);
   const { deposit_amount, final_payment_estimate } = computeDepositAndFinal(_estimated_cost, _deposit_percent);
+  // Adults (coaches/chaperones) are never billed — always $0 owed, never the
+  // null "no cost set" state, so they read as paid everywhere balance is
+  // shown or filtered on.
+  const isAdult = participant.role === 'Adult';
   return {
     ...withAgeGrade,
     has_allergy_medication:
@@ -53,9 +57,12 @@ function rowToParticipant(row) {
         : Boolean(participant.has_allergy_medication),
     // null when the trip has no estimated cost set (e.g. an archived trip
     // with no detail fields) — "—" in the UI, not a false $0 owed.
-    deposit_balance: deposit_amount == null ? null : deposit_amount - participant.deposit_received,
-    final_payment_balance:
-      final_payment_estimate == null ? null : final_payment_estimate - participant.final_payment_received,
+    deposit_balance: isAdult ? 0 : deposit_amount == null ? null : deposit_amount - participant.deposit_received,
+    final_payment_balance: isAdult
+      ? 0
+      : final_payment_estimate == null
+        ? null
+        : final_payment_estimate - participant.final_payment_received,
   };
 }
 
