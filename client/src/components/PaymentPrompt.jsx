@@ -29,7 +29,9 @@ export default function PaymentPrompt({ participant, variant = 'default' }) {
 
   const depositOwed = deposit_balance > 0;
   const compact = variant === 'compact';
-  const primaryClass = compact ? 'link-btn payment-prompt-btn' : 'btn btn--primary payment-prompt-btn';
+  const primaryClass = compact
+    ? 'link-btn payment-prompt-btn payment-prompt-btn--primary'
+    : 'btn btn--primary payment-prompt-btn';
   const secondaryClass = compact ? 'link-btn payment-prompt-btn' : 'btn btn--ghost payment-prompt-btn';
 
   const handlePay = async (installment) => {

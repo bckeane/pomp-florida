@@ -473,6 +473,40 @@
   white-space: nowrap;
 }
 
+/* Compact variant (account-home roster row) previously inherited bare
+   .link-btn styling — no background/border, same weight as the adjacent
+   "Edit" link — so the CTA read as informational text next to the status
+   pills instead of an actionable button. Give it real button chrome. */
+.register-page .payment-prompt--compact .payment-prompt-btn {
+  padding: 0.3rem var(--space-5);
+  border-radius: 999px;
+  border: 1px solid var(--reg-line);
+  background: var(--reg-surface);
+  color: var(--reg-ink);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.register-page .payment-prompt--compact .payment-prompt-btn:hover {
+  background: var(--reg-bg);
+}
+
+.register-page .payment-prompt--compact .payment-prompt-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.register-page .payment-prompt--compact .payment-prompt-btn--primary {
+  background: var(--reg-red-bright);
+  border-color: var(--reg-red-bright);
+  color: white;
+}
+
+.register-page .payment-prompt--compact .payment-prompt-btn--primary:hover {
+  background: var(--reg-red);
+  border-color: var(--reg-red);
+}
+
 .register-page .payment-prompt-error {
   flex-basis: 100%;
   color: var(--danger);
