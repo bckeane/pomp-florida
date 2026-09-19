@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '../src/db/connection.js';
 import { createTrip, updateTrip } from '../src/models/trips.js';
-import { createParticipant, updateParticipant, getStats } from '../src/models/participants.js';
+import {
+  createParticipant,
+  updateParticipant,
+  updateParticipantBooking,
+  listParticipants,
+  getStats,
+} from '../src/models/participants.js';
 
 beforeEach(() => {
   db.exec(`
@@ -166,5 +172,119 @@ describe('has_allergy_medication (tri-state)', () => {
 
     const afterUnrelatedUpdate = updateParticipant(p.id, { first_name: 'Alice' });
     expect(afterUnrelatedUpdate.has_allergy_medication).toBe(true);
+  });
+});
+
+describe('group_leader (one per group_number)', () => {
+  it('defaults to false for a new participant', () => {
+    const trip = createTrip({ year: '2061', name: 'Test', trip_date: '2061-01-01' });
+    const p = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+    expect(p.group_leader).toBe(false);
+  });
+
+  it('rejects setting a second leader on the same trip + group_number', () => {
+    const trip = createTrip({ year: '2062', name: 'Test', trip_date: '2062-01-01' });
+    const a = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+    const b = createParticipant({ first_name: 'B', last_name: 'B', role: 'Swimmer', trip_id: trip.id });
+    updateParticipantBooking(a.id, { group_number: '1', group_leader: true });
+
+    expect(() => updateParticipantBooking(b.id, { group_number: '1', group_leader: true })).toThrow();
+
+    const stillA = listParticipants({ trip_id: trip.id }).find((p) => p.id === a.id);
+    const stillB = listParticipants({ trip_id: trip.id }).find((p) => p.id === b.id);
+    expect(stillA.group_leader).toBe(true);
+    expect(stillB.group_leader).toBe(false);
+  });
+
+  it('allows a second leader when it is a different group_number', () => {
+    const trip = createTrip({ year: '2063', name: 'Test', trip_date: '2063-01-01' });
+    const a = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+    const b = createParticipant({ first_name: 'B', last_name: 'B', role: 'Swimmer', trip_id: trip.id });
+    updateParticipantBooking(a.id, { group_number: '1', group_leader: true });
+
+    const updatedB = updateParticipantBooking(b.id, { group_number: '2', group_leader: true });
+    expect(updatedB.group_leader).toBe(true);
+  });
+
+  it('rejects setting group_leader true without a group_number', () => {
+    const trip = createTrip({ year: '2064', name: 'Test', trip_date: '2064-01-01' });
+    const a = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+    expect(() => updateParticipantBooking(a.id, { group_leader: true })).toThrow();
+  });
+
+  it('unsetting a leader then reassigning it to someone else in the same group works', () => {
+    const trip = createTrip({ year: '2065', name: 'Test', trip_date: '2065-01-01' });
+    const a = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+    const b = createParticipant({ first_name: 'B', last_name: 'B', role: 'Swimmer', trip_id: trip.id });
+    updateParticipantBooking(a.id, { group_number: '1', group_leader: true });
+
+    updateParticipantBooking(a.id, { group_leader: false });
+    const updatedB = updateParticipantBooking(b.id, { group_number: '1', group_leader: true });
+    expect(updatedB.group_leader).toBe(true);
+  });
+
+  it('does not count an inactive participant as the existing leader', () => {
+    const trip = createTrip({ year: '2066', name: 'Test', trip_date: '2066-01-01' });
+    const a = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+    const b = createParticipant({ first_name: 'B', last_name: 'B', role: 'Swimmer', trip_id: trip.id });
+    updateParticipantBooking(a.id, { group_number: '1', group_leader: true });
+    updateParticipant(a.id, { active: false });
+
+    const updatedB = updateParticipantBooking(b.id, { group_number: '1', group_leader: true });
+    expect(updatedB.group_leader).toBe(true);
+  });
+});
+
+describe('listParticipants: group filters and sorting', () => {
+  it('filters by exact group_number', () => {
+    const trip = createTrip({ year: '2067', name: 'Test', trip_date: '2067-01-01' });
+    const a = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+    createParticipant({ first_name: 'B', last_name: 'B', role: 'Swimmer', trip_id: trip.id });
+    updateParticipantBooking(a.id, { group_number: '5' });
+
+    const results = listParticipants({ trip_id: trip.id, group_number: '5' });
+    expect(results.map((p) => p.id)).toEqual([a.id]);
+  });
+
+  it('filters to leaders_only', () => {
+    const trip = createTrip({ year: '2068', name: 'Test', trip_date: '2068-01-01' });
+    const a = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+    createParticipant({ first_name: 'B', last_name: 'B', role: 'Swimmer', trip_id: trip.id });
+    updateParticipantBooking(a.id, { group_number: '5', group_leader: true });
+
+    const results = listParticipants({ trip_id: trip.id, leaders_only: '1' });
+    expect(results.map((p) => p.id)).toEqual([a.id]);
+  });
+
+  it.each([
+    ['group_number', '2071'],
+    ['seat_mate_group', '2072'],
+    ['reservation_number', '2073'],
+    ['seat_to_fl', '2074'],
+    ['seat_to_ct', '2075'],
+    ['group_leader', '2076'],
+  ])('sorts by %s', (field, year) => {
+    const trip = createTrip({ year, name: 'Test', trip_date: `${year}-01-01` });
+    const a = createParticipant({ first_name: 'A', last_name: 'A', role: 'Swimmer', trip_id: trip.id });
+    const b = createParticipant({ first_name: 'B', last_name: 'B', role: 'Swimmer', trip_id: trip.id });
+
+    // For every text field, a < b ("AAA" < "ZZZ"); for group_leader, a is
+    // the leader (1) and b is not (0), so a sorts AFTER b ascending.
+    let low = a;
+    let high = b;
+    if (field === 'group_leader') {
+      updateParticipantBooking(a.id, { group_number: '1', group_leader: true });
+      low = b;
+      high = a;
+    } else {
+      updateParticipantBooking(a.id, { [field]: 'AAA' });
+      updateParticipantBooking(b.id, { [field]: 'ZZZ' });
+    }
+
+    const asc = listParticipants({ trip_id: trip.id, sort: field, dir: 'asc' });
+    expect(asc[0].id).toBe(low.id);
+
+    const desc = listParticipants({ trip_id: trip.id, sort: field, dir: 'desc' });
+    expect(desc[0].id).toBe(high.id);
   });
 });

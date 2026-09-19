@@ -70,6 +70,7 @@ function rowToParticipant(row) {
       participant.has_allergy_medication === null || participant.has_allergy_medication === undefined
         ? null
         : Boolean(participant.has_allergy_medication),
+    group_leader: Boolean(participant.group_leader),
     // null when the trip has no estimated cost set (e.g. an archived trip
     // with no detail fields) — "—" in the UI, not a false $0 owed.
     deposit_balance: isAdult ? 0 : deposit_amount == null ? null : deposit_amount - participant.deposit_received,
@@ -92,6 +93,12 @@ const SORT_ACCESSORS = {
   age: (p) => p.age_at_trip,
   deposit_received: (p) => p.deposit_received,
   final_payment_received: (p) => p.final_payment_received,
+  group_number: (p) => p.group_number,
+  seat_mate_group: (p) => p.seat_mate_group,
+  reservation_number: (p) => p.reservation_number,
+  seat_to_fl: (p) => p.seat_to_fl,
+  seat_to_ct: (p) => p.seat_to_ct,
+  group_leader: (p) => (p.group_leader ? 1 : 0),
   balance: (p) =>
     p.deposit_balance == null && p.final_payment_balance == null
       ? null
@@ -116,7 +123,18 @@ function compareParticipants(a, b, sortKey, dir) {
   return a.last_name.localeCompare(b.last_name);
 }
 
-export function listParticipants({ role, grad_year, active, q, sort, dir, deposit_paid, trip_id } = {}) {
+export function listParticipants({
+  role,
+  grad_year,
+  active,
+  q,
+  sort,
+  dir,
+  deposit_paid,
+  trip_id,
+  group_number,
+  leaders_only,
+} = {}) {
   const clauses = ['participants.trip_id = ?'];
   const params = [trip_id];
 
@@ -136,6 +154,13 @@ export function listParticipants({ role, grad_year, active, q, sort, dir, deposi
   if (q) {
     clauses.push('(participants.first_name LIKE ? OR participants.last_name LIKE ?)');
     params.push(`%${q}%`, `%${q}%`);
+  }
+  if (group_number) {
+    clauses.push('participants.group_number = ?');
+    params.push(group_number);
+  }
+  if (leaders_only === '1' || leaders_only === true || leaders_only === 1) {
+    clauses.push('participants.group_leader = 1');
   }
 
   const where = `WHERE ${clauses.join(' AND ')}`;
@@ -284,16 +309,47 @@ export function recordPaymentReceived(id, { depositAmount = 0, finalAmount = 0 }
   return getParticipantById(id);
 }
 
-// Targeted updater for the Booking tab's logistics fields — bypasses
-// validateParticipant/findDuplicate (see routes/participants.js) since these
-// fields carry no identity or payment meaning and shouldn't trigger the
-// duplicate-name/birth-date check on every keystroke-blur.
+// One leader per group_number (see migration 024). Only checked when a
+// write is actually turning the flag on — unsetting a leader, or leaving it
+// untouched, never needs to look at sibling rows. Thrown (not returned) so
+// updateParticipantBooking's caller can tell this apart from the plain
+// "not found" case and surface it as a 400 rather than silently overwriting
+// the existing leader.
+function assertLeaderAssignmentAllowed(existing, merged, id) {
+  if (!merged.group_leader) return;
+
+  if (!merged.group_number) {
+    const err = new Error('A group leader must have a group number set.');
+    err.code = 'GROUP_LEADER_NO_GROUP';
+    throw err;
+  }
+
+  const other = db
+    .prepare(
+      `SELECT id FROM participants
+       WHERE trip_id = ? AND group_number = ? AND group_leader = 1 AND active = 1 AND id != ?`
+    )
+    .get(existing.trip_id, merged.group_number, id);
+  if (other) {
+    const err = new Error(`Group ${merged.group_number} already has a leader.`);
+    err.code = 'DUPLICATE_GROUP_LEADER';
+    throw err;
+  }
+}
+
+// Targeted updater for the Booking tab's logistics fields (plus the
+// group_leader flag) — bypasses validateParticipant/findDuplicate (see
+// routes/participants.js) since these fields carry no identity or payment
+// meaning and shouldn't trigger the duplicate-name/birth-date check on
+// every keystroke-blur.
 export function updateParticipantBooking(id, data) {
   const existing = db.prepare('SELECT * FROM participants WHERE id = ?').get(id);
   if (!existing) return null;
 
   const now = new Date().toISOString();
   const merged = { ...existing, ...data };
+
+  assertLeaderAssignmentAllowed(existing, merged, id);
 
   db.prepare(
     `UPDATE participants SET
@@ -302,6 +358,7 @@ export function updateParticipantBooking(id, data) {
       reservation_number = @reservation_number,
       seat_to_fl = @seat_to_fl,
       seat_to_ct = @seat_to_ct,
+      group_leader = @group_leader,
       updated_at = @updated_at
      WHERE id = @id`
   ).run({
@@ -311,6 +368,7 @@ export function updateParticipantBooking(id, data) {
     reservation_number: merged.reservation_number || null,
     seat_to_fl: merged.seat_to_fl || null,
     seat_to_ct: merged.seat_to_ct || null,
+    group_leader: merged.group_leader ? 1 : 0,
     updated_at: now,
   });
 

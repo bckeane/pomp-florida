@@ -202,6 +202,98 @@ describe('DELETE /api/participants/:id', () => {
   });
 });
 
+describe('PATCH /api/participants/:id/booking (group_leader)', () => {
+  it('sets group_leader when the participant has a group_number', async () => {
+    const created = await request(app).post('/api/participants').set('Cookie', adminCookie).send(swimmer());
+    const res = await request(app)
+      .patch(`/api/participants/${created.body.id}/booking`)
+      .set('Cookie', adminCookie)
+      .send({ group_number: '1', group_leader: true });
+    expect(res.status).toBe(200);
+    expect(res.body.group_leader).toBe(true);
+  });
+
+  it('400s when setting group_leader true without a group_number', async () => {
+    const created = await request(app).post('/api/participants').set('Cookie', adminCookie).send(swimmer());
+    const res = await request(app)
+      .patch(`/api/participants/${created.body.id}/booking`)
+      .set('Cookie', adminCookie)
+      .send({ group_leader: true });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('400s when a second participant in the same group_number is flagged leader', async () => {
+    const first = await request(app).post('/api/participants').set('Cookie', adminCookie).send(swimmer());
+    const second = await request(app)
+      .post('/api/participants')
+      .set('Cookie', adminCookie)
+      .send(swimmer({ first_name: 'Jordan' }));
+    await request(app)
+      .patch(`/api/participants/${first.body.id}/booking`)
+      .set('Cookie', adminCookie)
+      .send({ group_number: '1', group_leader: true });
+
+    const res = await request(app)
+      .patch(`/api/participants/${second.body.id}/booking`)
+      .set('Cookie', adminCookie)
+      .send({ group_number: '1', group_leader: true });
+    expect(res.status).toBe(400);
+
+    const stillFirst = await request(app).get(`/api/participants/${first.body.id}`).set('Cookie', adminCookie);
+    expect(stillFirst.body.group_leader).toBe(true);
+  });
+
+  it('allows a second leader in a different group_number', async () => {
+    const first = await request(app).post('/api/participants').set('Cookie', adminCookie).send(swimmer());
+    const second = await request(app)
+      .post('/api/participants')
+      .set('Cookie', adminCookie)
+      .send(swimmer({ first_name: 'Jordan' }));
+    await request(app)
+      .patch(`/api/participants/${first.body.id}/booking`)
+      .set('Cookie', adminCookie)
+      .send({ group_number: '1', group_leader: true });
+
+    const res = await request(app)
+      .patch(`/api/participants/${second.body.id}/booking`)
+      .set('Cookie', adminCookie)
+      .send({ group_number: '2', group_leader: true });
+    expect(res.status).toBe(200);
+    expect(res.body.group_leader).toBe(true);
+  });
+});
+
+describe('GET /api/participants (group filters)', () => {
+  it('filters by group_number', async () => {
+    const first = await request(app).post('/api/participants').set('Cookie', adminCookie).send(swimmer());
+    await request(app).post('/api/participants').set('Cookie', adminCookie).send(swimmer({ first_name: 'Jordan' }));
+    await request(app)
+      .patch(`/api/participants/${first.body.id}/booking`)
+      .set('Cookie', adminCookie)
+      .send({ group_number: '7' });
+
+    const res = await request(app).get('/api/participants?group_number=7').set('Cookie', adminCookie);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].id).toBe(first.body.id);
+  });
+
+  it('filters to leaders_only', async () => {
+    const first = await request(app).post('/api/participants').set('Cookie', adminCookie).send(swimmer());
+    await request(app).post('/api/participants').set('Cookie', adminCookie).send(swimmer({ first_name: 'Jordan' }));
+    await request(app)
+      .patch(`/api/participants/${first.body.id}/booking`)
+      .set('Cookie', adminCookie)
+      .send({ group_number: '7', group_leader: true });
+
+    const res = await request(app).get('/api/participants?leaders_only=1').set('Cookie', adminCookie);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].id).toBe(first.body.id);
+  });
+});
+
 describe('GET /api/participants/export', () => {
   it('401s when not signed in', async () => {
     const res = await request(app).get('/api/participants/export');

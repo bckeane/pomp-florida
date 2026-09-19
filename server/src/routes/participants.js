@@ -54,8 +54,19 @@ router.get('/participants', requireAdmin, (req, res) => {
   if (trip === undefined) return res.status(400).json({ error: 'Unknown trip_id' });
   if (trip === null) return res.status(400).json({ error: 'No current trip is set' });
 
-  const { role, grad_year, active, q, sort, dir, deposit_paid } = req.query;
-  const participants = listParticipants({ role, grad_year, active, q, sort, dir, deposit_paid, trip_id: trip.id });
+  const { role, grad_year, active, q, sort, dir, deposit_paid, group_number, leaders_only } = req.query;
+  const participants = listParticipants({
+    role,
+    grad_year,
+    active,
+    q,
+    sort,
+    dir,
+    deposit_paid,
+    group_number,
+    leaders_only,
+    trip_id: trip.id,
+  });
   res.json(participants);
 });
 
@@ -142,8 +153,17 @@ router.patch('/participants/:id/booking', requireAdmin, (req, res) => {
   for (const field of BOOKING_FIELDS) {
     if (field in req.body) data[field] = req.body[field];
   }
+  if ('group_leader' in req.body) data.group_leader = req.body.group_leader;
 
-  const participant = updateParticipantBooking(req.params.id, data);
+  let participant;
+  try {
+    participant = updateParticipantBooking(req.params.id, data);
+  } catch (err) {
+    if (err.code === 'DUPLICATE_GROUP_LEADER' || err.code === 'GROUP_LEADER_NO_GROUP') {
+      return res.status(400).json({ error: err.message });
+    }
+    throw err;
+  }
   res.json(participant);
 });
 

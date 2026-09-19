@@ -265,7 +265,14 @@ export default function RosterTable({
         <tbody>
           {participants.map((p) => (
             <tr key={p.id} className={p.active ? '' : 'row--inactive'}>
-              <td data-label="Name" className="col-name">{p.full_name}</td>
+              <td data-label="Name" className="col-name">
+                {p.full_name}
+                {p.group_leader && (
+                  <span title="Group leader" aria-label="Group leader">
+                    {' '}👑
+                  </span>
+                )}
+              </td>
               <td data-label="Registered">{formatShortDate(p.created_at?.slice(0, 10)) ?? '—'}</td>
               <td data-label="Role">
                 <span title={p.role} aria-label={p.role}>
