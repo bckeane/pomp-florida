@@ -12,6 +12,7 @@ import AuthGate from './components/AuthGate.jsx';
 import AccountsPanel from './components/AccountsPanel.jsx';
 import TrafficPanel from './components/TrafficPanel.jsx';
 import QuestionsPanel from './components/QuestionsPanel.jsx';
+import BookingPanel from './components/BookingPanel.jsx';
 import { me, logout } from './api/auth.js';
 import {
   fetchParticipants,
@@ -199,6 +200,7 @@ export default function AdminRoster() {
   const tabLabel = {
     roster: 'Roster',
     budget: 'Budget',
+    booking: 'Booking',
     questions: 'Questions',
     'trip-details': 'Trip details',
     announcement: 'Announcement',
@@ -288,6 +290,13 @@ export default function AdminRoster() {
           </button>
           <button
             type="button"
+            className={`segmented-btn ${activeTab === 'booking' ? 'segmented-btn--active' : ''}`}
+            onClick={() => setActiveTab('booking')}
+          >
+            Booking
+          </button>
+          <button
+            type="button"
             className={`segmented-btn ${activeTab === 'questions' ? 'segmented-btn--active' : ''}`}
             onClick={() => setActiveTab('questions')}
           >
@@ -328,6 +337,8 @@ export default function AdminRoster() {
 
       {activeTab === 'budget' && selectedTrip ? (
         <BudgetPanel tripId={selectedTrip.id} />
+      ) : activeTab === 'booking' && selectedTrip ? (
+        <BookingPanel tripId={selectedTrip.id} />
       ) : activeTab === 'questions' && selectedTrip ? (
         <QuestionsPanel tripId={selectedTrip.id} tripName={selectedTrip.name} />
       ) : activeTab === 'trip-details' && selectedTrip ? (

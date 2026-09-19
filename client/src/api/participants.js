@@ -39,6 +39,10 @@ export function updateParticipant(id, data) {
   return request(`/participants/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 }
 
+export function updateParticipantBooking(id, data) {
+  return request(`/participants/${id}/booking`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+
 export function deleteParticipant(id, { hard = false } = {}) {
   return request(`/participants/${id}${hard ? '?hard=true' : ''}`, { method: 'DELETE' });
 }

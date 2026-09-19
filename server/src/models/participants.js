@@ -13,9 +13,22 @@ const COLUMNS = [
   'deposit_received',
   'final_payment_received',
   'has_allergy_medication',
+  'group_number',
+  'seat_mate_group',
+  'reservation_number',
+  'seat_to_fl',
+  'seat_to_ct',
   'trip_id',
   'created_at',
   'updated_at',
+];
+
+const BOOKING_FIELDS = [
+  'group_number',
+  'seat_mate_group',
+  'reservation_number',
+  'seat_to_fl',
+  'seat_to_ct',
 ];
 
 // Tri-state (see migration 013): stored as 1/0/NULL, read back as
@@ -36,9 +49,11 @@ function toTriStateInt(value) {
 // participant without a second round trip.
 const SELECT_WITH_TRIP_DATE = `
   SELECT participants.*, trips.trip_date AS _trip_date, trips.year AS _trip_year,
-         trips.estimated_cost AS _estimated_cost, trips.deposit_percent AS _deposit_percent
+         trips.estimated_cost AS _estimated_cost, trips.deposit_percent AS _deposit_percent,
+         accounts.parent_name AS parent_name, accounts.email AS contact_email
   FROM participants
   JOIN trips ON trips.id = participants.trip_id
+  LEFT JOIN accounts ON accounts.id = participants.account_id
 `;
 
 function rowToParticipant(row) {
@@ -269,6 +284,39 @@ export function recordPaymentReceived(id, { depositAmount = 0, finalAmount = 0 }
   return getParticipantById(id);
 }
 
+// Targeted updater for the Booking tab's logistics fields — bypasses
+// validateParticipant/findDuplicate (see routes/participants.js) since these
+// fields carry no identity or payment meaning and shouldn't trigger the
+// duplicate-name/birth-date check on every keystroke-blur.
+export function updateParticipantBooking(id, data) {
+  const existing = db.prepare('SELECT * FROM participants WHERE id = ?').get(id);
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+  const merged = { ...existing, ...data };
+
+  db.prepare(
+    `UPDATE participants SET
+      group_number = @group_number,
+      seat_mate_group = @seat_mate_group,
+      reservation_number = @reservation_number,
+      seat_to_fl = @seat_to_fl,
+      seat_to_ct = @seat_to_ct,
+      updated_at = @updated_at
+     WHERE id = @id`
+  ).run({
+    id,
+    group_number: merged.group_number || null,
+    seat_mate_group: merged.seat_mate_group || null,
+    reservation_number: merged.reservation_number || null,
+    seat_to_fl: merged.seat_to_fl || null,
+    seat_to_ct: merged.seat_to_ct || null,
+    updated_at: now,
+  });
+
+  return getParticipantById(id);
+}
+
 export function softDeleteParticipant(id) {
   const now = new Date().toISOString();
   const info = db
@@ -336,4 +384,4 @@ export function getStats(tripId) {
   };
 }
 
-export { COLUMNS };
+export { COLUMNS, BOOKING_FIELDS };

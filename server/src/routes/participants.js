@@ -12,10 +12,12 @@ import {
   findDuplicate,
   createParticipant,
   updateParticipant,
+  updateParticipantBooking,
   softDeleteParticipant,
   hardDeleteParticipant,
   insertParticipantsBulk,
   getStats,
+  BOOKING_FIELDS,
 } from '../models/participants.js';
 
 // Charges the remaining balance (installment price minus whatever's already
@@ -71,6 +73,9 @@ router.get('/participants/export', requireAdmin, (req, res) => {
     'birth_date',
     'role',
     'active',
+    'parent_name',
+    'contact_email',
+    ...BOOKING_FIELDS,
   ];
   const csv = toCSV(participants, columns);
   res.setHeader('Content-Type', 'text/csv');
@@ -122,6 +127,23 @@ router.put('/participants/:id', requireAdmin, (req, res) => {
   }
 
   const participant = updateParticipant(req.params.id, { ...data, trip_id: existing.trip_id });
+  res.json(participant);
+});
+
+// Booking-tab logistics fields (group/seat/reservation numbers) — a narrow
+// PATCH that skips validateParticipant/findDuplicate entirely, since these
+// fields aren't identity data and shouldn't trigger a duplicate-name check
+// on every keystroke-blur (see PUT /:id above, which does full validation).
+router.patch('/participants/:id/booking', requireAdmin, (req, res) => {
+  const existing = getParticipantById(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Participant not found' });
+
+  const data = {};
+  for (const field of BOOKING_FIELDS) {
+    if (field in req.body) data[field] = req.body[field];
+  }
+
+  const participant = updateParticipantBooking(req.params.id, data);
   res.json(participant);
 });
 
